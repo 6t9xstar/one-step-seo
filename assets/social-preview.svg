@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" role="img" aria-label="one-step-seo social preview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1280" height="640" fill="url(#bg)"/>
+  <circle cx="1120" cy="120" r="180" fill="#22d3ee" opacity="0.08"/>
+  <circle cx="180" cy="560" r="140" fill="#3b82f6" opacity="0.10"/>
+  <text x="120" y="200" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="96" font-weight="800" fill="#f1f5f9">one-step-seo</text>
+  <text x="122" y="262" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="34" fill="#94a3b8">One command to audit any website for SEO + AI visibility.</text>
+  <rect x="120" y="310" width="640" height="72" rx="14" fill="#020617" stroke="#334155" stroke-width="1.5"/>
+  <text x="148" y="356" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="30" fill="#e2e8f0">npx one-step-seo audit</text>
+  <g font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+    <rect x="120" y="420" width="300" height="120" rx="16" fill="#052e2b" stroke="#22d3ee" stroke-width="2"/>
+    <text x="150" y="462" font-size="24" fill="#99f6e4">Search SEO</text>
+    <text x="150" y="514" font-size="44" font-weight="800" fill="#f1f5f9">87<tspan font-size="24" fill="#94a3b8">/100 B</tspan></text>
+    <rect x="450" y="420" width="300" height="120" rx="16" fill="#172554" stroke="#60a5fa" stroke-width="2"/>
+    <text x="480" y="462" font-size="24" fill="#bfdbfe">AI Visibility</text>
+    <text x="480" y="514" font-size="44" font-weight="800" fill="#f1f5f9">80<tspan font-size="24" fill="#94a3b8">/100 B</tspan></text>
+  </g>
+  <rect x="120" y="572" width="360" height="10" rx="5" fill="url(#accent)"/>
+  <text x="900" y="600" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="26" fill="#64748b">MIT · zero dependencies · Node 18+</text>
+</svg>
