@@ -5,7 +5,7 @@ Thanks for helping. This project stays small on purpose: zero dependencies, one 
 ## Quick start
 
 ```bash
-git clone https://github.com/your-org/one-step-seo.git
+git clone https://github.com/6t9xstar/one-step-seo.git
 cd one-step-seo
 node --version   # needs >= 18
 npm test

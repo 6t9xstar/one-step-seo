@@ -5,13 +5,13 @@
   "type": "module",
   "license": "MIT",
   "author": "one-step-seo contributors",
-  "homepage": "https://github.com/your-org/one-step-seo",
+  "homepage": "https://github.com/6t9xstar/one-step-seo",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-org/one-step-seo.git"
+    "url": "git+https://github.com/6t9xstar/one-step-seo.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/one-step-seo/issues"
+    "url": "https://github.com/6t9xstar/one-step-seo/issues"
   },
   "keywords": [
     "seo",

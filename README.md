@@ -3,7 +3,7 @@
 > One command to audit any website for **SEO + AI visibility**. Zero-config CLI + AI skill.
 
 [![npm version](https://img.shields.io/npm/v/one-step-seo)](https://www.npmjs.com/package/one-step-seo)
-[![CI](https://github.com/your-org/one-step-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/one-step-seo/actions/workflows/ci.yml)
+[![CI](https://github.com/6t9xstar/one-step-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/6t9xstar/one-step-seo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](./package.json)
 
@@ -56,7 +56,7 @@ Details: [`docs/SCORING.md`](./docs/SCORING.md). Full check list: [`docs/CHECKS.
 Compatible with Claude Code, OpenCode, Codex, Cursor — anything that reads `SKILL.md`.
 
 ```bash
-npx skills add your-org/one-step-seo
+npx skills add 6t9xstar/one-step-seo
 ```
 
 Or copy [`SKILL.md`](./SKILL.md) into your agent's skills folder and ask:
@@ -88,7 +88,7 @@ Sub-skills: [`skills/seo-audit/SKILL.md`](./skills/seo-audit/SKILL.md) (audit �
 PRs welcome — especially new checks with fixtures. See [`CONTRIBUTING.md`](./CONTRIBUTING.md). Please follow the [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md). Security reports: [`SECURITY.md`](./SECURITY.md).
 
 ```bash
-git clone https://github.com/your-org/one-step-seo.git
+git clone https://github.com/6t9xstar/one-step-seo.git
 cd one-step-seo
 npm test
 node bin/cli.mjs audit https://example.com --out ./seo-report
@@ -97,4 +97,3 @@ node bin/cli.mjs audit https://example.com --out ./seo-report
 ## License
 
 MIT — see [`LICENSE`](./LICENSE).
-# one-step-seo
