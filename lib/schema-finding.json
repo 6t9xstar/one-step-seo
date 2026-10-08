@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "one-step-seo finding",
+  "type": "object",
+  "required": ["id", "category", "severity", "title", "evidence", "fix"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[A-Z]+[0-9]+-[a-z0-9-]+$" },
+    "category": {
+      "type": "string",
+      "enum": ["technical", "onpage", "content", "schema", "geo", "performance"]
+    },
+    "severity": { "type": "string", "enum": ["P0", "P1", "P2", "P3", "pass"] },
+    "title": { "type": "string", "minLength": 3 },
+    "evidence": { "type": "string" },
+    "fix": { "type": "string" },
+    "seoImpact": { "type": "string" },
+    "geoImpact": { "type": "string" }
+  }
+}

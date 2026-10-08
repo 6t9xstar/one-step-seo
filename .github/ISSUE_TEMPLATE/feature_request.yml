@@ -1,0 +1,23 @@
+name: Feature request
+description: New check, command, or report idea
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem (with evidence)
+      description: What audit misses today? Link an example URL or fixture.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal (check id, severity, fix text)
+    validations:
+      required: true
+  - type: checkboxes
+    id: zero-dep
+    attributes:
+      label: Constraints
+      options:
+        - label: Works with zero new dependencies

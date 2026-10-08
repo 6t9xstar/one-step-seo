@@ -1,0 +1,30 @@
+name: Bug report
+description: Something broken in an audit or the CLI
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "e.g. 0.1.0 / commit sha"
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node version (`node --version`)
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command run
+      placeholder: "npx one-step-seo audit https://... --pages 5"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true

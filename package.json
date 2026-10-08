@@ -1,0 +1,47 @@
+{
+  "name": "one-step-seo",
+  "version": "0.1.0",
+  "description": "One command to audit any website for SEO + GEO/AEO. Zero-config CLI + AI skill.",
+  "type": "module",
+  "license": "MIT",
+  "author": "one-step-seo contributors",
+  "homepage": "https://github.com/your-org/one-step-seo",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/one-step-seo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/one-step-seo/issues"
+  },
+  "keywords": [
+    "seo",
+    "geo",
+    "aeo",
+    "technical-seo",
+    "schema",
+    "sitemap",
+    "cli",
+    "website-audit",
+    "core-web-vitals",
+    "ai-agents"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bin": {
+    "one-step-seo": "./bin/cli.mjs"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "skills/",
+    "SKILL.md",
+    "templates/",
+    "docs/"
+  ],
+  "scripts": {
+    "test": "node --test tests/audit.test.mjs",
+    "audit": "node bin/cli.mjs audit",
+    "doctor": "node bin/cli.mjs doctor"
+  }
+}

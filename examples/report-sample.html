@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>one-step-seo report — https://example.com/good/</title>
+<style>
+:root{color-scheme:light dark}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:32px;line-height:1.55;max-width:1080px;margin-inline:auto}
+.cards{display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 24px}
+.card{border:1px solid #ccc;border-radius:12px;padding:16px 20px;min-width:220px}
+.score{font-size:40px;font-weight:800}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid #ccc;padding:8px 10px;text-align:left;vertical-align:top}
+tr.sev-P0{background:rgba(220,38,38,.08)}
+tr.sev-P1{background:rgba(234,88,12,.08)}
+.meta{color:#555;font-size:13px}
+code{background:rgba(127,127,127,.15);padding:1px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<h1>one-step-seo report</h1>
+<p class="meta">URL: <code>https://example.com/good/</code><br>Final: <code>https://example.com/good/</code><br>Checked: 2026-10-08T03:09:38.342Z · v0.1.0</p>
+<div class="cards">
+<div class="card"><div>Search SEO</div><div class="score">87<small>/100 B</small></div></div>
+<div class="card"><div>AI Visibility</div><div class="score">80<small>/100 B</small></div></div>
+<div class="card"><div>Counts</div><div>P0=0 · P1=1 · P2=2 · P3=0 · pass=29</div></div>
+</div>
+<table>
+<thead><tr><th>Priority</th><th>Check</th><th>Evidence</th><th>Fix</th></tr></thead>
+<tbody>
+<tr class="sev-P1"><td><strong>P1</strong></td><td>Thin content<br><small>C01-thin · content</small></td><td>130 words</td><td>Expand to fully answer the query; add examples, steps, data.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>llms.txt missing<br><small>G01-llms · geo</small></td><td>GET /llms.txt not found</td><td>Optional: add /llms.txt summarizing key pages for AI crawlers.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>Facts hard to extract<br><small>G03-facts · geo</small></td><td>tables:1 lists:1 words:130</td><td>Surface prices/specs/steps/dates in tables or bolded fact lines with sources.</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>HTTPS enabled<br><small>T01-https · technical</small></td><td>Final URL uses https</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>HTTP 200 OK<br><small>T02-status · technical</small></td><td>Status 200 in 12ms</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Redirect chain clean<br><small>T03-redirects · technical</small></td><td>0 redirect(s)</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>HTML content-type<br><small>T04-content-type · technical</small></td><td>text/html</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>robots.txt found<br><small>T05-robots · technical</small></td><td>Disallows: 1</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>XML sitemap found<br><small>T06-sitemap · technical</small></td><td>~10 URLs</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Indexable (no noindex)<br><small>T07-noindex · technical</small></td><td>meta robots: &quot;(none)&quot;</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Canonical self-references<br><small>T08-canonical · technical</small></td><td>https://example.com/good/</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>HTML lang=&quot;en&quot;<br><small>T09-lang · technical</small></td><td>lang: en</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>UTF-8 charset declared<br><small>T10-charset · technical</small></td><td>utf-8</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Responsive viewport set<br><small>T11-viewport · technical</small></td><td>width=device-width, initial-scale=1</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Clean URL shape<br><small>T12-url · technical</small></td><td>/good/</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Title length healthy<br><small>O01-title · onpage</small></td><td>&quot;Good Example Page — One-Step-SEO Demo&quot; (37ch)</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Meta description healthy<br><small>O02-meta · onpage</small></td><td>125ch</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Single H1<br><small>O03-h1 · onpage</small></td><td>&quot;Good example page&quot;</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Heading order logical<br><small>O04-headings · onpage</small></td><td>4 headings</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Subheadings present<br><small>O05-h2 · onpage</small></td><td>3 H2(s)</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Open Graph complete<br><small>O06-og · onpage</small></td><td>og:title/description/image present</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Favicon present<br><small>O07-favicon · onpage</small></td><td>rel=icon found</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>All images have alt<br><small>O08-alt · onpage</small></td><td>1 img</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Image dimensions OK<br><small>O09-img-dims · onpage</small></td><td>1 img checked</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Internal linking present<br><small>O10-internal · onpage</small></td><td>2 internal links</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Answer-first opening detected<br><small>C02-answer · content</small></td><td>Question/direct-answer near top</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Extractable structures present<br><small>C03-extractable · content</small></td><td>1 tables, 1 lists</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>FAQ signals present<br><small>C04-faq · content</small></td><td>FAQ text or markup detected</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Structured data present (1 node(s))<br><small>S01-present · schema</small></td><td>Types: Article</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>AI crawlers not blanket-blocked<br><small>G02-ai-blocked · geo</small></td><td>No full Disallow for AI bots</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>HTML size reasonable<br><small>P01-html-size · performance</small></td><td>2KB</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Image count reasonable<br><small>P02-img-count · performance</small></td><td>1 &lt;img&gt;</td><td>—</td></tr>
+</tbody>
+</table>
+<p class="meta">Generated by one-step-seo. Two scores, never blended.</p>
+</body>
+</html>

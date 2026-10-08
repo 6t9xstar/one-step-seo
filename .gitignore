@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# build output / reports (local runs)
+seo-report/
+runs/
+*.log
+
+# OS + editor
+.DS_Store
+Thumbs.db
+*.local
+.vscode/*
+.idea/*
+
+# env
+.env
+.env.*
+!.env.example
+
+# coverage
+coverage/

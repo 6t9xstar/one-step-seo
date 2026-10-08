@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="one-step-seo logo">
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="#0f172a"/>
+  <path d="M38 84 L58 44 H70 L50 84 Z" fill="#22d3ee"/>
+  <circle cx="82" cy="62" r="16" fill="none" stroke="#a5f3fc" stroke-width="7"/>
+  <line x1="93" y1="73" x2="104" y2="84" stroke="#a5f3fc" stroke-width="7" stroke-linecap="round"/>
+  <text x="64" y="108" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#e2e8f0">1-STEP SEO</text>
+</svg>
