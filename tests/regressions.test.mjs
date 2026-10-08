@@ -278,6 +278,73 @@ test("regression: 'FAQPage' as prose does not trigger FAQ detection", () => {
   assert.equal(heading.faqDetected, true);
 });
 
+test("regression: hasAnswerBlock requires a question that is actually answered", () => {
+  // The 25-point "answer-first opening" weight used to fire on any question
+  // mark in the first 4000 chars, so nav/breadcrumb boilerplate collected the
+  // full weight on pages with no answer-first content at all.
+  const navOnly = parseHtml(
+    `<html><body><nav><a>Where is your office located?</a> <a>Can I book a demo?</a></nav><main><p>${"filler ".repeat(120)}</p></main></body></html>`,
+    "https://a.com/",
+  );
+  assert.equal(navOnly.hasAnswerBlock, false, "nav questions must not count as answer-first");
+
+  // A real question followed by a direct answer still counts.
+  const answered = parseHtml(
+    `<html><body><p>What is an electrical estimator? An electrical estimator prices every conduit run, fixture and panel schedule on a construction project before work begins on site.</p></body></html>`,
+    "https://a.com/",
+  );
+  assert.equal(answered.hasAnswerBlock, true, "an answered question must count");
+
+  // A question with nothing but another question after it does not count.
+  const stacked = parseHtml(`<html><body><p>What is X? Why use it?</p></body></html>`, "https://a.com/");
+  assert.equal(stacked.hasAnswerBlock, false);
+});
+
+test("regression: explicit answer markers work mid-page", () => {
+  // The marker branch anchored on /^.../m, but stripTags collapses all
+  // whitespace so visibleText has no newlines and `^` could only ever match
+  // position 0 — the branch was dead code for any marker not literally first.
+  const midPage = parseHtml(
+    `<html><body><p>${"filler ".repeat(60)}In short: this is the answer.</p></body></html>`,
+    "https://a.com/",
+  );
+  assert.equal(midPage.hasAnswerBlock, true, "a mid-page marker must be detected");
+  assert.ok(!midPage.visibleText.includes("\n"), "precondition: visibleText has no newlines");
+
+  const tldr = parseHtml(
+    `<html><body><p>${"filler ".repeat(10)}TL;DR: the short version.</p></body></html>`,
+    "https://a.com/",
+  );
+  assert.equal(tldr.hasAnswerBlock, true);
+});
+
+test("regression: a document without </body> does not count head text as body", () => {
+  // The fallback was the entire raw HTML, so <title>/meta text inflated
+  // wordCount and polluted the answer-first signals.
+  const frag = parseHtml(
+    `<html><head><title>My Great Page Title Here</title><meta name="description" content="some description text"></head><p>real content only</p>`,
+    "https://a.com/",
+  );
+  assert.equal(frag.wordCount, 3, `expected 3, got ${frag.wordCount}`);
+  assert.ok(!frag.visibleText.includes("My Great Page Title Here"), "title text must not leak into body");
+  assert.ok(!frag.visibleText.includes("some description text"), "meta text must not leak into body");
+
+  // A normal document is unaffected.
+  const normal = parseHtml(
+    `<html><head><title>T</title></head><body><p>one two three</p></body></html>`,
+    "https://a.com/",
+  );
+  assert.equal(normal.wordCount, 3);
+
+  // Script/style bodies must not leak either.
+  const scripted = parseHtml(
+    `<html><head><style>.a{color:red}</style></head><script>var x = 1;</script><p>body words here</p>`,
+    "https://a.com/",
+  );
+  assert.ok(!scripted.visibleText.includes("color:red"), "style text must not leak");
+  assert.ok(!scripted.visibleText.includes("var x"), "script text must not leak");
+});
+
 test("regression: HTML entities decode exactly once", () => {
   // Pre-fix `&amp;` was expanded before `&lt;`, so `&amp;lt;` decoded twice
   // into `<`, corrupting titles and body text.

@@ -6,6 +6,27 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Answer-first detection was far too permissive and inflated the AI-Visibility
+  score.** The largest GEO weight (25 points) fired on _any_ question mark in the
+  first 4000 characters, so nav and breadcrumb links such as "Where is your office
+  located?" collected the full weight on pages with no answer-first content. A
+  question now only counts when a real answer follows it: informational
+  interrogatives (`what`/`why`/`how`/`when`/`where`/`which`/`who`) matched against
+  the opening, each requiring substantial prose before the next question mark.
+  `is`/`are`/`can`/`does`/`should` are excluded — those forms are overwhelmingly
+  nav links and CTAs rather than answer-first content. Explicit markers
+  (`TL;DR:`, `In short:`) are now detected mid-page instead of only at the very
+  start of the text.
+
+- **A page missing its closing `</body>` counted `<title>` and meta text as body
+  content.** The fallback used the entire raw HTML, so `wordCount` was inflated
+  (a false thin-content pass) and the answer-first and FAQ signals were polluted
+  by metadata. The fallback now strips `head`, `script`, `style`, `noscript` and
+  comments first. The exported `hasQuestion` field, which nothing consumed, was
+  removed.
+
 ## [0.3.0] - 2026-10-09
 
 ### Added
