@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Ask a question / get help
+    url: https://github.com/6t9xstar/one-step-seo/discussions
+    about: Usage questions and how-to help belong in Discussions, not Issues.
+  - name: Report a security vulnerability
+    url: https://github.com/6t9xstar/one-step-seo/security/advisories/new
+    about: Please do not open a public issue for security reports — see SECURITY.md.
+  - name: Read the docs first
+    url: https://github.com/6t9xstar/one-step-seo/blob/main/docs/USAGE.md
+    about: Flags, formats and exit codes are documented here.

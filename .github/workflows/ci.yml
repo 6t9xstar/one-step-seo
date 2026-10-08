@@ -27,3 +27,16 @@ jobs:
       - run: npm run check
       - run: node bin/cli.mjs doctor
       - run: npm run examples:check
+
+  coverage:
+    # Coverage thresholds live in test:coverage:gate, which needs Node 22+ for
+    # --test-coverage-{lines,branches,functions}, so this runs on 22 only.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee94edb60a # v4.0.3
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:coverage:gate

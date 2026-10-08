@@ -8,6 +8,29 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- `--timeout` only covered the header phase: the `AbortController` timer was
+  cleared the moment `fetch()` resolved, so `readCappedText` then streamed the
+  body with no deadline. A server that sent headers and stalled mid-body hung
+  the CLI indefinitely. The timer now stays armed through the body read and is
+  raced against it; `unref()` keeps a pending timer from holding the process
+  open. Covered by a drip test that sends headers, never `end()`s, and was
+  verified to fail against the previous implementation.
+
+### Added
+
+- `coverage` job in `ci.yml` running `npm run test:coverage:gate`, so the
+  85/80/85 thresholds are enforced on push rather than dev-only.
+
+### Changed
+
+- `CODE_OF_CONDUCT.md` pointed at a placeholder `conduct@example.com`; it now
+  names the maintainer from `CODEOWNERS`.
+- Added `.github/ISSUE_TEMPLATE/config.yml` routing usage questions to
+  Discussions and security reports to private advisories, matching what
+  `CONTRIBUTING.md` already told contributors to do.
+
+### Fixed
+
 - `npm run test:coverage` passed a non-existent `--test-coverage` flag and failed
   immediately on every run with `node: bad option: --test-coverage`. It now uses
   `--experimental-test-coverage`. Strict thresholds moved to a separate

@@ -105,6 +105,31 @@ test("non-200 surfaces status without html", async () => {
   assert.equal(r.html, "");
 });
 
+test("times out a server that stalls mid-body", async () => {
+  // Headers arrive, then the body is drip-fed and never ended. A headers-only
+  // deadline clears the abort timer as soon as fetch() resolves, so this used
+  // to hang the caller indefinitely.
+  const drip = http.createServer((_req, res) => {
+    res.writeHead(200, { "content-type": "text/html" });
+    res.write("<html><body>partial");
+    // deliberately never end()s
+  });
+  await new Promise((resolve) => drip.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (drip.address())?.port;
+  try {
+    const started = Date.now();
+    const r = await fetchWithRedirects(`http://127.0.0.1:${port}/`, { timeoutMs: 1000 });
+    const elapsed = Date.now() - started;
+    assert.equal(r.ok, false);
+    assert.match(r.error, /timeout/);
+    // Must fail near the deadline rather than hanging on the open socket.
+    assert.ok(elapsed < 5000, `expected a fast timeout, took ${elapsed}ms`);
+  } finally {
+    drip.closeAllConnections?.();
+    await new Promise((r) => drip.close(r));
+  }
+});
+
 test("fetchText fetches small files best-effort", async () => {
   const ok = await fetchText(`${base}/robots.txt`);
   assert.equal(ok.ok, true);
