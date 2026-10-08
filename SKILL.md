@@ -45,4 +45,14 @@ Severity: P0 critical, P1 high, P2 medium, P3 low, pass healthy.
 
 ## Fix workflow
 
-For safe auto-fixes, follow `skills/seo-fix/SKILL.md`. Default to preview/dry-run and ask before writing files.
+For safe auto-fixes on **local HTML files**, prefer the built-in writer:
+
+```bash
+npx one-step-seo fix ./dist --url https://example.com/          # dry-run diff
+npx one-step-seo fix ./dist --url https://example.com/ --apply  # write + .bak
+```
+
+It is additive-only, previews a unified diff, verifies every fix in memory,
+and never invents facts (language/titles/images need flags when they cannot
+be derived from the page). For everything else, follow
+`skills/seo-fix/SKILL.md`: default to preview and ask before writing files.

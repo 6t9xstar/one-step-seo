@@ -1,6 +1,6 @@
 {
   "name": "one-step-seo",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "One command to audit any website for SEO + GEO/AEO. Zero-config CLI + AI skill.",
   "type": "module",
   "license": "MIT",
@@ -40,9 +40,9 @@
     "docs/"
   ],
   "scripts": {
-    "test": "node --test tests/args.test.mjs tests/audit.test.mjs tests/branches.test.mjs tests/cli.test.mjs tests/config.test.mjs tests/fetch.test.mjs tests/regressions.test.mjs tests/report-schema.test.mjs tests/robots.test.mjs tests/security.test.mjs tests/sitemap-urls.test.mjs tests/units.test.mjs",
-    "test:coverage": "node --test --experimental-test-coverage tests/args.test.mjs tests/audit.test.mjs tests/branches.test.mjs tests/cli.test.mjs tests/config.test.mjs tests/fetch.test.mjs tests/regressions.test.mjs tests/report-schema.test.mjs tests/robots.test.mjs tests/security.test.mjs tests/sitemap-urls.test.mjs tests/units.test.mjs",
-    "test:coverage:gate": "node --test --experimental-test-coverage --test-coverage-lines=85 --test-coverage-branches=80 --test-coverage-functions=85 tests/args.test.mjs tests/audit.test.mjs tests/branches.test.mjs tests/cli.test.mjs tests/config.test.mjs tests/fetch.test.mjs tests/regressions.test.mjs tests/report-schema.test.mjs tests/robots.test.mjs tests/security.test.mjs tests/sitemap-urls.test.mjs tests/units.test.mjs",
+    "test": "node --test tests/args.test.mjs tests/audit.test.mjs tests/branches.test.mjs tests/cli.test.mjs tests/config.test.mjs tests/fetch.test.mjs tests/fix.test.mjs tests/regressions.test.mjs tests/report-schema.test.mjs tests/robots.test.mjs tests/security.test.mjs tests/sitemap-urls.test.mjs tests/units.test.mjs",
+    "test:coverage": "node --test --experimental-test-coverage tests/args.test.mjs tests/audit.test.mjs tests/branches.test.mjs tests/cli.test.mjs tests/config.test.mjs tests/fetch.test.mjs tests/fix.test.mjs tests/regressions.test.mjs tests/report-schema.test.mjs tests/robots.test.mjs tests/security.test.mjs tests/sitemap-urls.test.mjs tests/units.test.mjs",
+    "test:coverage:gate": "node --test --experimental-test-coverage --test-coverage-lines=85 --test-coverage-branches=80 --test-coverage-functions=85 tests/args.test.mjs tests/audit.test.mjs tests/branches.test.mjs tests/cli.test.mjs tests/config.test.mjs tests/fetch.test.mjs tests/fix.test.mjs tests/regressions.test.mjs tests/report-schema.test.mjs tests/robots.test.mjs tests/security.test.mjs tests/sitemap-urls.test.mjs tests/units.test.mjs",
     "typecheck": "tsc -p tsconfig.check.json",
     "lint": "eslint bin lib scripts tests",
     "format": "prettier --write .",

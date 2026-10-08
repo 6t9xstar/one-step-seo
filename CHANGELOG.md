@@ -6,46 +6,34 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-### Fixed
-
-- `--timeout` only covered the header phase: the `AbortController` timer was
-  cleared the moment `fetch()` resolved, so `readCappedText` then streamed the
-  body with no deadline. A server that sent headers and stalled mid-body hung
-  the CLI indefinitely. The timer now stays armed through the body read and is
-  raced against it; `unref()` keeps a pending timer from holding the process
-  open. Covered by a drip test that sends headers, never `end()`s, and was
-  verified to fail against the previous implementation.
+## [0.3.0] - 2026-10-09
 
 ### Added
 
+- **`one-step-seo fix <path>` — safe auto-fixes for local HTML files.** The
+  audit → fix → verify loop is now closed end-to-end:
+  - Dry-run by default: prints each planned fix with its finding ID and a
+    unified diff; `--apply` writes with `<file>.bak` backups (`--no-backup`
+    opts out) and warns when the target has uncommitted git changes.
+  - Ten additive fixers — `charset`, `viewport`, `lang`, `title`,
+    `description`, `canonical`, `og`, `og-url`, `twitter-card`, `favicon` —
+    clearing `T10`, `T11`, `T09`, `O01-title-missing`, `O02-meta-missing`,
+    `T08` (missing), `O06`, `W02`, `W01`, `O07` respectively. Nothing is
+    ever removed; non-UTF8 encodings, custom viewports, alt text, `noindex`,
+    and length rewrites are refused by design.
+  - Never guesses: `--lang`, `--url`, `--title`, `--description`,
+    `--og-image` supply values; title derives from the first `<h1>` and
+    description from ≥40ch of page text when flags are absent. `--only`
+    restricts the fixer set; `--json` emits a machine-readable plan.
+  - Every plan is verified in memory: the patched document is re-parsed and
+    each fix re-checked (partial fixes report `cleared: false`).
+  - Works on a single file or a directory (recursive `.html`/`.htm` walk,
+    `node_modules`/`.git` skipped, CRLF preserved) or a `file://` URL.
+  - New `lib/fix.mjs` (pure fixer engine) and `lib/diff.mjs` (LCS unified
+    diff with block-replace fallback); `fix` routes before URL normalization
+    in the CLI.
 - `coverage` job in `ci.yml` running `npm run test:coverage:gate`, so the
   85/80/85 thresholds are enforced on push rather than dev-only.
-
-### Changed
-
-- `CODE_OF_CONDUCT.md` pointed at a placeholder `conduct@example.com`; it now
-  names the maintainer from `CODEOWNERS`.
-- Added `.github/ISSUE_TEMPLATE/config.yml` routing usage questions to
-  Discussions and security reports to private advisories, matching what
-  `CONTRIBUTING.md` already told contributors to do.
-
-### Fixed
-
-- `npm run test:coverage` passed a non-existent `--test-coverage` flag and failed
-  immediately on every run with `node: bad option: --test-coverage`. It now uses
-  `--experimental-test-coverage`. Strict thresholds moved to a separate
-  `npm run test:coverage:gate` script, because `--test-coverage-lines/-branches/
--functions` are only available on Node 22+ and the CI matrix is 18/20/22.
-- `getSitemapUrls` returned child-sitemap URLs from a `<sitemapindex>` as if they
-  were pages, because an early `locs.length > 0` return made the
-  follow-the-children branch unreachable. It now branches on the sitemap _shape_
-  via the new exported `isSitemapIndex()`.
-- The `tests/cli.test.mjs` fixture served `sitemap.xml` with a hardcoded
-  portless `http://127.0.0.1/` `<loc>`, so sitemap-seeded URLs could never
-  resolve. It now emits the server's real port.
-
-### Added
-
 - `tests/config.test.mjs` fails when a `tests/*.test.mjs` file is missing from the
   `test` script, so new tests can no longer be silently skipped. It also asserts
   `test:coverage` uses a real Node flag and that no runtime dependencies exist.
@@ -59,14 +47,51 @@ All notable changes to this project are documented here. Format follows
   end-to-end `audit --crawl sitemap` run.
 - Unit coverage for the defensive paths in `score.mjs` and `report.mjs`
   (null inputs, clamps, band boundaries, escaping, renderer edge cases).
+- `tests/fix.test.mjs` (22 unit tests: per-fixer detect/plan, idempotency,
+  byte-identical healthy documents, flag-gated skips, encoding refusal, CRLF
+  round-trip, no-`<head>` refusal, diff hunk structure) plus 5 CLI E2E tests
+  (dry-run purity, `--apply` + backup + clean rerun, `--json` shape, usage
+  errors, directory mode).
+
+### Fixed
+
+- `--timeout` only covered the header phase: the `AbortController` timer was
+  cleared the moment `fetch()` resolved, so `readCappedText` then streamed the
+  body with no deadline. A server that sent headers and stalled mid-body hung
+  the CLI indefinitely. The timer now stays armed through the body read and is
+  raced against it; `unref()` keeps a pending timer from holding the process
+  open. Covered by a drip test that sends headers, never `end()`s, and was
+  verified to fail against the previous implementation.
+- `npm run test:coverage` passed a non-existent `--test-coverage` flag and failed
+  immediately on every run with `node: bad option: --test-coverage`. It now uses
+  `--experimental-test-coverage`. Strict thresholds moved to a separate
+  `npm run test:coverage:gate` script, because `--test-coverage-lines/-branches/
+-functions` are only available on Node 22+ and the CI matrix is 18/20/22.
+- `getSitemapUrls` returned child-sitemap URLs from a `<sitemapindex>` as if they
+  were pages, because an early `locs.length > 0` return made the
+  follow-the-children branch unreachable. It now branches on the sitemap _shape_
+  via the new exported `isSitemapIndex()`.
+- The `tests/cli.test.mjs` fixture served `sitemap.xml` with a hardcoded
+  portless `http://127.0.0.1/` `<loc>`, so sitemap-seeded URLs could never
+  resolve. It now emits the server's real port.
 
 ### Changed
 
 - `--crawl sitemap` is implemented; it was documented as "reserved, currently
   link-driven". `docs/USAGE.md` now describes the real behaviour.
 - `publish.yml` runs `npm run examples:check` before `npm publish`.
-- Test count 55 → 110; coverage 86% → 95.91% lines, 78.7% → 81.67% branches,
-  95.7% → 97.36% functions.
+- `CODE_OF_CONDUCT.md` pointed at a placeholder `conduct@example.com`; it now
+  names the maintainer from `CODEOWNERS`.
+- Added `.github/ISSUE_TEMPLATE/config.yml` routing usage questions to
+  Discussions and security reports to private advisories, matching what
+  `CONTRIBUTING.md` already told contributors to do.
+- Docs for the new command: `docs/USAGE.md` (fix section + flags + JSON
+  shape), `docs/CHECKS.md` (auto-fixable matrix), README quickstart/features,
+  `SKILL.md` and `skills/seo-fix/SKILL.md` now point the fix protocol at
+  `one-step-seo fix`.
+- Version bumped to `0.3.0`. Test count 110 → 148 (55 at v0.2.0); coverage
+  ≥94% lines / ≥81% branches / ≥95% functions — all above the 85/80/85 CI
+  gate.
 
 ## [0.2.0] - 2026-10-09
 

@@ -57,6 +57,28 @@ facts in extractable structures.
 HTML payload >300KB, image count >20. For lab data use PageSpeed;
 this tool flags cheap static signals only.
 
+## Auto-fixable (`one-step-seo fix`)
+
+These findings clear automatically against **local HTML files** — preview with
+a dry run, then `--apply` (additive only, `.bak` backups, verified in memory):
+
+| Finding                   | Fixer          | Input needed                                  |
+| ------------------------- | -------------- | --------------------------------------------- |
+| `T10-charset`             | `charset`      | charset absent (other encodings refused)      |
+| `T11-viewport`            | `viewport`     | viewport absent (custom ones untouched)       |
+| `T09-lang`                | `lang`         | `--lang`                                      |
+| `O01-title-missing`       | `title`        | `--title` or an `<h1>` to derive from         |
+| `O02-meta-missing`        | `description`  | `--description` or ≥40ch of page text         |
+| `T08-canonical` (missing) | `canonical`    | `--url`                                       |
+| `O06-og`                  | `og`           | title/meta present; `--og-image` completes it |
+| `W02-og-url`              | `og-url`       | wrong `og:url` + `--url`                      |
+| `W01-social`              | `twitter-card` | —                                             |
+| `O07-favicon`             | `favicon`      | —                                             |
+
+Never auto-fixed (needs a human): `noindex` removal, alt text, title/meta
+length rewrites, image dimensions, server/redirect issues, and all
+`robots.txt`/`sitemap.xml`/`llms.txt` file edits.
+
 ## Severity
 
 P0 critical → P1 high → P2 medium → P3 low → pass healthy.

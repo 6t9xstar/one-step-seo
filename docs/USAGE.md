@@ -26,6 +26,10 @@ one-step-seo schema https://example.com --generate faq
 one-step-seo sitemap https://example.com
 one-step-seo sitemap https://example.com --json
 
+# Safe auto-fixes for local HTML (dry-run diff by default)
+one-step-seo fix ./dist/index.html
+one-step-seo fix ./dist/index.html --apply --url https://example.com/ --lang en
+
 # Environment check
 one-step-seo doctor
 one-step-seo doctor --json
@@ -33,6 +37,50 @@ one-step-seo doctor --json
 
 `page` audits exactly one URL. `audit --pages 1` is equivalent but also writes
 `index.md` only when more than one page is audited.
+
+## The `fix` command
+
+`fix` applies **additive-only** SEO fixes to local `.html`/`.htm` files (a file,
+or a directory walked recursively — `node_modules` and `.git` are skipped).
+It never removes content, never rewrites copy, and never invents facts:
+
+- **Dry-run by default** — prints each planned fix with its finding ID plus a
+  unified diff, writes nothing. `--apply` writes, creating `<file>.bak` backups
+  (disable with `--no-backup`).
+- **Verified in memory** — after planning, the document is re-parsed and each
+  fix confirmed to clear its finding before you are asked to approve it.
+- **Never guesses** — language, URLs, titles and images need explicit flags
+  when they cannot be derived from content already on the page.
+
+```bash
+# Preview (nothing is written)
+one-step-seo fix ./public/index.html --url https://example.com/
+
+# Write the fixes + backups
+one-step-seo fix ./public/index.html --apply --url https://example.com/ --lang en
+
+# Only some fixers, machine-readable plan
+one-step-seo fix ./public --only charset,viewport,twitter-card --json
+```
+
+Fixers and what they need:
+
+| Fixer          | Clears              | Needs                                                              |
+| -------------- | ------------------- | ------------------------------------------------------------------ |
+| `charset`      | `T10-charset`       | charset absent (won't rewrite other encodings)                     |
+| `viewport`     | `T11-viewport`      | viewport absent (custom ones untouched)                            |
+| `lang`         | `T09-lang`          | `--lang`                                                           |
+| `title`        | `O01-title-missing` | `--title`, else derived from the first `<h1>`                      |
+| `description`  | `O02-meta-missing`  | `--description`, else derived from page text                       |
+| `canonical`    | `T08-canonical`     | `--url`                                                            |
+| `og`           | `O06-og`            | title/meta present; `--og-image` for the image (partial otherwise) |
+| `og-url`       | `W02-og-url`        | existing wrong `og:url` + `--url`                                  |
+| `twitter-card` | `W01-social`        | —                                                                  |
+| `favicon`      | `O07-favicon`       | —                                                                  |
+
+Hard exclusions (by design): alt text, `noindex` removal, title/description
+length rewrites, image dimensions, `robots.txt`/`llms.txt`/sitemap edits, and
+non-HTML templates (`.astro`, `.jsx`).
 
 ## Flags
 
@@ -46,8 +94,16 @@ one-step-seo doctor --json
 | `--fail-on SEV`   | —              | `P0\|P1\|P2` — exit 2 when any audited page has that severity or higher (CI gating)                                                                                                                                                                              |
 | `--crawl MODE`    | `links`        | `links` (BFS over internal links) or `sitemap` (seeds from `sitemap.xml`, or the `Sitemap:` URL declared in `robots.txt`; follows up to 5 child sitemaps of a `<sitemapindex>`, caps seeds at 500, and warns + falls back to `links` when no sitemap URLs exist) |
 | `--concurrency N` | `4`            | Parallel page fetches for `audit` (integer 1–8)                                                                                                                                                                                                                  |
-| `--json`          | —              | JSON to stdout (`sitemap`, `doctor`)                                                                                                                                                                                                                             |
+| `--json`          | —              | JSON to stdout (`sitemap`, `doctor`, `fix`)                                                                                                                                                                                                                      |
 | `--verbose`       | —              | Print error stacks on runtime failures (`VERBOSE=1` also works)                                                                                                                                                                                                  |
+| `--apply`         | —              | `fix`: write fixes to disk (default is a dry-run diff; creates `<file>.bak` unless `--no-backup`)                                                                                                                                                                |
+| `--only NAMES`    | —              | `fix`: comma list restricting which fixers run (`charset,viewport,lang,title,description,canonical,og,og-url,twitter-card,favicon`)                                                                                                                              |
+| `--url URL`       | —              | `fix`: absolute http(s) URL used for `canonical` / `og-url` fixes                                                                                                                                                                                                |
+| `--title TEXT`    | —              | `fix`: `<title>` content when missing (else derived from the first `<h1>`)                                                                                                                                                                                       |
+| `--description T` | —              | `fix`: meta description when missing (else derived from page text, ≥40ch)                                                                                                                                                                                        |
+| `--lang LANG`     | —              | `fix`: `<html lang>` value when missing (never guessed)                                                                                                                                                                                                          |
+| `--og-image URL`  | —              | `fix`: absolute image URL for `og:image`                                                                                                                                                                                                                         |
+| `--no-backup`     | —              | `fix`: skip the `.bak` copy on `--apply`                                                                                                                                                                                                                         |
 
 ## Outputs
 
@@ -57,6 +113,7 @@ one-step-seo doctor --json
 - Multi-page runs add `report-2.json/.md/.html`, etc. plus `index.md` linking all pages
 - `sitemap --json` shape: `{ origin, robotsFound, robotsSitemaps, sitemapFound, sitemapUrl, sitemapUrls, sitemapTruncated, llmsFound }`
 - `doctor --json` shape: `{ tool, version, node, nodeOk, fetch }`
+- `fix --json` shape: `{ tool, version, applied, files: [{ file, planned: [{ name, findingId, summary, partial }], skipped: [{ name, reason }], verified: [{ name, cleared }], changed, applied, error }] }`
 
 `--out` traversal note: the directory is resolved with `path.resolve()` and
 created recursively. Do not point `--out` at a source directory — existing
@@ -64,6 +121,6 @@ created recursively. Do not point `--out` at a source directory — existing
 
 ## Exit codes
 
-- `0` ok (including `--fail-on` when the threshold is not breached)
-- `1` usage error (bad flags, bad URL, unknown command)
-- `2` runtime/fetch failure or `--fail-on` breach
+- `0` ok (including `--fail-on` when the threshold is not breached, and `fix` dry-runs)
+- `1` usage error (bad flags, bad URL/path, unknown command or fixer)
+- `2` runtime/fetch failure, `--fail-on` breach, or a `fix` file error (read/write/refusal)

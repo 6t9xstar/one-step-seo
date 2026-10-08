@@ -6,11 +6,13 @@
  *   one-step-seo page <url> [--out DIR] [--format html,md,json]
  *   one-step-seo schema <url> [--generate organization|website|article|faq|breadcrumb|product|event|localbusiness|howto]
  *   one-step-seo sitemap <url> [--json]
+ *   one-step-seo fix <path> [--apply] [--only a,b] [--url U] [--title T] [--description D] [--lang L] [--og-image U]
  *   one-step-seo doctor [--json]
  */
-import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { readFileSync, mkdirSync, writeFileSync, copyFileSync, readdirSync, statSync } from "node:fs";
+import { dirname, join, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 import { fetchWithRedirects } from "../lib/fetch.mjs";
 import { parseHtml } from "../lib/html.mjs";
 import { getSiteFiles, getSitemapUrls } from "../lib/robots.mjs";
@@ -19,6 +21,8 @@ import { extractJsonLd, validateSchema, schemaSnippet } from "../lib/schema.mjs"
 import { geoDetails, computeScores } from "../lib/score.mjs";
 import { buildReport, renderMarkdown, renderHtml } from "../lib/report.mjs";
 import { parseArgs, normalizeUrl, canonicalizeUrl, CliError } from "../lib/args.mjs";
+import { planFixes, FIXER_NAMES } from "../lib/fix.mjs";
+import { unifiedDiff } from "../lib/diff.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 let VERSION = "0.0.0";
@@ -35,6 +39,7 @@ Usage:
   one-step-seo page <url> [--out DIR] [--format html,md,json]
   one-step-seo schema <url> [--generate organization|website|article|faq|breadcrumb|product|event|localbusiness|howto]
   one-step-seo sitemap <url> [--json]
+  one-step-seo fix <path> [--apply] [--only NAMES] [--url U] [--title T] [--description D] [--lang L] [--og-image U]
   one-step-seo doctor [--json]
 
 Options:
@@ -45,11 +50,22 @@ Options:
   --fail-on SEV   exit 2 when any page has P0 (or P1/P2) findings — for CI gating
   --crawl MODE    audit discovery: links (BFS over internal links) or sitemap (default links)
   --concurrency N parallel page fetches 1-8 (default 4)
-  --json          print JSON to stdout (doctor / sitemap)
+  --json          print JSON to stdout (doctor / sitemap / fix)
+
+Fix options (fix is a dry-run unless --apply is given):
+  --apply         write the fixes to disk (creates <file>.bak backups)
+  --only NAMES    comma list: ${FIXER_NAMES.join(",")}
+  --url URL       absolute URL used for canonical / og:url fixes
+  --title TEXT    <title> value when missing (else derived from the first <h1>)
+  --description T meta description when missing (else derived from page text)
+  --lang LANG     <html lang> value when missing (never guessed)
+  --og-image URL  absolute image URL used for og:image
+  --no-backup     skip the .bak copy on --apply
 
 Notes:
   - Multi-page audits write report.json/md/html for page 1 plus
     report-N.json/md/html for pages 2+ and an index.md linking all pages.
+  - fix accepts local .html/.htm files or directories; additive fixes only.
   - Only audit sites you are allowed to crawl; respect robots.txt.
 `);
   process.exit(code);
@@ -439,6 +455,263 @@ async function cmdDoctor(args) {
   if (!info.nodeOk || !info.fetch) process.exit(2);
 }
 
+const HTML_EXT = new Set([".html", ".htm"]);
+const SKIP_DIRS = new Set(["node_modules", ".git"]);
+
+/**
+ * Recursively collect .html/.htm files under dir (deterministic order,
+ * node_modules and .git skipped).
+ * @param {string} dir
+ * @returns {string[]}
+ */
+function collectHtmlFiles(dir) {
+  /** @type {string[]} */
+  const out = [];
+  /** @param {string} d */
+  const walk = (d) => {
+    let entries;
+    try {
+      entries = readdirSync(d, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (e.isDirectory()) {
+        if (SKIP_DIRS.has(e.name)) continue;
+        walk(join(d, e.name));
+      } else if (e.isFile() && HTML_EXT.has(extname(e.name).toLowerCase())) {
+        out.push(join(d, e.name));
+      }
+    }
+  };
+  walk(dir);
+  return out.sort();
+}
+
+/**
+ * Safe auto-fixes for local HTML files. Dry-run unless --apply.
+ * @param {string} rawTarget path, directory or file:// URL
+ * @param {import("../lib/args.mjs").ParsedArgs} args
+ */
+function cmdFix(rawTarget, args) {
+  if (!rawTarget) {
+    console.error("Provide a path: one-step-seo fix ./dist/index.html");
+    process.exit(1);
+  }
+  let target = rawTarget;
+  if (/^file:\/\//i.test(rawTarget)) {
+    try {
+      target = fileURLToPath(rawTarget);
+    } catch {
+      console.error(`Invalid file URL: ${rawTarget}`);
+      process.exit(1);
+    }
+  }
+  const abs = resolve(target);
+
+  let stat;
+  try {
+    stat = statSync(abs);
+  } catch {
+    console.error(`Path not found: ${target}`);
+    process.exit(1);
+  }
+
+  /** @type {string[]} */
+  let files = [];
+  if (stat.isDirectory()) {
+    files = collectHtmlFiles(abs);
+    if (files.length === 0) {
+      console.error(`No .html/.htm files found under ${target}`);
+      process.exit(1);
+    }
+  } else if (HTML_EXT.has(extname(abs).toLowerCase())) {
+    files = [abs];
+  } else {
+    console.error(`fix only accepts .html/.htm files (got "${extname(abs) || "no extension"}").`);
+    process.exit(1);
+  }
+
+  /** @type {string[] | null} */
+  let only = null;
+  if (args.only.trim()) {
+    only = [
+      ...new Set(
+        args.only
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ];
+    const bad = only.filter((n) => !FIXER_NAMES.includes(n));
+    if (bad.length > 0) {
+      console.error(`Unknown fixer(s): ${bad.join(", ")}. Valid: ${FIXER_NAMES.join(", ")}`);
+      process.exit(1);
+    }
+  }
+
+  let url = "";
+  if (args.url.trim()) {
+    url = normalizeUrl(args.url);
+    if (!url) {
+      console.error(`--url must be an absolute http(s) URL (got "${args.url.slice(0, 60)}").`);
+      process.exit(1);
+    }
+  }
+
+  const ctx = {
+    url,
+    title: args.title,
+    description: args.description,
+    lang: args.lang,
+    ogImage: args.ogImage,
+    only,
+  };
+
+  /** @param {string} f */
+  const rel = (f) => {
+    const r = relative(process.cwd(), f);
+    return r && !r.startsWith("..") ? r : f;
+  };
+
+  // seo-fix protocol: warn (don't refuse) when targets have uncommitted work.
+  if (args.apply) {
+    try {
+      const porcelain = execFileSync("git", ["status", "--porcelain", "--", ...files.map(rel)], {
+        cwd: process.cwd(),
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: 5000,
+      }).toString();
+      if (porcelain.trim()) {
+        console.error("! target file(s) have uncommitted changes — .bak backups will be written alongside");
+      }
+    } catch {
+      // git unavailable / not a repo — non-fatal
+    }
+  }
+
+  const jsonFiles = [];
+  let plannedTotal = 0;
+  let appliedFixes = 0;
+  let appliedFiles = 0;
+  let errored = false;
+
+  for (const file of files) {
+    const label = rel(file);
+    let html;
+    try {
+      html = readFileSync(file, "utf8");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`! ${label}: ${msg}`);
+      errored = true;
+      jsonFiles.push({
+        file: label,
+        planned: [],
+        skipped: [],
+        verified: [],
+        changed: false,
+        applied: false,
+        error: msg,
+      });
+      continue;
+    }
+
+    const plan = planFixes(html, ctx);
+    if (plan.error) {
+      console.error(`! ${label}: ${plan.error}`);
+      errored = true;
+      jsonFiles.push({
+        file: label,
+        planned: [],
+        skipped: plan.skipped,
+        verified: [],
+        changed: false,
+        applied: false,
+        error: plan.error,
+      });
+      continue;
+    }
+    plannedTotal += plan.planned.length;
+
+    if (!args.json) {
+      if (plan.planned.length === 0 && plan.skipped.length === 0) {
+        console.log(`${label}: nothing to fix`);
+      } else {
+        console.log(label);
+        for (const p of plan.planned) {
+          console.log(`  + ${p.name.padEnd(12)} ${p.findingId.padEnd(18)} ${p.summary}`);
+        }
+        for (const s of plan.skipped) {
+          console.log(`  ! ${s.name.padEnd(12)} skipped: ${s.reason}`);
+        }
+      }
+    }
+
+    const entry = {
+      file: label,
+      planned: plan.planned.map((p) => ({
+        name: p.name,
+        findingId: p.findingId,
+        summary: p.summary,
+        partial: !!p.partial,
+      })),
+      skipped: plan.skipped,
+      verified: plan.verified,
+      changed: plan.changed,
+      applied: false,
+      error: /** @type {string | null} */ (null),
+    };
+    jsonFiles.push(entry);
+
+    if (!plan.changed) continue;
+    if (!args.json) console.log(unifiedDiff(html, plan.newHtml, label).replace(/\n$/, ""));
+
+    if (!args.apply) continue;
+    try {
+      if (!args.noBackup) copyFileSync(file, `${file}.bak`);
+      writeFileSync(file, plan.newHtml);
+      entry.applied = true;
+      appliedFixes += plan.planned.length;
+      appliedFiles++;
+      if (!args.json) {
+        const marks = plan.verified.map((v) => `${v.name} ${v.cleared ? "check" : "partial"}`).join(", ");
+        console.log(`  verified: ${marks}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`! ${label}: write failed: ${msg}`);
+      errored = true;
+      entry.error = msg;
+    }
+  }
+
+  if (args.json) {
+    console.log(
+      JSON.stringify(
+        { tool: "one-step-seo", version: VERSION, applied: args.apply, files: jsonFiles },
+        null,
+        2,
+      ),
+    );
+  } else if (args.apply) {
+    if (appliedFixes > 0) {
+      const backupNote = args.noBackup ? "" : " (backups: *.bak)";
+      console.log(`\nApplied ${appliedFixes} fix(es) to ${appliedFiles} file(s)${backupNote}.`);
+    } else if (plannedTotal > 0) {
+      console.log(`\n${plannedTotal} fix(es) planned but no files were written.`);
+    } else {
+      console.log(`\nNothing to fix.`);
+    }
+  } else if (plannedTotal > 0) {
+    console.log(
+      `\n${plannedTotal} fix(es) planned — dry run, no files written. Re-run with --apply to write.`,
+    );
+  }
+
+  if (errored) process.exitCode = 2;
+}
+
 // `--verbose` is also honoured from the env so CI logs can be made verbose
 // without changing the command line.
 let verbose = process.env.VERBOSE === "1";
@@ -463,6 +736,8 @@ async function main() {
   const [cmd, rawUrl] = args._;
   if (!cmd) usage(1);
   if (cmd === "doctor") return cmdDoctor(args);
+  // `fix` targets local file paths — must route before URL normalization.
+  if (cmd === "fix") return cmdFix(rawUrl ?? "", args);
   const url = normalizeUrl(rawUrl ?? "");
   if (!url) {
     console.error("Provide a valid URL, e.g. one-step-seo audit https://example.com");

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { execFile } from "node:child_process";
-import { mkdtempSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -312,4 +312,109 @@ test("cli: unfetchable URL exits 2", async () => {
   const out = mkdtempSync(join(tmpdir(), "oss-dead-"));
   const r = await runCli(["page", "http://127.0.0.1:1/nothing-here", "--out", out]);
   assert.equal(r.code, 2, `expected exit 2, got ${r.code}`);
+});
+
+// ---------- fix: safe local auto-fixes ----------
+
+const FIX_HTML = `<!doctype html>
+<html lang="en">
+<head>
+<title>Fix command fixture page title</title>
+<meta name="description" content="A perfectly serviceable meta description that runs long enough to satisfy the meta minimum length threshold for this fixture page right here.">
+</head>
+<body>
+<h1>Fix me</h1>
+<p>${"word ".repeat(60)}</p>
+</body>
+</html>
+`;
+
+/** @returns {{ dir: string, file: string }} */
+function makeFixFixture() {
+  const dir = mkdtempSync(join(tmpdir(), "oss-fix-"));
+  const file = join(dir, "index.html");
+  writeFileSync(file, FIX_HTML);
+  return { dir, file };
+}
+
+test("cli: fix dry-run prints a diff and writes nothing", async () => {
+  const { file } = makeFixFixture();
+  const before = readFileSync(file, "utf8");
+  const r = await runCli(["fix", file]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.match(r.stdout, /\+ charset/, `expected a charset plan:\n${r.stdout}`);
+  assert.match(r.stdout, /^@@ -\d+,\d+ \+\d+,\d+ @@$/m, "expected a diff hunk");
+  assert.match(r.stdout, /dry run/i);
+  assert.equal(readFileSync(file, "utf8"), before, "dry run must not modify the file");
+  assert.ok(!existsSync(`${file}.bak`), "dry run must not create backups");
+});
+
+test("cli: fix --apply writes, backs up, and a rerun plans nothing", async () => {
+  const { file } = makeFixFixture();
+  const before = readFileSync(file, "utf8");
+  const applied = await runCli(["fix", file, "--apply"]);
+  assert.equal(applied.code, 0, applied.stderr);
+  const after = readFileSync(file, "utf8");
+  assert.notEqual(after, before, "--apply must modify the file");
+  assert.match(after, /<meta charset="utf-8">/);
+  assert.ok(existsSync(`${file}.bak`), "backup missing");
+  assert.equal(readFileSync(`${file}.bak`, "utf8"), before, "backup must hold the original");
+  assert.match(applied.stdout, /verified:/);
+
+  const rerun = await runCli(["fix", file, "--json"]);
+  assert.equal(rerun.code, 0, rerun.stderr);
+  const plan = JSON.parse(rerun.stdout);
+  assert.equal(plan.files[0].planned.length, 0, `expected idempotent rerun: ${rerun.stdout}`);
+});
+
+test("cli: fix --json emits the documented shape", async () => {
+  const { file } = makeFixFixture();
+  const r = await runCli(["fix", file, "--json"]);
+  assert.equal(r.code, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.tool, "one-step-seo");
+  assert.equal(out.applied, false);
+  assert.match(out.version, /^\d+\.\d+\.\d+$/);
+  const entry = out.files[0];
+  assert.ok(Array.isArray(entry.planned) && entry.planned.length > 0);
+  for (const p of entry.planned) {
+    assert.match(p.name, /^[a-z-]+$/);
+    assert.match(p.findingId, /^[A-Z]+[0-9]+-[a-z0-9-]+$/);
+    assert.equal(typeof p.summary, "string");
+  }
+  assert.ok(Array.isArray(entry.skipped));
+  assert.ok(Array.isArray(entry.verified));
+  assert.equal(entry.changed, true);
+  assert.equal(entry.applied, false);
+  assert.equal(entry.error, null);
+});
+
+test("cli: fix usage errors exit 1", async () => {
+  const { dir, file } = makeFixFixture();
+  const txt = join(dir, "notes.txt");
+  writeFileSync(txt, "not html");
+  assert.equal((await runCli(["fix"])).code, 1, "missing path");
+  assert.equal((await runCli(["fix", join(dir, "missing.html")])).code, 1, "missing file");
+  assert.equal((await runCli(["fix", txt])).code, 1, "non-html target");
+  assert.equal((await runCli(["fix", file, "--only", "bogus"])).code, 1, "unknown fixer");
+  assert.equal((await runCli(["fix", file, "--url", "not a url"])).code, 1, "bad --url");
+});
+
+test("cli: fix directory mode walks html files, skips others", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "oss-fixdir-"));
+  writeFileSync(join(dir, "a.html"), FIX_HTML);
+  writeFileSync(join(dir, "notes.txt"), "leave me alone");
+  const sub = join(dir, "sub");
+  mkdirSync(sub);
+  writeFileSync(join(sub, "b.htm"), FIX_HTML);
+
+  const r = await runCli(["fix", dir, "--apply"]);
+  assert.equal(r.code, 0, r.stderr);
+  const a = readFileSync(join(dir, "a.html"), "utf8");
+  const b = readFileSync(join(sub, "b.htm"), "utf8");
+  assert.match(a, /<meta charset="utf-8">/);
+  assert.match(b, /<meta charset="utf-8">/);
+  assert.equal(readFileSync(join(dir, "notes.txt"), "utf8"), "leave me alone");
+  assert.ok(!existsSync(join(dir, "notes.txt.bak")), "non-html file must be untouched");
+  assert.ok(existsSync(join(dir, "a.html.bak")) && existsSync(join(sub, "b.htm.bak")));
 });

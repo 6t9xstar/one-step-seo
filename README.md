@@ -58,6 +58,9 @@ npx one-step-seo schema https://example.com --generate faq
 # Sitemap / robots / llms.txt overview
 npx one-step-seo sitemap https://example.com
 
+# Safe auto-fixes for local HTML — dry-run diff first, then --apply
+npx one-step-seo fix ./dist/index.html --url https://example.com/
+
 # Sanity check
 npx one-step-seo doctor
 ```
@@ -84,14 +87,15 @@ Priorities: **P0** critical (fix today) → **P1** high (this week) → **P2** m
 
 ## Features
 
-|                       |                                                             |
-| --------------------- | ----------------------------------------------------------- |
-| **Zero dependencies** | Plain Node 18+ ESM. No Python, no Playwright, no browser.   |
-| **Any stack**         | Astro, Next.js, WordPress, Shopify, static HTML.            |
-| **1–20 page crawl**   | `audit --pages N` walks same-host links automatically.      |
-| **AI-agent ready**    | Ships `SKILL.md` for Claude Code, OpenCode, Codex, Cursor.  |
-| **CI ready**          | Same command locally and in Actions, with report artifacts. |
-| **Original + MIT**    | Not a fork. No tracking, reports stay on your machine.      |
+|                       |                                                                  |
+| --------------------- | ---------------------------------------------------------------- |
+| **Zero dependencies** | Plain Node 18+ ESM. No Python, no Playwright, no browser.        |
+| **Any stack**         | Astro, Next.js, WordPress, Shopify, static HTML.                 |
+| **1–20 page crawl**   | `audit --pages N` walks same-host links automatically.           |
+| **Safe auto-fix**     | `fix` patches local HTML — dry-run diff, backups, additive only. |
+| **AI-agent ready**    | Ships `SKILL.md` for Claude Code, OpenCode, Codex, Cursor.       |
+| **CI ready**          | Same command locally and in Actions, with report artifacts.      |
+| **Original + MIT**    | Not a fork. No tracking, reports stay on your machine.           |
 
 ## Reports
 

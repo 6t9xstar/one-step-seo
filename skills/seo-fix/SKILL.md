@@ -32,6 +32,13 @@ Only run when the user explicitly asks to fix. Default: preview only.
 ## Protocol
 
 1. `git status --porcelain` — refuse dirty tree unless user confirms.
-2. Show unified diff for every file change before writing.
-3. Re-run `npx one-step-seo page <url>` after fixes; report score delta.
-4. Keep backups; explain rollback (`git checkout -- <file>`).
+2. For local `.html` files, prefer the built-in writer (dry-run first):
+   ```bash
+   npx one-step-seo fix <path> [--url U] [--lang L] [--only a,b]   # preview diff
+   npx one-step-seo fix <path> --apply                              # writes + .bak
+   ```
+   It only applies the allow-listed additive fixes below, verifies each one
+   in memory, and prints the unified diff before anything is written.
+3. For any other file change, show a unified diff before writing.
+4. Re-run `npx one-step-seo page <url>` after fixes; report score delta.
+5. Keep backups; explain rollback (`git checkout -- <file>`).

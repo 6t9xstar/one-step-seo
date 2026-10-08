@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseArgs, normalizeUrl, CliError, VALID_FORMATS } from "../lib/args.mjs";
+import { parseArgs, normalizeUrl, canonicalizeUrl, CliError, VALID_FORMATS } from "../lib/args.mjs";
 
 test("parseArgs defaults", () => {
   const a = parseArgs(["audit", "https://example.com"]);
@@ -57,4 +57,40 @@ test("normalizeUrl accepts hosts and rejects junk", () => {
   assert.equal(normalizeUrl(""), "");
   assert.equal(normalizeUrl("not a url at all !!!"), "");
   assert.equal(normalizeUrl("javascript:alert(1)"), "");
+});
+
+test("parseArgs accepts all fix flags", () => {
+  const a = parseArgs([
+    "fix",
+    "./dist",
+    "--apply",
+    "--no-backup",
+    "--url",
+    "https://example.com/",
+    "--title",
+    "Fixture title",
+    "--description",
+    "Fixture description",
+    "--lang",
+    "fr",
+    "--og-image",
+    "https://example.com/og.png",
+    "--only",
+    "title,og",
+    "--json",
+  ]);
+  assert.equal(a.apply, true);
+  assert.equal(a.noBackup, true);
+  assert.equal(a.url, "https://example.com/");
+  assert.equal(a.title, "Fixture title");
+  assert.equal(a.description, "Fixture description");
+  assert.equal(a.lang, "fr");
+  assert.equal(a.ogImage, "https://example.com/og.png");
+  assert.equal(a.only, "title,og");
+  assert.equal(a.json, true);
+});
+
+test("canonicalizeUrl returns empty for unparseable input", () => {
+  assert.equal(canonicalizeUrl("not a url at all !!!"), "");
+  assert.equal(canonicalizeUrl(""), "");
 });
