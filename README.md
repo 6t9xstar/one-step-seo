@@ -97,3 +97,4 @@ node bin/cli.mjs audit https://example.com --out ./seo-report
 ## License
 
 MIT — see [`LICENSE`](./LICENSE).
+# one-step-seo
