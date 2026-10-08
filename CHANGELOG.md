@@ -6,6 +6,45 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `npm run test:coverage` passed a non-existent `--test-coverage` flag and failed
+  immediately on every run with `node: bad option: --test-coverage`. It now uses
+  `--experimental-test-coverage`. Strict thresholds moved to a separate
+  `npm run test:coverage:gate` script, because `--test-coverage-lines/-branches/
+-functions` are only available on Node 22+ and the CI matrix is 18/20/22.
+- `getSitemapUrls` returned child-sitemap URLs from a `<sitemapindex>` as if they
+  were pages, because an early `locs.length > 0` return made the
+  follow-the-children branch unreachable. It now branches on the sitemap _shape_
+  via the new exported `isSitemapIndex()`.
+- The `tests/cli.test.mjs` fixture served `sitemap.xml` with a hardcoded
+  portless `http://127.0.0.1/` `<loc>`, so sitemap-seeded URLs could never
+  resolve. It now emits the server's real port.
+
+### Added
+
+- `tests/config.test.mjs` fails when a `tests/*.test.mjs` file is missing from the
+  `test` script, so new tests can no longer be silently skipped. It also asserts
+  `test:coverage` uses a real Node flag and that no runtime dependencies exist.
+- Regression tests for the v0.2.0 fixes: array `@type` schema validation,
+  canonical/`og:url` normalisation, defensive `buildReport`, and `--verbose`
+  acceptance.
+- Coverage for `extractSitemapUrls` / `isSitemapIndex` / `getSitemapUrls` /
+  `clearSitemapUrlsCache`, including a live-HTTP sitemap-index fixture.
+- CLI integration tests for `--help`/`--version`, usage errors, `schema`,
+  `sitemap` (both output modes), `--fail-on` breach and pass-through, and an
+  end-to-end `audit --crawl sitemap` run.
+- Unit coverage for the defensive paths in `score.mjs` and `report.mjs`
+  (null inputs, clamps, band boundaries, escaping, renderer edge cases).
+
+### Changed
+
+- `--crawl sitemap` is implemented; it was documented as "reserved, currently
+  link-driven". `docs/USAGE.md` now describes the real behaviour.
+- `publish.yml` runs `npm run examples:check` before `npm publish`.
+- Test count 55 → 110; coverage 86% → 95.91% lines, 78.7% → 81.67% branches,
+  95.7% → 97.36% functions.
+
 ## [0.2.0] - 2026-10-09
 
 ### Fixed

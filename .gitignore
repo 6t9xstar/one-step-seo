@@ -20,6 +20,9 @@ Thumbs.db
 .env.*
 !.env.example
 
+# agent working dir (plans, scratch)
+.hermes/
+
 # coverage
 coverage/
 *.tsbuildinfo

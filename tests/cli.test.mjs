@@ -58,9 +58,14 @@ function startFixtureServer() {
       return;
     }
     if (url.pathname === "/sitemap.xml") {
+      // Must include the real port: a hardcoded `http://127.0.0.1/` loc makes
+      // --crawl sitemap seed URLs that can never resolve.
+      const addr = server.address();
+      const port = addr !== null && typeof addr === "object" ? addr.port : 0;
+      const origin = `http://127.0.0.1:${port}`;
       res.writeHead(200, { "content-type": "application/xml", connection: "close" });
       res.end(
-        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>http://127.0.0.1/</loc></url></urlset>`,
+        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${origin}/second</loc></url><url><loc>${origin}/</loc></url></urlset>`,
       );
       return;
     }
@@ -155,4 +160,156 @@ test("cli: doctor and sitemap --json", async () => {
   const d = await runCli(["doctor", "--json"]);
   assert.equal(d.code, 0);
   assert.ok(JSON.parse(d.stdout).tool === "one-step-seo");
+});
+
+// ---------- usage surface (no server needed) ----------
+
+test("cli: --help and --version exit 0", async () => {
+  const help = await runCli(["--help"]);
+  assert.equal(help.code, 0);
+  assert.match(help.stdout, /Usage:/);
+
+  const short = await runCli(["-h"]);
+  assert.equal(short.code, 0);
+
+  const version = await runCli(["--version"]);
+  assert.equal(version.code, 0);
+  assert.match(version.stdout.trim(), /^\d+\.\d+\.\d+$/);
+});
+
+test("cli: usage errors exit 1", async () => {
+  // No command at all.
+  assert.equal((await runCli([])).code, 1);
+  // Unknown command.
+  assert.equal((await runCli(["frobnicate", "https://example.com"])).code, 1);
+  // Unparseable URL.
+  assert.equal((await runCli(["page", "not a url"])).code, 1);
+  // Unknown flag.
+  assert.equal((await runCli(["page", "https://example.com", "--nope"])).code, 1);
+  // Out-of-range --pages.
+  assert.equal((await runCli(["page", "https://example.com", "--pages", "0"])).code, 1);
+});
+
+test("cli: --verbose is accepted (was rejected as an unknown flag)", async () => {
+  const r = await runCli(["doctor", "--verbose"]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.ok(!/Unknown flag/.test(r.stderr), r.stderr);
+});
+
+// ---------- commands that need the fixture server ----------
+
+test("cli: schema reports nodes and emits a snippet", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const r = await runCli(["schema", `http://127.0.0.1:${port}/`, "--generate", "organization"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /Found \d+ JSON-LD node/);
+    assert.match(r.stdout, /application\/ld\+json/);
+    assert.match(r.stdout, /"@type": "Organization"/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: sitemap --json has the documented shape", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const r = await runCli(["sitemap", `http://127.0.0.1:${port}/`, "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    const out = JSON.parse(r.stdout);
+    for (const key of [
+      "origin",
+      "robotsFound",
+      "robotsSitemaps",
+      "sitemapFound",
+      "sitemapUrl",
+      "sitemapUrls",
+      "sitemapTruncated",
+      "llmsFound",
+    ]) {
+      assert.ok(key in out, `missing ${key} in sitemap --json output`);
+    }
+    assert.equal(out.sitemapFound, true);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: sitemap without --json prints human output", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const r = await runCli(["sitemap", `http://127.0.0.1:${port}/`]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /Origin:/);
+    assert.match(r.stdout, /sitemap\.xml: found/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: --fail-on breaches exit 2", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-gate-"));
+    // The fixture pages are thin enough to trip a P2 gate.
+    const gated = await runCli(["page", `http://127.0.0.1:${port}/`, "--out", out, "--fail-on", "P2"]);
+    assert.equal(gated.code, 2, `expected exit 2, got ${gated.code}: ${gated.stderr.slice(0, 200)}`);
+    assert.match(gated.stderr, /Fail-on threshold breached/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: audit --crawl sitemap seeds the queue from the sitemap", async () => {
+  // End-to-end proof that --crawl sitemap is implemented: /second is listed in
+  // sitemap.xml but NOT linked from /, so reaching it can only come from the
+  // sitemap, never from the link BFS.
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-crawl-"));
+    const r = await runCli([
+      "audit",
+      `http://127.0.0.1:${port}/`,
+      "--pages",
+      "2",
+      "--crawl",
+      "sitemap",
+      "--out",
+      out,
+    ]);
+    assert.equal(r.code, 0, r.stderr);
+    const index = readFileSync(join(out, "index.md"), "utf8");
+    assert.match(index, /second/, `index.md did not reach /second:\n${index}`);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: --fail-on P0 gates on the fixture's own http:// T01-https finding", async () => {
+  // The fixture is served over plain HTTP, so T01-https is a genuine P0. That
+  // makes this the reliable way to exercise the gate's breach path at P0.
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-p0gate-"));
+    const r = await runCli(["page", `http://127.0.0.1:${port}/`, "--out", out, "--fail-on", "P0"]);
+    assert.equal(r.code, 2, `expected exit 2, got ${r.code}: ${r.stderr.slice(0, 200)}`);
+    assert.match(r.stderr, /Fail-on threshold breached/);
+    // And the report records why.
+    const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+    assert.ok(report.counts.P0 >= 1, `expected a P0, got ${JSON.stringify(report.counts)}`);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: unfetchable URL exits 2", async () => {
+  const out = mkdtempSync(join(tmpdir(), "oss-dead-"));
+  const r = await runCli(["page", "http://127.0.0.1:1/nothing-here", "--out", out]);
+  assert.equal(r.code, 2, `expected exit 2, got ${r.code}`);
 });

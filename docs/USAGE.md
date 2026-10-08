@@ -36,18 +36,18 @@ one-step-seo doctor --json
 
 ## Flags
 
-| Flag              | Default        | Meaning                                                                                 |
-| ----------------- | -------------- | --------------------------------------------------------------------------------------- |
-| `--pages N`       | `1`            | Pages to crawl for `audit` (integer 1–20, BFS over same-host links)                     |
-| `--out DIR`       | `./seo-report` | Output directory (created with `mkdir -p`, existing files overwritten)                  |
-| `--format`        | `html,md,json` | Which reports to write (`html`, `md`, `json` only — anything else exits 1)              |
-| `--timeout MS`    | `15000`        | Per-request timeout in ms (integer 1000–120000; applies to pages + robots/sitemap/llms) |
-| `--generate KIND` | —              | `organization\|website\|article\|faq\|breadcrumb\|product\|event\|localbusiness\|howto` |
-| `--fail-on SEV`   | —              | `P0\|P1\|P2` — exit 2 when any audited page has that severity or higher (CI gating)     |
-| `--crawl MODE`    | `links`        | `links` (BFS over internal links) or `sitemap` (reserved, currently link-driven)        |
-| `--concurrency N` | `4`            | Parallel page fetches for `audit` (integer 1–8)                                         |
-| `--json`          | —              | JSON to stdout (`sitemap`, `doctor`)                                                    |
-| `--verbose`       | —              | Print error stacks on runtime failures (`VERBOSE=1` also works)                         |
+| Flag              | Default        | Meaning                                                                                                                                                                                                                                                          |
+| ----------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--pages N`       | `1`            | Pages to crawl for `audit` (integer 1–20, BFS over same-host links)                                                                                                                                                                                              |
+| `--out DIR`       | `./seo-report` | Output directory (created with `mkdir -p`, existing files overwritten)                                                                                                                                                                                           |
+| `--format`        | `html,md,json` | Which reports to write (`html`, `md`, `json` only — anything else exits 1)                                                                                                                                                                                       |
+| `--timeout MS`    | `15000`        | Per-request timeout in ms (integer 1000–120000; applies to pages + robots/sitemap/llms)                                                                                                                                                                          |
+| `--generate KIND` | —              | `organization\|website\|article\|faq\|breadcrumb\|product\|event\|localbusiness\|howto`                                                                                                                                                                          |
+| `--fail-on SEV`   | —              | `P0\|P1\|P2` — exit 2 when any audited page has that severity or higher (CI gating)                                                                                                                                                                              |
+| `--crawl MODE`    | `links`        | `links` (BFS over internal links) or `sitemap` (seeds from `sitemap.xml`, or the `Sitemap:` URL declared in `robots.txt`; follows up to 5 child sitemaps of a `<sitemapindex>`, caps seeds at 500, and warns + falls back to `links` when no sitemap URLs exist) |
+| `--concurrency N` | `4`            | Parallel page fetches for `audit` (integer 1–8)                                                                                                                                                                                                                  |
+| `--json`          | —              | JSON to stdout (`sitemap`, `doctor`)                                                                                                                                                                                                                             |
+| `--verbose`       | —              | Print error stacks on runtime failures (`VERBOSE=1` also works)                                                                                                                                                                                                  |
 
 ## Outputs
 
