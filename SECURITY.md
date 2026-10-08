@@ -9,7 +9,7 @@
 
 ## Reporting a vulnerability
 
-Email **security@example.com** with:
+Email **mtaimoormalik99@gmail.com** with:
 
 1. Affected version / commit
 2. Reproduction steps (URL or fixture + command)
