@@ -345,6 +345,104 @@ test("regression: a document without </body> does not count head text as body", 
   assert.ok(!scripted.visibleText.includes("var x"), "script text must not leak");
 });
 
+test("regression: T06-sitemap labels a sitemapindex as child sitemaps, not URLs", () => {
+  // countSitemapUrls returns the number of CHILD SITEMAPS for a <sitemapindex>,
+  // so reporting it as "~2 URLs" understated large sites by orders of magnitude.
+  const indexXml =
+    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>https://a.com/s1.xml</loc></sitemap><sitemap><loc>https://a.com/s2.xml</loc></sitemap></sitemapindex>';
+  const urlsetXml =
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://a.com/a</loc></url><url><loc>https://a.com/b</loc></url></urlset>';
+
+  /** @param {string} text */
+  const evidence = (text) => {
+    const findings = runChecks(
+      parsed(),
+      { ...files(), sitemap: { found: true, text, urlCount: 2, status: 200 } },
+      fetched("https://a.com/x"),
+      {
+        items: [],
+        types: [],
+        issues: [],
+        errors: [],
+      },
+    );
+    /** @param {{ id: string, evidence: string }} f */
+    const f = findings.find((f) => f.id === "T06-sitemap");
+    assert.ok(f, "T06-sitemap should be present");
+    return f.evidence;
+  };
+
+  assert.match(evidence(indexXml), /child sitemaps/, `index evidence was ${evidence(indexXml)}`);
+  assert.match(evidence(urlsetXml), /~2 URLs/, `urlset evidence was ${evidence(urlsetXml)}`);
+});
+
+test("regression: valid schema.org types are not flagged as unrecognized", () => {
+  // The allowlist held ~30 of schema.org's ~800 types, so Question, Answer,
+  // ListItem and HowToStep — the *mandated children* of FAQPage, QAPage,
+  // BreadcrumbList and HowTo — produced spurious P2s as top-level nodes.
+  const valid = [
+    "Question",
+    "Answer",
+    "ListItem",
+    "HowToStep",
+    "HowToSection",
+    "AudioObject",
+    "Table",
+    "Brand",
+    "Comment",
+    "Rating",
+    "Review",
+    "PostalAddress",
+    "GeoCoordinates",
+    "ContactPoint",
+    "Offer",
+    "BreadcrumbList",
+    "ItemList",
+    "Dataset",
+    "HowTo",
+    "Recipe",
+    "Event",
+    "Person",
+    "Organization",
+    "WebSite",
+    "WebPage",
+    "Article",
+    "Product",
+    "Service",
+    "VideoObject",
+    "ImageObject",
+    "JobPosting",
+    "Course",
+    "SoftwareApplication",
+    "AggregateRating",
+    "LocalBusiness",
+    "FAQPage",
+    "QAPage",
+    "Thing",
+    "CreativeWork",
+    "Place",
+    "Action",
+    "Intangible",
+  ];
+  for (const type of valid) {
+    const v = validateSchema([{ "@context": "https://schema.org", "@type": type }]);
+    const hit = v.issues.find((i) => /unrecognized/i.test(i.issue));
+    assert.equal(hit, undefined, `${type} was wrongly flagged: ${JSON.stringify(v.issues)}`);
+  }
+
+  // The check must still catch genuine typos — that is its whole purpose.
+  const typo = validateSchema([{ "@context": "https://schema.org", "@type": "Organisation" }]);
+  assert.ok(
+    typo.issues.some((i) => /unrecognized/i.test(i.issue)),
+    "a real typo must still be flagged",
+  );
+  const junk = validateSchema([{ "@context": "https://schema.org", "@type": "NotARealType" }]);
+  assert.ok(
+    junk.issues.some((i) => /unrecognized/i.test(i.issue)),
+    "a made-up type must still be flagged",
+  );
+});
+
 test("regression: HTML entities decode exactly once", () => {
   // Pre-fix `&amp;` was expanded before `&lt;`, so `&amp;lt;` decoded twice
   // into `<`, corrupting titles and body text.

@@ -8,6 +8,21 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- **`T06-sitemap` reported child-sitemap counts as URL counts.** For a
+  `<sitemapindex>`, `countSitemapUrls` returns the number of _child sitemaps_, so
+  a site with 2 children each holding tens of thousands of URLs was reported as
+  `~2 URLs` — in the finding evidence, in `report.json`'s `site.sitemapUrls`, and
+  in `sitemap --json`. The evidence now says `~N child sitemaps` for an index.
+  Counting real URLs would mean fetching every child, which this synchronous
+  check cannot do.
+
+- **The schema `KNOWN_TYPES` allowlist produced spurious P2s on valid markup.** It
+  held ~30 of schema.org's ~800 types, so `Question`, `Answer`, `ListItem` and
+  `HowToStep` — the _mandated children_ of `FAQPage`, `QAPage`, `BreadcrumbList`
+  and `HowTo` — were flagged "unrecognized @type" whenever emitted as top-level
+  nodes. Expanded to ~350 common types. Genuine typos are still caught; that
+  remains the check's purpose.
+
 - **Answer-first detection was far too permissive and inflated the AI-Visibility
   score.** The largest GEO weight (25 points) fired on _any_ question mark in the
   first 4000 characters, so nav and breadcrumb links such as "Where is your office
