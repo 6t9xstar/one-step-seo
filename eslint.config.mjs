@@ -19,4 +19,11 @@ export default [
       "no-empty": ["error", { allowEmptyCatch: false }],
     },
   },
+  {
+    files: ["bin/**/*.mjs"],
+    rules: {
+      // CLI entrypoints intentionally call process.exit; libs return exit codes.
+      "no-process-exit": "off",
+    },
+  },
 ];

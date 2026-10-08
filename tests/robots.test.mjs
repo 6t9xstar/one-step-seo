@@ -17,7 +17,7 @@ test("parseRobots ignores non-AI and partial blocks", () => {
 
 test("parseRobots collects absolute Sitemap directives, skips junk", () => {
   const r = parseRobots(
-    "# comment\nSitemap: https://example.com/sitemap_index.xml\nSitemap: /relative.xml\nSitemap: notaurl\n"
+    "# comment\nSitemap: https://example.com/sitemap_index.xml\nSitemap: /relative.xml\nSitemap: notaurl\n",
   );
   assert.deepEqual(r.sitemaps, ["https://example.com/sitemap_index.xml"]);
 });
@@ -31,12 +31,12 @@ test("parseRobots tolerates malformed lines", () => {
 test("looksLikeSitemap and countSitemapUrls", () => {
   assert.equal(
     looksLikeSitemap('<?xml version="1.0"?><urlset><url><loc>https://a/</loc></url></urlset>'),
-    true
+    true,
   );
   assert.equal(looksLikeSitemap("<html>nope</html>"), false);
   assert.equal(
     countSitemapUrls("<urlset><url><loc>https://a/</loc></url><url><loc>https://b/</loc></url></urlset>"),
-    2
+    2,
   );
   assert.equal(countSitemapUrls(""), 0);
 });
@@ -62,8 +62,8 @@ before(
             res.end(
               '<?xml version="1.0"?><urlset><url><loc>${base}/</loc></url><url><loc>${base}/a</loc></url></urlset>'.replaceAll(
                 "${base}",
-                base
-              )
+                base,
+              ),
             );
           } else if (req.url === "/llms.txt") {
             res.writeHead(404);
@@ -79,7 +79,7 @@ before(
           resolve();
         });
       })
-    )
+    ),
 );
 
 after(
@@ -89,7 +89,7 @@ after(
         if (server) server.close(() => resolve());
         else resolve();
       })
-    )
+    ),
 );
 
 test("getSiteFiles follows robots-declared sitemap when root is missing", async () => {

@@ -4,16 +4,24 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee94edb60a # v4.0.3
         with:
           node-version: 20
-      - run: node bin/cli.mjs audit https://example.com --pages 3 --out ./seo-report
-      - uses: actions/upload-artifact@v4
+      - run: node bin/cli.mjs audit https://6t9xstar.github.io/one-step-seo --pages 3 --out ./seo-report
+      - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: seo-report
           path: seo-report/
+          retention-days: 30

@@ -52,7 +52,7 @@ before(
           resolve();
         });
       })
-    )
+    ),
 );
 
 after(
@@ -62,7 +62,7 @@ after(
         if (server) server.close(() => resolve());
         else resolve();
       })
-    )
+    ),
 );
 
 test("follows a redirect chain and records each step", async () => {
@@ -71,7 +71,7 @@ test("follows a redirect chain and records each step", async () => {
   assert.equal(r.status, 200);
   assert.deepEqual(
     r.statusChain.map((s) => s.status),
-    [301, 302, 200]
+    [301, 302, 200],
   );
   assert.ok(r.html.includes("ok"));
   assert.equal(r.truncated, false);

@@ -1,3 +1,4 @@
+# Generated + fixture content — keep byte-stable for diff checks.
 node_modules/
 seo-report/
 package-lock.json

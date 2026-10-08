@@ -11,6 +11,8 @@ runs/
 Thumbs.db
 *.local
 .vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 .idea/*
 
 # env
@@ -20,3 +22,4 @@ Thumbs.db
 
 # coverage
 coverage/
+*.tsbuildinfo

@@ -69,7 +69,7 @@ test("perfect page passes almost everything", () => {
   assert.deepEqual(
     bad.map((f) => f.id),
     [],
-    `expected no P0/P1, got ${bad.map((f) => f.id).join(",")}`
+    `expected no P0/P1, got ${bad.map((f) => f.id).join(",")}`,
   );
 });
 
@@ -99,7 +99,7 @@ test("bad page trips the remaining technical arms", () => {
       contentType: "text/plain",
       error: "http status 500",
     }),
-    { items: [], types: [], issues: [], errors: [] }
+    { items: [], types: [], issues: [], errors: [] },
   );
   const byId = Object.fromEntries(findings.map((f) => [f.id, f.severity]));
   assert.equal(byId["T01-https"], "P0");
@@ -160,7 +160,7 @@ test("entity decoder drops invalid codepoints, keeps unknown entities", () => {
 test("garbage base URL degrades gracefully", () => {
   const p = parseHtml(
     '<html><head><link rel="canonical" href="/x"></head><body><a href="/y">y</a></body></html>',
-    "::::"
+    "::::",
   );
   assert.equal(p.canonical, "");
   assert.equal(p.internalLinkCount, 0);

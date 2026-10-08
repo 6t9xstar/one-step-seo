@@ -45,11 +45,17 @@ test("bad page triggers P0/P1 findings", () => {
   const p = parseHtml(bad, "https://example.com/bad/");
   const schemaInfo = { items: [], types: [], issues: [], errors: [] };
   const findings = runChecks(p, siteFilesMock(), fetchMock("https://example.com/bad/"), schemaInfo);
-  const byId = Object.fromEntries(findings.map((f) => [f.id, f]));
-  assert.equal(byId["O03-h1-multi"].severity, "P1");
-  assert.equal(byId["O01-title-short"].severity, "P1");
-  assert.equal(byId["O02-meta-missing"].severity, "P1");
-  assert.equal(byId["O08-alt"].severity, "P1");
+  const byId = new Map(findings.map((f) => [f.id, f]));
+  /** @param {string} id @param {string} severity */
+  const expectSev = (id, severity) => {
+    const f = byId.get(id);
+    assert.ok(f, `missing finding ${id}`);
+    assert.equal(f?.severity, severity);
+  };
+  expectSev("O03-h1-multi", "P1");
+  expectSev("O01-title-short", "P1");
+  expectSev("O02-meta-missing", "P1");
+  expectSev("O08-alt", "P1");
 });
 
 test("schema extract + validate + generate", () => {

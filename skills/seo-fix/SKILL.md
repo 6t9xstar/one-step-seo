@@ -13,6 +13,7 @@ Only run when the user explicitly asks to fix. Default: preview only.
 - Canonical link, OG/Twitter tags, favicon link
 - Image `alt`, `width`/`height`, `loading="lazy"`
 - JSON-LD snippets from `one-step-seo schema <url> --generate <kind>`
+  (kinds: organization, website, article, faq, breadcrumb, product, event, localbusiness, howto)
 - `robots.txt` sitemap line, `sitemap.xml` entry, `llms.txt` draft
 
 ## Needs per-item approval

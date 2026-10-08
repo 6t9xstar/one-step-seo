@@ -3,10 +3,18 @@
 Two scores, never blended. A page can rank in Google yet be
 uncitable by AI answers — or the reverse.
 
+Source of truth: `lib/score.mjs` (`SEARCH_WEIGHTS`, `GEO_WEIGHTS`,
+`GEO_ONLY_IDS`) + `lib/checks.mjs` (`THRESHOLDS`).
+
 ## Search SEO (0–100, A–F)
 
 Starts at 100, deducts per finding: P0 −25, P1 −10, P2 −3, P3 −1.
-GEO-only findings (`llms.txt`, AI-bot allow) do not affect it.
+GEO-only discovery findings (`G01-llms`, `G02-ai-blocked`) do not affect it.
+`G03-facts` intentionally still deducts (P2 −3): facts that are hard to
+extract hurt classic ranking too (`seoImpact: low`).
+
+Worked example: a page with 1×P0 + 2×P1 + 1×P2 (non-GEO) scores
+`100 − 25 − 20 − 3 = 52` → band F. Clamped to 0–100; no per-category cap.
 
 ## AI Visibility (0–100, A–F)
 
@@ -23,6 +31,9 @@ Weighted checklist (max 100):
 | Title + meta present | 5      |
 | llms.txt             | 5      |
 | AI crawlers allowed  | 5      |
+
+Partial credit: each signal is all-or-nothing; the AI score is the sum of
+weights for passing signals (0–100, clamped).
 
 ## Bands
 

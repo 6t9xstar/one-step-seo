@@ -37,7 +37,7 @@ const EVIL_BODY = `<h1>Heading</h1><p><img src=x onerror=alert(1)>Hello &copy; 2
 test("hostile page content is escaped in HTML reports", () => {
   const parsed = parseHtml(
     `<html><head><title>${EVIL_INNER}</title><meta name="description" content="Plain description here."></head><body>${EVIL_BODY}</body></html>`,
-    "https://example.com/"
+    "https://example.com/",
   );
   const findings = runChecks(parsed, siteFilesMock(), fetchMock(), {
     items: [],
@@ -72,7 +72,7 @@ test("esc handles all dangerous characters", () => {
 test("entities decode for word counting", () => {
   const p = parseHtml(
     "<html><body><p>Hello &copy; 2026 &#x41;BC &unknown;</p></body></html>",
-    "https://example.com/"
+    "https://example.com/",
   );
   assert.ok(p.visibleText.includes("(c)"));
   assert.ok(p.visibleText.includes("ABC"));
@@ -82,7 +82,7 @@ test("invalid JSON-LD is reported, not thrown", () => {
   const { items, errors } = extractJsonLd(["{not json", "", '{"@type":"Article"}']);
   assert.equal(items.length, 1);
   assert.equal(errors.length, 1);
-  assert.match(errors[0], /invalid JSON-LD/);
+  assert.match(errors[0] ?? "", /invalid JSON-LD/);
 });
 
 test("score bands hit every grade boundary", () => {
@@ -90,7 +90,11 @@ test("score bands hit every grade boundary", () => {
   const scoreFor = (deductions) => {
     /** @type {Record<number, string>} */
     const sev = { 25: "P0", 10: "P1", 3: "P2", 1: "P3" };
-    const findings = deductions.map((d, i) => ({ id: `T${i}-x`, category: "technical", severity: sev[d] }));
+    const findings = deductions.map((d, i) => ({
+      id: `T${i}-x`,
+      category: "technical",
+      severity: sev[d] ?? "P2",
+    }));
     return computeScores(findings, { score: 100 }).search.score;
   };
   assert.equal(computeScores([], { score: 100 }).search.band, "A");
@@ -101,7 +105,7 @@ test("score bands hit every grade boundary", () => {
       { id: "a", category: "t", severity: "P1" },
       { id: "b", category: "t", severity: "P2" },
     ],
-    { score: 0 }
+    { score: 0 },
   );
   assert.equal(b.search.score, 87);
   assert.equal(b.search.band, "B");
@@ -113,7 +117,7 @@ test("score bands hit every grade boundary", () => {
       { id: "c", category: "t", severity: "P1" },
       { id: "d", category: "t", severity: "P2" },
     ],
-    { score: 0 }
+    { score: 0 },
   );
   assert.equal(d.search.score, 67);
   assert.equal(d.search.band, "D");
@@ -131,7 +135,7 @@ test("GEO-only findings do not move the Search score", () => {
 test("perfect GEO signals score 100", () => {
   const parsed = parseHtml(
     `<html lang="en"><head><title>What is X? A reasonably long and descriptive title here</title><meta name="description" content="A full-length meta description that comfortably exceeds one hundred and twenty characters for testing."></head><body><h1>What is X?</h1><p>What is X? X is a direct answer in forty to sixty words that explains the topic clearly and concisely for both humans and machines alike right now.</p><h2>Details</h2><table><tr><td>a</td></tr></table><ul><li>b</li></ul><h2>FAQ</h2><p>How does it work? It works.</p><p>${"word ".repeat(320)}</p></body></html>`,
-    "https://example.com/"
+    "https://example.com/",
   );
   const geo = geoDetails(parsed, {
     llms: { found: true },

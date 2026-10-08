@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>one-step-seo report — https://example.com/bad/</title>
+<style>
+:root{color-scheme:light dark}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:32px;line-height:1.55;max-width:1080px;margin-inline:auto}
+.cards{display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 24px}
+.card{border:1px solid #ccc;border-radius:12px;padding:16px 20px;min-width:220px}
+.score{font-size:40px;font-weight:800}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid #ccc;padding:8px 10px;text-align:left;vertical-align:top}
+tr.sev-P0{background:rgba(220,38,38,.08)}
+tr.sev-P1{background:rgba(234,88,12,.08)}
+.meta{color:#555;font-size:13px}
+.warn{border:1px solid #d97706;background:rgba(217,119,6,.12);border-radius:8px;padding:10px 14px}
+code{background:rgba(127,127,127,.15);padding:1px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<h1>one-step-seo report</h1>
+<p class="meta">URL: <code>https://example.com/bad/</code><br>Final: <code>https://example.com/bad/</code><br>Checked: 2026-10-08T00:00:00.000Z · v0.2.0</p>
+
+<div class="cards">
+<div class="card"><div>Search SEO</div><div class="score">0<small>/100 F</small></div></div>
+<div class="card"><div>AI Visibility</div><div class="score">5<small>/100 F</small></div></div>
+<div class="card"><div>Counts</div><div>P0=0 · P1=9 · P2=11 · P3=1 · pass=14</div></div>
+</div>
+<table>
+<caption>Findings ordered by priority (P0 critical first, passed checks last)</caption>
+<thead><tr><th scope="col">Priority</th><th scope="col">Check</th><th scope="col">Evidence</th><th scope="col">Fix</th></tr></thead>
+<tbody>
+<tr class="sev-P1"><td><strong>P1</strong></td><td>Viewport meta missing/odd<br><small>T11-viewport · technical</small></td><td>(none)</td><td>Add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;.</td></tr>
+<tr class="sev-P1"><td><strong>P1</strong></td><td>Title too short<br><small>O01-title-short · onpage</small></td><td>&quot;Hi&quot; (2ch)</td><td>Expand to 30-60 chars: Primary Topic | Brand.</td></tr>
+<tr class="sev-P1"><td><strong>P1</strong></td><td>Meta description missing<br><small>O02-meta-missing · onpage</small></td><td>(empty)</td><td>Add a 120-155ch description with benefit + CTA. One per page.</td></tr>
+<tr class="sev-P1"><td><strong>P1</strong></td><td>Multiple H1s<br><small>O03-h1-multi · onpage</small></td><td>2 H1s</td><td>Keep one H1; demote the rest to H2.</td></tr>
+<tr class="sev-P1"><td><strong>P1</strong></td><td>2/2 images missing alt<br><small>O08-alt · onpage</small></td><td>Empty/missing alt attributes</td><td>Write descriptive alt for informative images; alt=&quot;&quot; for decorative.</td></tr>
+<tr class="sev-P1"><td><strong>P1</strong></td><td>No internal links detected<br><small>O10-internal · onpage</small></td><td>0 internal links</td><td>Add 3-10 contextual internal links to related pages.</td></tr>
+<tr class="sev-P1"><td><strong>P1</strong></td><td>Thin content<br><small>C01-thin · content</small></td><td>6 words</td><td>Expand to fully answer the query; add examples, steps, data.</td></tr>
+<tr class="sev-P1"><td><strong>P1</strong></td><td>No answer-first block<br><small>C02-answer · content</small></td><td>No direct answer in first ~150 words</td><td>Start with a 40-60 word direct answer, then explanation + evidence.</td></tr>
+<tr class="sev-P1"><td><strong>P1</strong></td><td>No JSON-LD structured data<br><small>S01-none · schema</small></td><td>0 schema nodes</td><td>Add Organization/WebSite + page-type markup (Article/FAQ/Breadcrumb). Only mark up visible content.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>Canonical missing<br><small>T08-canonical · technical</small></td><td>No rel=canonical found</td><td>Add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred URL.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>Missing html lang<br><small>T09-lang · technical</small></td><td>No &lt;html lang&gt;</td><td>Add lang, e.g. &lt;html lang=&quot;en&quot;&gt;.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>Charset not UTF-8<br><small>T10-charset · technical</small></td><td>not-found</td><td>Declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>Skipped heading level<br><small>O04-headings · onpage</small></td><td>e.g. H1 -&gt; H3</td><td>Nest headings sequentially (H1&gt;H2&gt;H3).</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>Open Graph incomplete<br><small>O06-og · onpage</small></td><td>title:false desc:false img:false</td><td>Add og:title, og:description, og:image + twitter:card.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>Favicon not detected<br><small>O07-favicon · onpage</small></td><td>No rel=icon link</td><td>Add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + SVG variant.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>Images missing dimensions (CLS risk)<br><small>O09-img-dims · onpage</small></td><td>2/2 without width+height</td><td>Add width/height or aspect-ratio to avoid layout shift.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>No tables/lists (harder to cite)<br><small>C03-extractable · content</small></td><td>0 tables/lists</td><td>Add a comparison table or steps list for key facts.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>No FAQ coverage<br><small>C04-faq · content</small></td><td>No questions answered on page</td><td>Add 3-6 genuine user questions with concise answers where natural.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>llms.txt missing<br><small>G01-llms · geo</small></td><td>GET /llms.txt not found</td><td>Optional: add /llms.txt summarizing key pages for AI crawlers.</td></tr>
+<tr class="sev-P2"><td><strong>P2</strong></td><td>Facts hard to extract<br><small>G03-facts · geo</small></td><td>tables:0 lists:0 words:6</td><td>Surface prices/specs/steps/dates in tables or bolded fact lines with sources.</td></tr>
+<tr class="sev-P3"><td><strong>P3</strong></td><td>Twitter card missing<br><small>W01-social · onpage</small></td><td>No twitter:card meta</td><td>Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;.</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>HTTPS enabled<br><small>T01-https · technical</small></td><td>Final URL uses https</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>HTTP 200 OK<br><small>T02-status · technical</small></td><td>Status 200 in 12ms</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Redirect chain clean<br><small>T03-redirects · technical</small></td><td>0 redirect(s)</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>HTML content-type<br><small>T04-content-type · technical</small></td><td>text/html</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>robots.txt found<br><small>T05-robots · technical</small></td><td>Disallows: 1</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>XML sitemap found<br><small>T06-sitemap · technical</small></td><td>~10 URLs</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Indexable (no noindex)<br><small>T07-noindex · technical</small></td><td>meta robots: &quot;(none)&quot;</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Clean URL shape<br><small>T12-url · technical</small></td><td>/bad/</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Subheadings present<br><small>O05-h2 · onpage</small></td><td>0 H2(s)</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>AI crawlers not blanket-blocked<br><small>G02-ai-blocked · geo</small></td><td>No full Disallow for AI bots</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>HTML size reasonable<br><small>P01-html-size · performance</small></td><td>0KB</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>Image count reasonable<br><small>P02-img-count · performance</small></td><td>2 &lt;img&gt;</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>og:url consistent<br><small>W02-og-url · onpage</small></td><td>(no og:url, ok)</td><td>—</td></tr>
+<tr class="sev-pass"><td><strong>pass</strong></td><td>No hreflang (single-locale ok)<br><small>W03-hreflang · onpage</small></td><td>0 alternates</td><td>—</td></tr>
+</tbody>
+</table>
+<p class="meta">Generated by one-step-seo. Two scores, never blended.</p>
+</body>
+</html>

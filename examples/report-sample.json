@@ -1,0 +1,396 @@
+{
+  "tool": "one-step-seo",
+  "version": "0.2.0",
+  "url": "https://example.com/good/",
+  "finalUrl": "https://example.com/good/",
+  "checkedAt": "2026-10-08T00:00:00.000Z",
+  "truncated": false,
+  "scores": {
+    "search": {
+      "score": 87,
+      "band": "B"
+    },
+    "ai": {
+      "score": 80,
+      "band": "B"
+    }
+  },
+  "counts": {
+    "P0": 0,
+    "P1": 1,
+    "P2": 2,
+    "P3": 0,
+    "pass": 32
+  },
+  "findings": [
+    {
+      "id": "C01-thin",
+      "category": "content",
+      "severity": "P1",
+      "title": "Thin content",
+      "evidence": "130 words",
+      "fix": "Expand to fully answer the query; add examples, steps, data.",
+      "seoImpact": "medium",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "G01-llms",
+      "category": "geo",
+      "severity": "P2",
+      "title": "llms.txt missing",
+      "evidence": "GET /llms.txt not found",
+      "fix": "Optional: add /llms.txt summarizing key pages for AI crawlers.",
+      "seoImpact": "low",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "G03-facts",
+      "category": "geo",
+      "severity": "P2",
+      "title": "Facts hard to extract",
+      "evidence": "tables:1 lists:1 words:130",
+      "fix": "Surface prices/specs/steps/dates in tables or bolded fact lines with sources.",
+      "seoImpact": "low",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "T01-https",
+      "category": "technical",
+      "severity": "pass",
+      "title": "HTTPS enabled",
+      "evidence": "Final URL uses https",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T02-status",
+      "category": "technical",
+      "severity": "pass",
+      "title": "HTTP 200 OK",
+      "evidence": "Status 200 in 12ms",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T03-redirects",
+      "category": "technical",
+      "severity": "pass",
+      "title": "Redirect chain clean",
+      "evidence": "0 redirect(s)",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T04-content-type",
+      "category": "technical",
+      "severity": "pass",
+      "title": "HTML content-type",
+      "evidence": "text/html",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T05-robots",
+      "category": "technical",
+      "severity": "pass",
+      "title": "robots.txt found",
+      "evidence": "Disallows: 1",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T06-sitemap",
+      "category": "technical",
+      "severity": "pass",
+      "title": "XML sitemap found",
+      "evidence": "~10 URLs",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T07-noindex",
+      "category": "technical",
+      "severity": "pass",
+      "title": "Indexable (no noindex)",
+      "evidence": "meta robots: \"(none)\"",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T08-canonical",
+      "category": "technical",
+      "severity": "pass",
+      "title": "Canonical self-references",
+      "evidence": "https://example.com/good/",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T09-lang",
+      "category": "technical",
+      "severity": "pass",
+      "title": "HTML lang=\"en\"",
+      "evidence": "lang: en",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T10-charset",
+      "category": "technical",
+      "severity": "pass",
+      "title": "UTF-8 charset declared",
+      "evidence": "utf-8",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T11-viewport",
+      "category": "technical",
+      "severity": "pass",
+      "title": "Responsive viewport set",
+      "evidence": "width=device-width, initial-scale=1",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T12-url",
+      "category": "technical",
+      "severity": "pass",
+      "title": "Clean URL shape",
+      "evidence": "/good/",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O01-title",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Title length healthy",
+      "evidence": "\"Good Example Page — One-Step-SEO Demo\" (37ch)",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O02-meta",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Meta description healthy",
+      "evidence": "125ch",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O03-h1",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Single H1",
+      "evidence": "\"Good example page\"",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O04-headings",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Heading order logical",
+      "evidence": "4 headings",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O05-h2",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Subheadings present",
+      "evidence": "3 H2(s)",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O06-og",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Open Graph complete",
+      "evidence": "og:title/description/image present",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O07-favicon",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Favicon present",
+      "evidence": "rel=icon found",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O08-alt",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "All images have alt",
+      "evidence": "1 img",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O09-img-dims",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Image dimensions OK",
+      "evidence": "1 img checked",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O10-internal",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Internal linking present",
+      "evidence": "2 internal links",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "C02-answer",
+      "category": "content",
+      "severity": "pass",
+      "title": "Answer-first opening detected",
+      "evidence": "Question/direct-answer near top",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "C03-extractable",
+      "category": "content",
+      "severity": "pass",
+      "title": "Extractable structures present",
+      "evidence": "1 tables, 1 lists",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "C04-faq",
+      "category": "content",
+      "severity": "pass",
+      "title": "FAQ signals present",
+      "evidence": "FAQ text or markup detected",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "S01-present",
+      "category": "schema",
+      "severity": "pass",
+      "title": "Structured data present (1 node(s))",
+      "evidence": "Types: Article",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "G02-ai-blocked",
+      "category": "geo",
+      "severity": "pass",
+      "title": "AI crawlers not blanket-blocked",
+      "evidence": "No full Disallow for AI bots",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "P01-html-size",
+      "category": "performance",
+      "severity": "pass",
+      "title": "HTML size reasonable",
+      "evidence": "2KB",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "P02-img-count",
+      "category": "performance",
+      "severity": "pass",
+      "title": "Image count reasonable",
+      "evidence": "1 <img>",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "W01-social",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Twitter card present",
+      "evidence": "summary_large_image",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "W02-og-url",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "og:url consistent",
+      "evidence": "(no og:url, ok)",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "W03-hreflang",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "No hreflang (single-locale ok)",
+      "evidence": "0 alternates",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    }
+  ],
+  "page": {
+    "title": "Good Example Page — One-Step-SEO Demo",
+    "metaDescription": "A healthy demo page around 150 characters showing how one-step-seo scores title, meta, headings, images and schema correctly.",
+    "canonical": "https://example.com/good/",
+    "wordCount": 130,
+    "h1": [
+      "Good example page"
+    ],
+    "images": 1,
+    "internalLinks": 2,
+    "externalLinks": 0
+  },
+  "site": {
+    "origin": "https://example.com",
+    "robots": true,
+    "sitemap": true,
+    "sitemapUrls": 10,
+    "llms": false
+  }
+}

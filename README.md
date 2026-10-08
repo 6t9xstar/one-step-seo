@@ -77,7 +77,7 @@ Real output (from [`examples/`](./examples/report-sample.md)):
 
 ```text
 Search SEO: 87/100 (B)  |  AI Visibility: 80/100 (B)
-Counts: P0=0 P1=0 P2=2 P3=0 pass=24
+Counts: P0=0 P1=1 P2=2 P3=0 pass=32
 ```
 
 Priorities: **P0** critical (fix today) → **P1** high (this week) → **P2** medium (this month) → **P3** polish. Details: [`docs/SCORING.md`](./docs/SCORING.md). Full check list: [`docs/CHECKS.md`](./docs/CHECKS.md).

@@ -1,0 +1,397 @@
+{
+  "tool": "one-step-seo",
+  "version": "0.2.0",
+  "url": "https://example.com/bad/",
+  "finalUrl": "https://example.com/bad/",
+  "checkedAt": "2026-10-08T00:00:00.000Z",
+  "truncated": false,
+  "scores": {
+    "search": {
+      "score": 0,
+      "band": "F"
+    },
+    "ai": {
+      "score": 5,
+      "band": "F"
+    }
+  },
+  "counts": {
+    "P0": 0,
+    "P1": 9,
+    "P2": 11,
+    "P3": 1,
+    "pass": 14
+  },
+  "findings": [
+    {
+      "id": "T11-viewport",
+      "category": "technical",
+      "severity": "P1",
+      "title": "Viewport meta missing/odd",
+      "evidence": "(none)",
+      "fix": "Add <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">.",
+      "seoImpact": "medium",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O01-title-short",
+      "category": "onpage",
+      "severity": "P1",
+      "title": "Title too short",
+      "evidence": "\"Hi\" (2ch)",
+      "fix": "Expand to 30-60 chars: Primary Topic | Brand.",
+      "seoImpact": "medium",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O02-meta-missing",
+      "category": "onpage",
+      "severity": "P1",
+      "title": "Meta description missing",
+      "evidence": "(empty)",
+      "fix": "Add a 120-155ch description with benefit + CTA. One per page.",
+      "seoImpact": "medium",
+      "geoImpact": "low"
+    },
+    {
+      "id": "O03-h1-multi",
+      "category": "onpage",
+      "severity": "P1",
+      "title": "Multiple H1s",
+      "evidence": "2 H1s",
+      "fix": "Keep one H1; demote the rest to H2.",
+      "seoImpact": "medium",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O08-alt",
+      "category": "onpage",
+      "severity": "P1",
+      "title": "2/2 images missing alt",
+      "evidence": "Empty/missing alt attributes",
+      "fix": "Write descriptive alt for informative images; alt=\"\" for decorative.",
+      "seoImpact": "medium",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "O10-internal",
+      "category": "onpage",
+      "severity": "P1",
+      "title": "No internal links detected",
+      "evidence": "0 internal links",
+      "fix": "Add 3-10 contextual internal links to related pages.",
+      "seoImpact": "medium",
+      "geoImpact": "-"
+    },
+    {
+      "id": "C01-thin",
+      "category": "content",
+      "severity": "P1",
+      "title": "Thin content",
+      "evidence": "6 words",
+      "fix": "Expand to fully answer the query; add examples, steps, data.",
+      "seoImpact": "medium",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "C02-answer",
+      "category": "content",
+      "severity": "P1",
+      "title": "No answer-first block",
+      "evidence": "No direct answer in first ~150 words",
+      "fix": "Start with a 40-60 word direct answer, then explanation + evidence.",
+      "seoImpact": "medium",
+      "geoImpact": "high"
+    },
+    {
+      "id": "S01-none",
+      "category": "schema",
+      "severity": "P1",
+      "title": "No JSON-LD structured data",
+      "evidence": "0 schema nodes",
+      "fix": "Add Organization/WebSite + page-type markup (Article/FAQ/Breadcrumb). Only mark up visible content.",
+      "seoImpact": "medium",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "T08-canonical",
+      "category": "technical",
+      "severity": "P2",
+      "title": "Canonical missing",
+      "evidence": "No rel=canonical found",
+      "fix": "Add <link rel=canonical href=\"...\"> with the absolute preferred URL.",
+      "seoImpact": "low",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T09-lang",
+      "category": "technical",
+      "severity": "P2",
+      "title": "Missing html lang",
+      "evidence": "No <html lang>",
+      "fix": "Add lang, e.g. <html lang=\"en\">.",
+      "seoImpact": "low",
+      "geoImpact": "low"
+    },
+    {
+      "id": "T10-charset",
+      "category": "technical",
+      "severity": "P2",
+      "title": "Charset not UTF-8",
+      "evidence": "not-found",
+      "fix": "Declare <meta charset=\"utf-8\"> first in <head>.",
+      "seoImpact": "low",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O04-headings",
+      "category": "onpage",
+      "severity": "P2",
+      "title": "Skipped heading level",
+      "evidence": "e.g. H1 -> H3",
+      "fix": "Nest headings sequentially (H1>H2>H3).",
+      "seoImpact": "low",
+      "geoImpact": "low"
+    },
+    {
+      "id": "O06-og",
+      "category": "onpage",
+      "severity": "P2",
+      "title": "Open Graph incomplete",
+      "evidence": "title:false desc:false img:false",
+      "fix": "Add og:title, og:description, og:image + twitter:card.",
+      "seoImpact": "low",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O07-favicon",
+      "category": "onpage",
+      "severity": "P2",
+      "title": "Favicon not detected",
+      "evidence": "No rel=icon link",
+      "fix": "Add <link rel=\"icon\" href=\"/favicon.ico\"> + SVG variant.",
+      "seoImpact": "low",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O09-img-dims",
+      "category": "onpage",
+      "severity": "P2",
+      "title": "Images missing dimensions (CLS risk)",
+      "evidence": "2/2 without width+height",
+      "fix": "Add width/height or aspect-ratio to avoid layout shift.",
+      "seoImpact": "low",
+      "geoImpact": "-"
+    },
+    {
+      "id": "C03-extractable",
+      "category": "content",
+      "severity": "P2",
+      "title": "No tables/lists (harder to cite)",
+      "evidence": "0 tables/lists",
+      "fix": "Add a comparison table or steps list for key facts.",
+      "seoImpact": "low",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "C04-faq",
+      "category": "content",
+      "severity": "P2",
+      "title": "No FAQ coverage",
+      "evidence": "No questions answered on page",
+      "fix": "Add 3-6 genuine user questions with concise answers where natural.",
+      "seoImpact": "low",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "G01-llms",
+      "category": "geo",
+      "severity": "P2",
+      "title": "llms.txt missing",
+      "evidence": "GET /llms.txt not found",
+      "fix": "Optional: add /llms.txt summarizing key pages for AI crawlers.",
+      "seoImpact": "low",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "G03-facts",
+      "category": "geo",
+      "severity": "P2",
+      "title": "Facts hard to extract",
+      "evidence": "tables:0 lists:0 words:6",
+      "fix": "Surface prices/specs/steps/dates in tables or bolded fact lines with sources.",
+      "seoImpact": "low",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "W01-social",
+      "category": "onpage",
+      "severity": "P3",
+      "title": "Twitter card missing",
+      "evidence": "No twitter:card meta",
+      "fix": "Add <meta name=\"twitter:card\" content=\"summary_large_image\">.",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T01-https",
+      "category": "technical",
+      "severity": "pass",
+      "title": "HTTPS enabled",
+      "evidence": "Final URL uses https",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T02-status",
+      "category": "technical",
+      "severity": "pass",
+      "title": "HTTP 200 OK",
+      "evidence": "Status 200 in 12ms",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T03-redirects",
+      "category": "technical",
+      "severity": "pass",
+      "title": "Redirect chain clean",
+      "evidence": "0 redirect(s)",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T04-content-type",
+      "category": "technical",
+      "severity": "pass",
+      "title": "HTML content-type",
+      "evidence": "text/html",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T05-robots",
+      "category": "technical",
+      "severity": "pass",
+      "title": "robots.txt found",
+      "evidence": "Disallows: 1",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T06-sitemap",
+      "category": "technical",
+      "severity": "pass",
+      "title": "XML sitemap found",
+      "evidence": "~10 URLs",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T07-noindex",
+      "category": "technical",
+      "severity": "pass",
+      "title": "Indexable (no noindex)",
+      "evidence": "meta robots: \"(none)\"",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T12-url",
+      "category": "technical",
+      "severity": "pass",
+      "title": "Clean URL shape",
+      "evidence": "/bad/",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "O05-h2",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Subheadings present",
+      "evidence": "0 H2(s)",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "G02-ai-blocked",
+      "category": "geo",
+      "severity": "pass",
+      "title": "AI crawlers not blanket-blocked",
+      "evidence": "No full Disallow for AI bots",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "P01-html-size",
+      "category": "performance",
+      "severity": "pass",
+      "title": "HTML size reasonable",
+      "evidence": "0KB",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "P02-img-count",
+      "category": "performance",
+      "severity": "pass",
+      "title": "Image count reasonable",
+      "evidence": "2 <img>",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "W02-og-url",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "og:url consistent",
+      "evidence": "(no og:url, ok)",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "W03-hreflang",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "No hreflang (single-locale ok)",
+      "evidence": "0 alternates",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    }
+  ],
+  "page": {
+    "title": "Hi",
+    "metaDescription": "",
+    "canonical": "",
+    "wordCount": 6,
+    "h1": [
+      "First",
+      "Second"
+    ],
+    "images": 2,
+    "internalLinks": 0,
+    "externalLinks": 1
+  },
+  "site": {
+    "origin": "https://example.com",
+    "robots": true,
+    "sitemap": true,
+    "sitemapUrls": 10,
+    "llms": false
+  }
+}
