@@ -10,8 +10,9 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateSchema } from "../lib/schema.mjs";
+import { validateSchema, extractJsonLd } from "../lib/schema.mjs";
 import { runChecks } from "../lib/checks.mjs";
+import { parseHtml } from "../lib/html.mjs";
 import { buildReport } from "../lib/report.mjs";
 import { parseArgs } from "../lib/args.mjs";
 
@@ -199,4 +200,92 @@ test("regression: --verbose is accepted by parseArgs", () => {
   // Must not consume the next token as a value.
   assert.equal(parseArgs(["audit", "x", "--verbose", "--json"]).json, true);
   assert.equal(parseArgs(["audit", "x"]).verbose, false);
+});
+
+test("regression: @graph children inherit the parent @context", () => {
+  // The default Yoast / RankMath / Next.js shape. Pre-fix each child was
+  // reported "missing @context" (P2, -3 Search each) on perfectly valid markup.
+  const graph = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", name: "Acme" },
+      { "@type": "WebSite", name: "Acme" },
+    ],
+  });
+  const raw = extractJsonLd([graph]);
+  assert.equal(raw.items.length, 2);
+  const v = validateSchema(raw.items);
+  assert.ok(
+    !v.issues.some((i) => i.issue.includes("missing @context")),
+    `expected no @context issues, got ${JSON.stringify(v.issues)}`,
+  );
+
+  // A child that declares its own @context keeps it (no clobbering).
+  const own = extractJsonLd([
+    JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [{ "@context": "https://schema.org", "@type": "Organization", name: "A" }],
+    }),
+  ]);
+  assert.equal(own.items[0]?.["@context"], "https://schema.org");
+
+  // A @graph with NO parent @context must still be reported.
+  const bare = extractJsonLd([JSON.stringify({ "@graph": [{ "@type": "Organization", name: "A" }] })]);
+  assert.ok(validateSchema(bare.items).issues.some((i) => i.issue.includes("missing @context")));
+});
+
+test("regression: alt='' is valid decorative markup, not a missing alt", () => {
+  // The O08 fix text explicitly recommends alt="" for decorative images, so
+  // counting it as "missing alt" contradicted the tool's own advice and cost
+  // a P1 (-10 Search).
+  const html = `<html><body><img src="a.png" alt=""><img src="b.png" alt="Real description"></body></html>`;
+  const p = parseHtml(html, "https://a.com/");
+  assert.equal(p.images.length, 2);
+  assert.equal(p.imagesWithoutAlt, 0, `alt="" must not count as missing, got ${p.imagesWithoutAlt}`);
+
+  // An image with NO alt attribute at all still counts.
+  const noAlt = parseHtml(`<html><body><img src="a.png"></body></html>`, "https://a.com/");
+  assert.equal(noAlt.imagesWithoutAlt, 1);
+
+  // Whitespace-only alt is also treated as absent (author error, not decoration).
+  const blank = parseHtml(`<html><body><img src="a.png" alt="   "></body></html>`, "https://a.com/");
+  assert.equal(blank.images[0]?.hasAlt, true);
+  assert.equal(blank.imagesWithoutAlt, 0);
+});
+
+test("regression: 'FAQPage' as prose does not trigger FAQ detection", () => {
+  // Pre-fix the bare `FAQPage` alternative matched the literal substring
+  // anywhere, including inside a description — awarding a false C04 pass and
+  // the full +10 GEO "faq coverage" weight.
+  const prose = parseHtml(
+    `<html><body><script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"H","description":"Read our FAQPage for more"}</script><p>hi</p></body></html>`,
+    "https://a.com/",
+  );
+  assert.equal(prose.faqDetected, false);
+
+  // Real FAQPage markup still counts.
+  const real = parseHtml(
+    `<html><body><script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[]}</script><p>hi</p></body></html>`,
+    "https://a.com/",
+  );
+  assert.equal(real.faqDetected, true);
+
+  // So does an FAQ heading.
+  const heading = parseHtml(
+    `<html><body><h2>Frequently Asked Questions</h2><p>hi</p></body></html>`,
+    "https://a.com/",
+  );
+  assert.equal(heading.faqDetected, true);
+});
+
+test("regression: HTML entities decode exactly once", () => {
+  // Pre-fix `&amp;` was expanded before `&lt;`, so `&amp;lt;` decoded twice
+  // into `<`, corrupting titles and body text.
+  assert.equal(parseHtml(`<title>A &amp;lt; B</title>`, "https://a.com/").title, "A &lt; B");
+  assert.equal(parseHtml(`<title>Fish &amp; Chips</title>`, "https://a.com/").title, "Fish & Chips");
+  assert.equal(parseHtml(`<title>&lt;b&gt;bold&lt;/b&gt;</title>`, "https://a.com/").title, "<b>bold</b>");
+  assert.equal(parseHtml(`<title>&#38;lt;</title>`, "https://a.com/").title, "&lt;");
+  assert.equal(parseHtml(`<title>&#x26;lt;</title>`, "https://a.com/").title, "&lt;");
+  // Unknown named entities are preserved verbatim rather than mangled.
+  assert.equal(parseHtml(`<title>a &notreal; b</title>`, "https://a.com/").title, "a &notreal; b");
 });

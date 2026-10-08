@@ -198,20 +198,25 @@ async function cmdAudit(url, args) {
   /** @type {import("../lib/report.mjs").Report[]} */
   const pageReports = [];
 
-  // Seed sitemap-mode queue from the sitemap discovery. When no sitemap URLs
-  // are available we say so and fall back to a link crawl rather than
-  // silently auditing the wrong pages.
+  // Seed sitemap-mode queue from the sitemap discovery. The root URL is
+  // already in `queue`, so the cap must count only *extra* seeds — comparing
+  // `queue.length >= args.pages` would break immediately at the default
+  // --pages 1 and add nothing.
   if (args.crawl === "sitemap") {
     try {
       const seeds = await getSitemapUrls(url, { timeoutMs: args.timeout });
+      let added = 0;
       for (const seed of seeds) {
-        if (queue.length >= args.pages) break;
+        if (added >= Math.max(0, args.pages - 1)) break;
         const key = canonicalizeUrl(seed) || seed;
         if (seen.has(key)) continue;
         queue.push(seed);
         seen.add(key);
+        added++;
       }
-      if (queue.length <= 1) {
+      // Only warn when the sitemap genuinely yielded nothing. At --pages 1 the
+      // root is already queued, so an empty `seeds` is the real signal.
+      if (seeds.length === 0) {
         console.error("! sitemap has no usable URLs — falling back to link crawl.");
       }
     } catch {
