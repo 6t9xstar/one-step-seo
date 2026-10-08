@@ -44,9 +44,9 @@ Open `./seo-report/report.html` in a browser or read `report.md`. Example output
 
 ## Scores
 
-| Axis | What it measures |
-| --- | --- |
-| **Search SEO 0–100 (A–F)** | Crawlability, indexability, title/meta/H1, canonical, sitemap, schema, internal links |
+| Axis                          | What it measures                                                                                                |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Search SEO 0–100 (A–F)**    | Crawlability, indexability, title/meta/H1, canonical, sitemap, schema, internal links                           |
 | **AI Visibility 0–100 (A–F)** | Answer-first opening, extractable facts/tables, FAQ coverage, entity consistency, `llms.txt`, AI-crawler access |
 
 Details: [`docs/SCORING.md`](./docs/SCORING.md). Full check list: [`docs/CHECKS.md`](./docs/CHECKS.md).
@@ -56,7 +56,8 @@ Details: [`docs/SCORING.md`](./docs/SCORING.md). Full check list: [`docs/CHECKS.
 Compatible with Claude Code, OpenCode, Codex, Cursor — anything that reads `SKILL.md`.
 
 ```bash
-npx skills add 6t9xstar/one-step-seo
+git clone --depth 1 https://github.com/6t9xstar/one-step-seo.git
+cp one-step-seo/SKILL.md ~/.claude/skills/one-step-seo/SKILL.md
 ```
 
 Or copy [`SKILL.md`](./SKILL.md) into your agent's skills folder and ask:
@@ -67,14 +68,14 @@ Sub-skills: [`skills/seo-audit/SKILL.md`](./skills/seo-audit/SKILL.md) (audit �
 
 ## Comparison
 
-|  | one-step-seo | claude-seo style plugins |
-| --- | --- | --- |
-| Install | `npx` — nothing to install | Python venv + Playwright + setup command |
-| Runtime | Zero-dep Node | Python + browser + API keys |
-| Works outside Claude Code | Yes (any terminal, any CI) | No (plugin only) |
-| Pages per run | 1–20 crawl built in | Agent-dependent |
-| Report | JSON + Markdown + HTML files | Chat transcript |
-| License | MIT, original code | MIT, fork-heavy |
+|                           | one-step-seo                 | claude-seo style plugins                 |
+| ------------------------- | ---------------------------- | ---------------------------------------- |
+| Install                   | `npx` — nothing to install   | Python venv + Playwright + setup command |
+| Runtime                   | Zero-dep Node                | Python + browser + API keys              |
+| Works outside Claude Code | Yes (any terminal, any CI)   | No (plugin only)                         |
+| Pages per run             | 1–20 crawl built in          | Agent-dependent                          |
+| Report                    | JSON + Markdown + HTML files | Chat transcript                          |
+| License                   | MIT, original code           | MIT, fork-heavy                          |
 
 ## Docs
 

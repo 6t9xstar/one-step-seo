@@ -20,14 +20,15 @@ code{background:rgba(127,127,127,.15);padding:1px 6px;border-radius:6px}
 </head>
 <body>
 <h1>one-step-seo report</h1>
-<p class="meta">URL: <code>https://example.com/good/</code><br>Final: <code>https://example.com/good/</code><br>Checked: 2026-10-08T03:09:38.342Z · v0.1.0</p>
+<p class="meta">URL: <code>https://example.com/good/</code><br>Final: <code>https://example.com/good/</code><br>Checked: 2026-10-08T03:32:43.353Z · v0.1.0</p>
 <div class="cards">
 <div class="card"><div>Search SEO</div><div class="score">87<small>/100 B</small></div></div>
 <div class="card"><div>AI Visibility</div><div class="score">80<small>/100 B</small></div></div>
 <div class="card"><div>Counts</div><div>P0=0 · P1=1 · P2=2 · P3=0 · pass=29</div></div>
 </div>
 <table>
-<thead><tr><th>Priority</th><th>Check</th><th>Evidence</th><th>Fix</th></tr></thead>
+<caption>Findings ordered by priority (P0 critical first, passed checks last)</caption>
+<thead><tr><th scope="col">Priority</th><th scope="col">Check</th><th scope="col">Evidence</th><th scope="col">Fix</th></tr></thead>
 <tbody>
 <tr class="sev-P1"><td><strong>P1</strong></td><td>Thin content<br><small>C01-thin · content</small></td><td>130 words</td><td>Expand to fully answer the query; add examples, steps, data.</td></tr>
 <tr class="sev-P2"><td><strong>P2</strong></td><td>llms.txt missing<br><small>G01-llms · geo</small></td><td>GET /llms.txt not found</td><td>Optional: add /llms.txt summarizing key pages for AI crawlers.</td></tr>

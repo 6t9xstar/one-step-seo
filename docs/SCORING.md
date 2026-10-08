@@ -12,17 +12,17 @@ GEO-only findings (`llms.txt`, AI-bot allow) do not affect it.
 
 Weighted checklist (max 100):
 
-| Signal | Weight |
-| --- | --- |
-| Answer-first opening | 25 |
-| Tables/lists | 20 |
-| ≥300 words | 15 |
-| FAQ coverage | 10 |
-| Single H1 | 10 |
-| H2s | 5 |
-| Title + meta present | 5 |
-| llms.txt | 5 |
-| AI crawlers allowed | 5 |
+| Signal               | Weight |
+| -------------------- | ------ |
+| Answer-first opening | 25     |
+| Tables/lists         | 20     |
+| ≥300 words           | 15     |
+| FAQ coverage         | 10     |
+| Single H1            | 10     |
+| H2s                  | 5      |
+| Title + meta present | 5      |
+| llms.txt             | 5      |
+| AI crawlers allowed  | 5      |
 
 ## Bands
 

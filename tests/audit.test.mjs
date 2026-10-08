@@ -23,7 +23,13 @@ function siteFilesMock(over = {}) {
   };
 }
 function fetchMock(finalUrl = "https://example.com/good/") {
-  return { finalUrl, status: 200, statusChain: [{ url: finalUrl, status: 200 }], contentType: "text/html", ms: 10 };
+  return {
+    finalUrl,
+    status: 200,
+    statusChain: [{ url: finalUrl, status: 200 }],
+    contentType: "text/html",
+    ms: 10,
+  };
 }
 
 test("good page parses core signals", () => {
@@ -61,8 +67,18 @@ test("scores: good beats bad, bands valid", () => {
   const gp = parseHtml(good, "https://example.com/good/");
   const bp = parseHtml(bad, "https://example.com/bad/");
   const sf = siteFilesMock();
-  const gFind = runChecks(gp, sf, fetchMock("https://example.com/good/"), { items: [{}], types: ["Article"], issues: [], errors: [] });
-  const bFind = runChecks(bp, sf, fetchMock("https://example.com/bad/"), { items: [], types: [], issues: [], errors: [] });
+  const gFind = runChecks(gp, sf, fetchMock("https://example.com/good/"), {
+    items: [{}],
+    types: ["Article"],
+    issues: [],
+    errors: [],
+  });
+  const bFind = runChecks(bp, sf, fetchMock("https://example.com/bad/"), {
+    items: [],
+    types: [],
+    issues: [],
+    errors: [],
+  });
   const gs = computeScores(gFind, geoDetails(gp, sf));
   const bs = computeScores(bFind, geoDetails(bp, sf));
   assert.ok(gs.search.score > bs.search.score);
@@ -74,7 +90,15 @@ test("report builders produce json/md/html", () => {
   const sf = siteFilesMock();
   const findings = runChecks(p, sf, fetchMock(), { items: [], types: [], issues: [], errors: [] });
   const scores = computeScores(findings, geoDetails(p, sf));
-  const report = buildReport({ url: "https://example.com/good/", finalUrl: "https://example.com/good/", scores, findings, parsed: p, siteFiles: sf, meta: { version: "0.0.0-test" } });
+  const report = buildReport({
+    url: "https://example.com/good/",
+    finalUrl: "https://example.com/good/",
+    scores,
+    findings,
+    parsed: p,
+    siteFiles: sf,
+    meta: { version: "0.0.0-test" },
+  });
   assert.ok(report.findings.length > 10);
   assert.match(renderMarkdown(report), /Search SEO/);
   assert.match(renderHtml(report), /one-step-seo report/);
@@ -84,7 +108,12 @@ test("finding ids match schema pattern", async () => {
   const schema = JSON.parse(readFileSync(join(DIR, "../lib/schema-finding.json"), "utf8"));
   assert.ok(schema.properties.id.pattern);
   const p = parseHtml(good, "https://example.com/good/");
-  const findings = runChecks(p, siteFilesMock(), fetchMock(), { items: [], types: [], issues: [], errors: [] });
+  const findings = runChecks(p, siteFilesMock(), fetchMock(), {
+    items: [],
+    types: [],
+    issues: [],
+    errors: [],
+  });
   const re = new RegExp(schema.properties.id.pattern);
   for (const f of findings) assert.match(f.id, re, `bad id ${f.id}`);
 });

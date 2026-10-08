@@ -1,0 +1,16 @@
+{
+  "extends": [],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM"],
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["bin/**/*.mjs", "lib/**/*.mjs", "scripts/**/*.mjs", "tests/**/*.mjs"]
+}

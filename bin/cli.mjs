@@ -18,6 +18,7 @@ import { runChecks } from "../lib/checks.mjs";
 import { extractJsonLd, validateSchema, schemaSnippet } from "../lib/schema.mjs";
 import { geoDetails, computeScores } from "../lib/score.mjs";
 import { buildReport, renderMarkdown, renderHtml } from "../lib/report.mjs";
+import { parseArgs, normalizeUrl, CliError } from "../lib/args.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const VERSION = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version;
@@ -35,60 +36,67 @@ Options:
   --pages N     pages to crawl for 'audit' (default 1, max 20)
   --out DIR     output directory (default ./seo-report)
   --format      comma list among html,md,json (default html,md,json)
-  --timeout MS  per-request timeout (default 15000)
+  --timeout MS  per-request timeout in ms (default 15000, 1000-120000)
   --json        print JSON to stdout (doctor / sitemap)
+
+Notes:
+  - Multi-page audits write report.json/md/html for page 1 and
+    report-N.json/md for pages 2+ (HTML is only rendered for page 1).
+  - Only audit sites you are allowed to crawl; respect robots.txt.
 `);
   process.exit(code);
 }
 
-function parseArgs(argv) {
-  const args = { _: [], pages: 1, out: "./seo-report", format: "html,md,json", timeout: 15000, generate: "", json: false };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--pages") args.pages = Math.max(1, Math.min(20, Number(argv[++i]) || 1));
-    else if (a === "--out") args.out = argv[++i] ?? args.out;
-    else if (a === "--format") args.format = argv[++i] ?? args.format;
-    else if (a === "--timeout") args.timeout = Number(argv[++i]) || 15000;
-    else if (a === "--generate") args.generate = argv[++i] ?? "";
-    else if (a === "--json") args.json = true;
-    else if (a === "--help" || a === "-h") usage(0);
-    else if (a === "--version" || a === "-v") {
-      console.log(VERSION);
-      process.exit(0);
-    } else if (a.startsWith("--")) {
-      console.error(`Unknown flag: ${a}`);
-      usage(1);
-    } else args._.push(a);
-  }
-  return args;
-}
-
-function normalizeUrl(input) {
-  if (!input) return "";
-  const hasProto = /^https?:\/\//i.test(input);
-  try {
-    return new URL(hasProto ? input : `https://${input}`).toString();
-  } catch {
-    return "";
-  }
-}
-
+/**
+ * @param {string} url
+ * @param {number} timeoutMs
+ */
 async function analyzeOne(url, timeoutMs) {
   const fetched = await fetchWithRedirects(url, { timeoutMs });
   if (!fetched.ok || !fetched.html) {
-    return { fetched, parsed: null, siteFiles: null, findings: [], scores: null, geo: null, schemaInfo: null };
+    return {
+      fetched,
+      parsed: null,
+      siteFiles: null,
+      findings: [],
+      scores: null,
+      geo: null,
+      schemaInfo: null,
+    };
   }
   const parsed = parseHtml(fetched.html, fetched.finalUrl);
   const siteFiles = await getSiteFiles(fetched.finalUrl);
   const schemaRaw = extractJsonLd(parsed.jsonLdBlocks);
   const validated = validateSchema(schemaRaw.items);
-  const schemaInfo = { items: schemaRaw.items, types: validated.types, issues: validated.issues, errors: schemaRaw.errors };
+  const schemaInfo = {
+    items: schemaRaw.items,
+    types: validated.types,
+    issues: validated.issues,
+    errors: schemaRaw.errors,
+  };
   const findings = runChecks(parsed, siteFiles, fetched, schemaInfo);
+  if (fetched.truncated) {
+    findings.push({
+      id: "T00-truncated",
+      category: "technical",
+      severity: "P2",
+      title: "HTML truncated at 5MB cap",
+      evidence: `Body exceeded the 5MB audit cap; checks ran on the head portion only.`,
+      fix: "Reduce page weight (code-split, paginate) so the full page is auditable, then re-run.",
+      seoImpact: "low",
+      geoImpact: "low",
+    });
+  }
   const geo = geoDetails(parsed, siteFiles);
   const scores = computeScores(findings, geo);
-  return { fetched, parsed, siteFiles, findings, scores, geo, schemaInfo };
+  return { fetched, parsed, siteFiles, findings, scores, geo, schemaInfo, truncated: fetched.truncated };
 }
 
+/**
+ * @param {string} outDir
+ * @param {import("../lib/report.mjs").Report} report
+ * @param {string[]} formats
+ */
 function writeOutputs(outDir, report, formats) {
   mkdirSync(outDir, { recursive: true });
   const written = [];
@@ -110,8 +118,12 @@ function writeOutputs(outDir, report, formats) {
   return written;
 }
 
+/**
+ * @param {string} url
+ * @param {import("../lib/args.mjs").ParsedArgs} args
+ */
 async function cmdAudit(url, args) {
-  const formats = args.format.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const formats = args.formats;
   // Crawl BFS over internal links when --pages > 1
   const seen = new Set();
   const queue = [url];
@@ -119,7 +131,7 @@ async function cmdAudit(url, args) {
 
   while (queue.length > 0 && pageReports.length < args.pages) {
     const next = queue.shift();
-    if (seen.has(next)) continue;
+    if (next === undefined || seen.has(next)) continue;
     seen.add(next);
     const r = await analyzeOne(next, args.timeout);
     if (!r.parsed) {
@@ -134,6 +146,7 @@ async function cmdAudit(url, args) {
       parsed: r.parsed,
       siteFiles: r.siteFiles,
       meta: { version: VERSION },
+      truncated: r.truncated,
     });
     pageReports.push(report);
     if (pageReports.length < args.pages) {
@@ -154,47 +167,79 @@ async function cmdAudit(url, args) {
   const written = writeOutputs(outDir, primary, formats);
   for (let i = 1; i < pageReports.length; i++) {
     const slug = `report-${i + 1}`;
-    if (formats.includes("json")) writeFileSync(join(outDir, `${slug}.json`), JSON.stringify(pageReports[i], null, 2) + "\n");
+    if (formats.includes("json"))
+      writeFileSync(join(outDir, `${slug}.json`), JSON.stringify(pageReports[i], null, 2) + "\n");
     if (formats.includes("md")) writeFileSync(join(outDir, `${slug}.md`), renderMarkdown(pageReports[i]));
   }
 
-  console.log(`\nSearch SEO: ${primary.scores.search.score}/100 (${primary.scores.search.band})  |  AI Visibility: ${primary.scores.ai.score}/100 (${primary.scores.ai.band})`);
+  console.log(
+    `\nSearch SEO: ${primary.scores.search.score}/100 (${primary.scores.search.band})  |  AI Visibility: ${primary.scores.ai.score}/100 (${primary.scores.ai.band})`
+  );
   console.log(`Pages audited: ${pageReports.length}`);
-  console.log(`Counts: P0=${primary.counts.P0} P1=${primary.counts.P1} P2=${primary.counts.P2} P3=${primary.counts.P3} pass=${primary.counts.pass}`);
+  console.log(
+    `Counts: P0=${primary.counts.P0} P1=${primary.counts.P1} P2=${primary.counts.P2} P3=${primary.counts.P3} pass=${primary.counts.pass}`
+  );
   console.log(`Wrote:\n  ${written.join("\n  ")}`);
 }
 
+/**
+ * @param {string} url
+ * @param {import("../lib/args.mjs").ParsedArgs} args
+ */
 async function cmdPage(url, args) {
-  const formats = args.format.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
   const r = await analyzeOne(url, args.timeout);
   if (!r.parsed) {
     console.error(`Fetch failed: ${r.fetched.error || r.fetched.status}`);
     process.exit(2);
   }
   const report = buildReport({
-    url, finalUrl: r.fetched.finalUrl, scores: r.scores, findings: r.findings,
-    parsed: r.parsed, siteFiles: r.siteFiles, meta: { version: VERSION },
+    url,
+    finalUrl: r.fetched.finalUrl,
+    scores: r.scores,
+    findings: r.findings,
+    parsed: r.parsed,
+    siteFiles: r.siteFiles,
+    meta: { version: VERSION },
+    truncated: r.truncated,
   });
-  const written = writeOutputs(resolve(args.out), report, formats);
-  console.log(`Search SEO: ${report.scores.search.score}/100 (${report.scores.search.band})  |  AI Visibility: ${report.scores.ai.score}/100 (${report.scores.ai.band})`);
+  const written = writeOutputs(resolve(args.out), report, args.formats);
+  console.log(
+    `Search SEO: ${report.scores.search.score}/100 (${report.scores.search.band})  |  AI Visibility: ${report.scores.ai.score}/100 (${report.scores.ai.band})`
+  );
   console.log(`Wrote:\n  ${written.join("\n  ")}`);
 }
 
+/**
+ * @param {string} url
+ * @param {import("../lib/args.mjs").ParsedArgs} args
+ */
 async function cmdSchema(url, args) {
   const r = await analyzeOne(url, args.timeout);
   if (!r.parsed) {
     console.error(`Fetch failed: ${r.fetched.error || r.fetched.status}`);
     process.exit(2);
   }
-  console.log(`Found ${r.schemaInfo.items.length} JSON-LD node(s): ${(r.schemaInfo.types.join(", ") || "(none)")}`);
+  console.log(
+    `Found ${r.schemaInfo.items.length} JSON-LD node(s): ${r.schemaInfo.types.join(", ") || "(none)"}`
+  );
   for (const e of r.schemaInfo.errors) console.log(`  ERROR: ${e}`);
   for (const i of r.schemaInfo.issues) console.log(`  ISSUE [${i.type}]: ${i.issue}`);
   if (args.generate) {
     console.log(`\n--- snippet (${args.generate}) ---`);
-    console.log(schemaSnippet(args.generate, { name: r.parsed.title || "Example", url: r.fetched.finalUrl, description: r.parsed.metaDescription }));
+    console.log(
+      schemaSnippet(args.generate, {
+        name: r.parsed.title || "Example",
+        url: r.fetched.finalUrl,
+        description: r.parsed.metaDescription,
+      })
+    );
   }
 }
 
+/**
+ * @param {string} url
+ * @param {import("../lib/args.mjs").ParsedArgs} args
+ */
 async function cmdSitemap(url, args) {
   const siteFiles = await getSiteFiles(new URL(url).toString());
   const out = {
@@ -202,6 +247,7 @@ async function cmdSitemap(url, args) {
     robotsFound: siteFiles.robots.found,
     robotsSitemaps: siteFiles.robots.sitemaps,
     sitemapFound: siteFiles.sitemap.found,
+    sitemapUrl: siteFiles.sitemap.url,
     sitemapUrls: siteFiles.sitemap.urlCount,
     llmsFound: siteFiles.llms.found,
   };
@@ -209,11 +255,14 @@ async function cmdSitemap(url, args) {
   else {
     console.log(`Origin: ${out.origin}`);
     console.log(`robots.txt: ${out.robotsFound ? "found" : "MISSING"}`);
-    console.log(`sitemap.xml: ${out.sitemapFound ? `found (~${out.sitemapUrls} URLs)` : "MISSING"}`);
+    console.log(
+      `sitemap.xml: ${out.sitemapFound ? `found at ${out.sitemapUrl} (~${out.sitemapUrls} URLs)` : "MISSING"}`
+    );
     console.log(`llms.txt: ${out.llmsFound ? "found" : "missing (optional)"}`);
   }
 }
 
+/** @param {import("../lib/args.mjs").ParsedArgs} args */
 async function cmdDoctor(args) {
   const info = {
     tool: "one-step-seo",
@@ -232,7 +281,21 @@ async function cmdDoctor(args) {
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (err) {
+    if (err instanceof CliError) {
+      console.error(`Error: ${err.message}`);
+      process.exit(err.code);
+    }
+    throw err;
+  }
+  if (args.action === "help") usage(0);
+  if (args.action === "version") {
+    console.log(VERSION);
+    return;
+  }
   const [cmd, rawUrl] = args._;
   if (!cmd) usage(1);
   if (cmd === "doctor") return cmdDoctor(args);

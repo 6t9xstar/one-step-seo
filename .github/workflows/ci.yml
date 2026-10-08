@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -15,5 +15,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: npm test
+          cache: npm
+      - run: npm ci
+      - run: npm run check
       - run: node bin/cli.mjs doctor
+      - run: npm run examples
+      - run: git diff --exit-code -- examples/

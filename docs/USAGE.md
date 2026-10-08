@@ -32,21 +32,21 @@ one-step-seo doctor
 
 ## Flags
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--pages N` | `1` | Pages to crawl for `audit` (max 20, BFS over internal links) |
-| `--out DIR` | `./seo-report` | Output directory |
-| `--format` | `html,md,json` | Which reports to write |
-| `--timeout MS` | `15000` | Per-request timeout |
-| `--generate KIND` | — | `organization\|website\|article\|faq\|breadcrumb` snippet |
-| `--json` | — | JSON to stdout (`sitemap`, `doctor`) |
+| Flag              | Default        | Meaning                                                                    |
+| ----------------- | -------------- | -------------------------------------------------------------------------- |
+| `--pages N`       | `1`            | Pages to crawl for `audit` (integer 1–20, BFS over same-host links)        |
+| `--out DIR`       | `./seo-report` | Output directory                                                           |
+| `--format`        | `html,md,json` | Which reports to write (`html`, `md`, `json` only — anything else exits 1) |
+| `--timeout MS`    | `15000`        | Per-request timeout in ms (integer 1000–120000)                            |
+| `--generate KIND` | —              | `organization\|website\|article\|faq\|breadcrumb` snippet                  |
+| `--json`          | —              | JSON to stdout (`sitemap`, `doctor`)                                       |
 
 ## Outputs
 
 - `report.json` — machine-readable (scores, counts, findings)
 - `report.md` — human-readable priority list
-- `report.html` — shareable single-file report
-- Multi-page runs add `report-2.json/.md`, etc.
+- `report.html` — shareable single-file report (page 1 only)
+- Multi-page runs add `report-2.json/.md`, etc. (JSON + Markdown for pages 2+; HTML is rendered for page 1 only)
 
 ## Exit codes
 

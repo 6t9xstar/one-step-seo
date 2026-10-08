@@ -2,11 +2,15 @@
 
 Deterministic, no guessing. Every finding carries evidence + fix.
 
-## Technical (T01–T12)
+## Technical (T00–T12)
 
 HTTPS, HTTP 200, redirect chain ≤1, HTML content-type, robots.txt,
-sitemap.xml, noindex check, canonical self-reference, html lang,
+sitemap.xml (including `Sitemap:` URLs declared in robots.txt),
+noindex check, canonical self-reference, html lang,
 UTF-8 charset, responsive viewport, clean URL shape.
+
+Bodies over 5 MiB are truncated for safety and reported as `T00-truncated`
+(P2) — checks then cover the head portion only.
 
 ## On-page (O01–O10)
 

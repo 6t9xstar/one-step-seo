@@ -40,8 +40,22 @@
     "docs/"
   ],
   "scripts": {
-    "test": "node --test tests/audit.test.mjs",
+    "test": "node --test tests/audit.test.mjs tests/fetch.test.mjs tests/robots.test.mjs tests/args.test.mjs tests/security.test.mjs tests/branches.test.mjs",
+    "test:coverage": "node --experimental-test-coverage --test tests/audit.test.mjs tests/fetch.test.mjs tests/robots.test.mjs tests/args.test.mjs tests/security.test.mjs tests/branches.test.mjs",
+    "typecheck": "tsc -p tsconfig.check.json",
+    "lint": "eslint bin lib scripts tests",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "examples": "node scripts/generate-examples.mjs",
     "audit": "node bin/cli.mjs audit",
     "doctor": "node bin/cli.mjs doctor"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "eslint": "^9.18.0",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0"
   }
 }
