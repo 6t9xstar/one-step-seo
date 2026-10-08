@@ -25,5 +25,5 @@
     <text x="480" y="514" font-size="44" font-weight="800" fill="#f1f5f9">80<tspan font-size="24" fill="#94a3b8">/100 B</tspan></text>
   </g>
   <rect x="120" y="572" width="360" height="10" rx="5" fill="url(#accent)"/>
-  <text x="900" y="600" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="26" fill="#64748b">MIT · zero dependencies · Node 18+</text>
+  <text x="1160" y="600" text-anchor="end" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="26" fill="#64748b">MIT · zero dependencies · Node 18+</text>
 </svg>
