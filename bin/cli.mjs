@@ -4,22 +4,27 @@
  * Usage:
  *   one-step-seo audit <url> [--pages N] [--out DIR] [--format html,md,json] [--fail-on P0] [--crawl links|sitemap]
  *   one-step-seo page <url> [--out DIR] [--format html,md,json]
+ *   one-step-seo quick <url> [--pages N] [--out DIR]
  *   one-step-seo schema <url> [--generate organization|website|article|faq|breadcrumb|product|event|localbusiness|howto]
  *   one-step-seo sitemap <url> [--json]
+ *   one-step-seo llms <url> [--json]
  *   one-step-seo fix <path> [--apply] [--only a,b] [--url U] [--title T] [--description D] [--lang L] [--og-image U]
  *   one-step-seo doctor [--json]
+ *   one-step-seo (no command → interactive prompts on a TTY)
  */
 import { readFileSync, mkdirSync, writeFileSync, copyFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
+import { execFileSync, execFile } from "node:child_process";
+import { createInterface } from "node:readline/promises";
 import { fetchWithRedirects } from "../lib/fetch.mjs";
 import { parseHtml } from "../lib/html.mjs";
-import { getSiteFiles, getSitemapUrls } from "../lib/robots.mjs";
+import { getSiteFiles, getSitemapUrls, isDisallowed } from "../lib/robots.mjs";
 import { runChecks } from "../lib/checks.mjs";
 import { extractJsonLd, validateSchema, schemaSnippet } from "../lib/schema.mjs";
 import { geoDetails, computeScores } from "../lib/score.mjs";
 import { buildReport, renderMarkdown, renderHtml } from "../lib/report.mjs";
+import { getFindingMeta } from "../lib/finding-meta.mjs";
 import { parseArgs, normalizeUrl, canonicalizeUrl, CliError } from "../lib/args.mjs";
 import { planFixes, FIXER_NAMES } from "../lib/fix.mjs";
 import { unifiedDiff } from "../lib/diff.mjs";
@@ -32,25 +37,135 @@ try {
   // Package layout without package.json (bundled) — keep fallback version.
 }
 
+/** Product token used for robots.txt group matching. */
+const UA_TOKEN = "one-step-seo";
+/** Clear User-Agent sent on every request (version follows package.json). */
+const UA = `Mozilla/5.0 (compatible; one-step-seo/${VERSION}; +https://github.com/6t9xstar/one-step-seo)`;
+
+/**
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+/**
+ * Path component of an absolute URL for robots matching; "/" on garbage.
+ * @param {string} link
+ * @returns {string}
+ */
+function pathOf(link) {
+  try {
+    return new URL(link).pathname || "/";
+  } catch {
+    return "/";
+  }
+}
+
+/**
+ * Print the top 3 urgent fixes with triage labels + the next command.
+ * @param {import("../lib/report.mjs").Report} report
+ * @param {string} rerun the exact command that reproduces this audit
+ */
+function printTopFixes(report, rerun) {
+  const top = (report.findings ?? []).filter((f) => f && f.severity !== "pass").slice(0, 3);
+  if (top.length === 0) {
+    console.log("Top fixes: none — all checks passed.");
+  } else {
+    console.log("Top fixes:");
+    for (const f of top) {
+      const meta = getFindingMeta(String(f.id ?? ""));
+      const hint = String(f.fix || meta.plain).slice(0, 120);
+      console.log(`  [${f.severity}] ${f.title} (${f.id}) — ${hint}`);
+      console.log(`    Impact: ${meta.impact} · Effort: ${meta.effort} · Owner: ${meta.owner}`);
+    }
+  }
+  console.log(`Next: fix the items above, then re-run \`${rerun}\`.`);
+}
+
+/**
+ * Check robots.txt for a crawl start URL. Warms the per-origin site-file
+ * cache as a side effect. Never throws — a missing robots.txt means allowed.
+ * @param {string} url
+ * @param {import("../lib/args.mjs").ParsedArgs} args
+ * @returns {Promise<{ blocked: boolean, robotsText: string }>}
+ */
+async function checkRobotsAllowed(url, args) {
+  let text = "";
+  try {
+    const site = await getSiteFiles(url, { timeoutMs: args.timeout, userAgent: UA });
+    text = site.robots.text ?? "";
+    if (args.debug) {
+      console.error(
+        `debug: robots.txt ${site.robots.found ? `found (${site.robots.disallowCount} disallow rules)` : "missing"} for ${site.origin}`,
+      );
+    }
+  } catch {
+    // Best-effort: without robots.txt there is nothing to enforce.
+    text = "";
+  }
+  const blocked = !args.force && text !== "" && isDisallowed(text, UA_TOKEN, pathOf(url));
+  return { blocked, robotsText: text };
+}
+
+/**
+ * Minimal report for a robots-refused crawl: one P1 finding, no pages.
+ * @param {string} url
+ * @returns {import("../lib/report.mjs").Report}
+ */
+function blockedReport(url) {
+  const findings = [
+    {
+      id: "T05-robots-disallow",
+      category: "technical",
+      severity: "P1",
+      title: "robots.txt disallows crawling this page",
+      evidence: `robots.txt Disallow matches ${url} — the crawl was skipped (re-run with --force to override).`,
+      fix: "If the block is intentional, nothing to do. Otherwise allow the path in robots.txt, then re-audit.",
+      seoImpact: "medium",
+      geoImpact: "-",
+    },
+  ];
+  const scores = computeScores(findings, geoDetails(null, null));
+  return buildReport({
+    url,
+    finalUrl: url,
+    scores,
+    findings,
+    parsed: {},
+    siteFiles: {},
+    meta: { version: VERSION },
+  });
+}
+
 function usage(code = 0) {
   console.log(`one-step-seo v${VERSION} — one command SEO + AI-visibility audit
 Usage:
   one-step-seo audit <url> [--pages N] [--out DIR] [--format html,md,json] [--fail-on P0|P1|P2] [--crawl links|sitemap]
   one-step-seo page <url> [--out DIR] [--format html,md,json]
+  one-step-seo quick <url> [--pages N] [--out DIR]
   one-step-seo schema <url> [--generate organization|website|article|faq|breadcrumb|product|event|localbusiness|howto]
   one-step-seo sitemap <url> [--json]
+  one-step-seo llms <url> [--json]
   one-step-seo fix <path> [--apply] [--only NAMES] [--url U] [--title T] [--description D] [--lang L] [--og-image U]
   one-step-seo doctor [--json]
+  one-step-seo (no command: interactive prompts when attached to a TTY)
 
 Options:
-  --pages N       pages to crawl for 'audit' (default 1, max 20)
+  --pages N       pages to crawl for 'audit' (default 1, max 200; 'quick' defaults to 5)
   --out DIR       output directory (default ./seo-report)
   --format        comma list among html,md,json (default html,md,json)
   --timeout MS    per-request timeout in ms (default 15000, 1000-120000)
   --fail-on SEV   exit 2 when any page has P0 (or P1/P2) findings — for CI gating
   --crawl MODE    audit discovery: links (BFS over internal links) or sitemap (default links)
   --concurrency N parallel page fetches 1-8 (default 4)
-  --json          print JSON to stdout (doctor / sitemap / fix)
+  --delay MS      politeness pause between crawl batches in ms (default 250, 0-10000)
+  --debug         verbose diagnostics: parsed args, robots.txt status, per-page timings
+  --force         crawl even when robots.txt disallows the URL (documented override)
+  --json          print JSON to stdout (sitemap / llms / doctor / fix)
 
 Fix options (fix is a dry-run unless --apply is given):
   --apply         write the fixes to disk (creates <file>.bak backups)
@@ -65,6 +180,9 @@ Fix options (fix is a dry-run unless --apply is given):
 Notes:
   - Multi-page audits write report.json/md/html for page 1 plus
     report-N.json/md/html for pages 2+ and an index.md linking all pages.
+  - quick is audit with beginner defaults (5 pages, all formats).
+  - audit/page skip robots.txt-disallowed URLs unless --force; a
+    T05-robots-disallow report is written instead. schema warns only.
   - fix accepts local .html/.htm files or directories; additive fixes only.
   - Only audit sites you are allowed to crawl; respect robots.txt.
 `);
@@ -75,9 +193,10 @@ Notes:
  * Fetch + parse + check a single URL into report-ready parts.
  * @param {string} url
  * @param {number} timeoutMs
+ * @param {string} [userAgent]
  */
-export async function analyzeOne(url, timeoutMs) {
-  const fetched = await fetchWithRedirects(url, { timeoutMs });
+export async function analyzeOne(url, timeoutMs, userAgent) {
+  const fetched = await fetchWithRedirects(url, { timeoutMs, ...(userAgent ? { userAgent } : {}) });
   if (!fetched.ok || !fetched.html) {
     return {
       fetched,
@@ -91,7 +210,7 @@ export async function analyzeOne(url, timeoutMs) {
     };
   }
   const parsed = parseHtml(fetched.html, fetched.finalUrl);
-  const siteFiles = await getSiteFiles(fetched.finalUrl, { timeoutMs });
+  const siteFiles = await getSiteFiles(fetched.finalUrl, { timeoutMs, ...(userAgent ? { userAgent } : {}) });
   const schemaRaw = extractJsonLd(parsed.jsonLdBlocks);
   const validated = validateSchema(schemaRaw.items);
   const schemaInfo = {
@@ -209,10 +328,32 @@ function breachesFailOn(severity, counts) {
 async function cmdAudit(url, args) {
   const formats = args.formats;
   const concurrency = Math.max(1, Math.min(8, args.concurrency ?? 4));
+  /** @param {...unknown} m */
+  const dbg = (...m) => {
+    if (args.debug) console.error("debug:", ...m);
+  };
+  dbg(
+    `audit ${url} pages=${args.pages} crawl=${args.crawl} concurrency=${concurrency} delay=${args.delay} timeout=${args.timeout} force=${args.force}`,
+  );
   const seen = new Set([canonicalizeUrl(url) || url]);
   const queue = [url];
   /** @type {import("../lib/report.mjs").Report[]} */
   const pageReports = [];
+
+  const { blocked, robotsText } = await checkRobotsAllowed(url, args);
+  if (blocked) {
+    console.error(
+      `! robots.txt disallows auditing ${url} — crawl skipped (re-run with --force to override).`,
+    );
+    const report = blockedReport(url);
+    const written = writeOutputs(resolve(args.out), report, formats);
+    console.log(
+      `\nSearch SEO: ${report.scores.search.score}/100 (${report.scores.search.band})  |  AI Visibility: ${report.scores.ai.score}/100 (${report.scores.ai.band})`,
+    );
+    printTopFixes(report, `one-step-seo audit ${url} --pages ${args.pages} --force`);
+    console.log(`Wrote:\n  ${written.join("\n  ")}`);
+    return;
+  }
 
   // Seed sitemap-mode queue from the sitemap discovery. The root URL is
   // already in `queue`, so the cap must count only *extra* seeds — comparing
@@ -220,7 +361,8 @@ async function cmdAudit(url, args) {
   // --pages 1 and add nothing.
   if (args.crawl === "sitemap") {
     try {
-      const seeds = await getSitemapUrls(url, { timeoutMs: args.timeout });
+      const seeds = await getSitemapUrls(url, { timeoutMs: args.timeout, userAgent: UA });
+      dbg(`sitemap seeds: ${seeds.length}`);
       let added = 0;
       for (const seed of seeds) {
         if (added >= Math.max(0, args.pages - 1)) break;
@@ -240,7 +382,10 @@ async function cmdAudit(url, args) {
     }
   }
 
+  let firstBatch = true;
   while (queue.length > 0 && pageReports.length < args.pages) {
+    if (!firstBatch && args.delay > 0) await sleep(args.delay);
+    firstBatch = false;
     const batch = [];
     while (batch.length < concurrency && queue.length > 0 && pageReports.length + batch.length < args.pages) {
       const next = queue.shift();
@@ -251,7 +396,7 @@ async function cmdAudit(url, args) {
       batch.push(next);
     }
     if (batch.length === 0) break;
-    const results = await Promise.allSettled(batch.map((u) => analyzeOne(u, args.timeout)));
+    const results = await Promise.allSettled(batch.map((u) => analyzeOne(u, args.timeout, UA)));
     for (let i = 0; i < batch.length; i++) {
       const next = batch[i];
       const settled = results[i];
@@ -271,11 +416,18 @@ async function cmdAudit(url, args) {
       if (pageReports.some((pr) => (canonicalizeUrl(pr.finalUrl) || pr.finalUrl) === finalKey)) {
         continue;
       }
-      pageReports.push(toReport(r, next));
+      const pageReport = toReport(r, next);
+      pageReports.push(pageReport);
+      dbg(`page ${next} -> search ${pageReport.scores.search.score} ai ${pageReport.scores.ai.score}`);
       if (pageReports.length < args.pages) {
         for (const link of r.parsed.internalLinks.slice(0, 10)) {
           const lk = canonicalizeUrl(link) || link;
           if (!lk || seen.has(lk)) continue;
+          if (!args.force && robotsText && isDisallowed(robotsText, UA_TOKEN, pathOf(link))) {
+            dbg(`skip robots-disallowed ${link}`);
+            seen.add(lk);
+            continue;
+          }
           if (pageReports.length + queue.length >= args.pages) break;
           queue.push(link);
           seen.add(lk);
@@ -332,6 +484,7 @@ async function cmdAudit(url, args) {
   console.log(
     `Counts: P0=${primary.counts.P0} P1=${primary.counts.P1} P2=${primary.counts.P2} P3=${primary.counts.P3} pass=${primary.counts.pass}`,
   );
+  printTopFixes(primary, `one-step-seo audit ${url} --pages ${args.pages}`);
   console.log(`Wrote:\n  ${written.join("\n  ")}`);
 
   if (args.failOn) {
@@ -349,17 +502,34 @@ async function cmdAudit(url, args) {
  * @param {import("../lib/args.mjs").ParsedArgs} args
  */
 async function cmdPage(url, args) {
-  const r = await analyzeOne(url, args.timeout);
+  const { blocked } = await checkRobotsAllowed(url, args);
+  if (blocked) {
+    console.error(
+      `! robots.txt disallows auditing ${url} — crawl skipped (re-run with --force to override).`,
+    );
+    const blockedRep = blockedReport(url);
+    const writtenBlocked = writeOutputs(resolve(args.out), blockedRep, args.formats);
+    console.log(
+      `Search SEO: ${blockedRep.scores.search.score}/100 (${blockedRep.scores.search.band})  |  AI Visibility: ${blockedRep.scores.ai.score}/100 (${blockedRep.scores.ai.band})`,
+    );
+    printTopFixes(blockedRep, `one-step-seo page ${url} --force`);
+    console.log(`Wrote:\n  ${writtenBlocked.join("\n  ")}`);
+    return;
+  }
+  const r = await analyzeOne(url, args.timeout, UA);
   if (!r.parsed) {
     console.error(`Fetch failed: ${r.fetched.error || r.fetched.status}`);
     process.exitCode = 2;
     return;
   }
+  if (args.debug)
+    console.error(`debug: page ${url} fetched in ${r.fetched.ms}ms (${r.fetched.html.length} chars)`);
   const report = toReport(r, url);
   const written = writeOutputs(resolve(args.out), report, args.formats);
   console.log(
     `Search SEO: ${report.scores.search.score}/100 (${report.scores.search.band})  |  AI Visibility: ${report.scores.ai.score}/100 (${report.scores.ai.band})`,
   );
+  printTopFixes(report, `one-step-seo page ${url}`);
   console.log(`Wrote:\n  ${written.join("\n  ")}`);
   if (args.failOn && breachesFailOn(args.failOn, report.counts)) {
     console.error(`Fail-on threshold breached: found ${args.failOn} (or higher) findings.`);
@@ -373,11 +543,22 @@ async function cmdPage(url, args) {
  * @param {import("../lib/args.mjs").ParsedArgs} args
  */
 async function cmdSchema(url, args) {
-  const r = await analyzeOne(url, args.timeout);
+  const r = await analyzeOne(url, args.timeout, UA);
   if (!r.parsed) {
     console.error(`Fetch failed: ${r.fetched.error || r.fetched.status}`);
     process.exitCode = 2;
     return;
+  }
+  if (!args.force && r.siteFiles) {
+    try {
+      const robotsText = String(r.siteFiles.robots?.text ?? "");
+      const p = pathOf(r.fetched.finalUrl);
+      if (robotsText && isDisallowed(robotsText, UA_TOKEN, p)) {
+        console.error(`! note: robots.txt disallows ${r.fetched.finalUrl} — results are diagnostic only.`);
+      }
+    } catch {
+      // Best-effort diagnostic note; never blocks schema output.
+    }
   }
   console.log(
     `Found ${r.schemaInfo.items.length} JSON-LD node(s): ${r.schemaInfo.types.join(", ") || "(none)"}`,
@@ -415,7 +596,7 @@ async function cmdSitemap(url, args) {
     console.error("Provide a valid URL, e.g. one-step-seo sitemap https://example.com");
     process.exit(1);
   }
-  const siteFiles = await getSiteFiles(normalized, { timeoutMs: args.timeout });
+  const siteFiles = await getSiteFiles(normalized, { timeoutMs: args.timeout, userAgent: UA });
   const out = {
     origin: siteFiles.origin,
     robotsFound: siteFiles.robots.found,
@@ -435,6 +616,115 @@ async function cmdSitemap(url, args) {
     );
     console.log(`llms.txt: ${out.llmsFound ? "found" : "missing (optional)"}`);
   }
+}
+
+/**
+ * Draft a starter llms.txt from best-effort page data. Titles and URLs come
+ * from the live page/sitemap; anything unknown is an explicit placeholder
+ * so no facts are ever invented.
+ * @param {string} host
+ * @param {string} title
+ * @param {string} desc
+ * @param {string[]} seeds
+ * @returns {string}
+ */
+function buildLlmsStarter(host, title, desc, seeds) {
+  const lines = [
+    `# ${title || host}`,
+    ``,
+    `> ${desc || "Machine-readable summary for AI assistants. Replace this line with a one-paragraph description of the site."}`,
+    ``,
+    `## Key pages`,
+    ``,
+  ];
+  if (seeds.length === 0) {
+    lines.push("(no sitemap URLs discovered — add your most-cited pages manually)");
+  } else {
+    for (const s of seeds) lines.push(`- ${s}`);
+  }
+  lines.push(
+    ``,
+    `## Optional`,
+    ``,
+    `- Replace the links above with your most-cited pages, each with a one-line description.`,
+  );
+  return lines.join("\n");
+}
+
+/**
+ * Copy-paste robots.txt snippet that lets the major AI crawlers read public
+ * content. Display names are hardcoded (short, readable); matching is
+ * case-insensitive so capitalization is safe.
+ * @returns {string}
+ */
+function aiRobotsSnippet() {
+  const majors = ["GPTBot", "ClaudeBot", "PerplexityBot", "Google-Extended", "CCBot"];
+  const lines = ["# Let AI assistants read and cite your public content (optional)"];
+  for (const b of majors) {
+    lines.push(`User-agent: ${b}`, "Allow: /", "");
+  }
+  return lines.join("\n").trimEnd();
+}
+
+/**
+ * llms.txt status + generated starter draft + AI-crawler robots snippet.
+ * Diagnostic output only — nothing is written anywhere.
+ * @param {string} url
+ * @param {import("../lib/args.mjs").ParsedArgs} args
+ */
+async function cmdLlms(url, args) {
+  const site = await getSiteFiles(url, { timeoutMs: args.timeout, userAgent: UA });
+  let title = "";
+  let desc = "";
+  try {
+    const f = await fetchWithRedirects(url, { timeoutMs: args.timeout, userAgent: UA });
+    if (f.ok && f.html) {
+      const p = parseHtml(f.html, f.finalUrl);
+      title = p.title;
+      desc = p.metaDescription;
+    }
+  } catch {
+    // Best-effort: the starter still works from sitemap URLs alone.
+  }
+  /** @type {string[]} */
+  let seeds = [];
+  try {
+    seeds = (await getSitemapUrls(url, { timeoutMs: args.timeout, userAgent: UA })).slice(0, 20);
+  } catch {
+    // Best-effort: an empty seed list is still a usable starter.
+    seeds = [];
+  }
+  let host = url;
+  try {
+    host = new URL(url).host;
+  } catch {
+    // Keep the raw URL as the heading fallback.
+  }
+  const starter = buildLlmsStarter(host, title, desc, seeds);
+  const robotsSnippet = aiRobotsSnippet();
+  if (args.json) {
+    console.log(
+      JSON.stringify(
+        {
+          tool: "one-step-seo",
+          version: VERSION,
+          url,
+          llmsFound: site.llms.found,
+          llmsBytes: site.llms.bytes,
+          starter,
+          robotsSnippet,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+  console.log(`llms.txt: ${site.llms.found ? `found (${site.llms.bytes} bytes)` : "missing (optional)"}`);
+  console.log(`\n--- starter llms.txt (curate before publishing) ---`);
+  console.log(starter);
+  console.log(`\n--- robots.txt AI-crawler snippet (optional) ---`);
+  console.log(robotsSnippet);
 }
 
 /** @param {import("../lib/args.mjs").ParsedArgs} args */
@@ -712,6 +1002,54 @@ function cmdFix(rawTarget, args) {
   if (errored) process.exitCode = 2;
 }
 
+/**
+ * Open a local report file in the default browser (best-effort).
+ * @param {string} file
+ * @returns {Promise<void>}
+ */
+async function openReport(file) {
+  const opener = process.platform === "win32" ? "cmd" : process.platform === "darwin" ? "open" : "xdg-open";
+  const openerArgs = process.platform === "win32" ? ["/c", "start", "", file] : [file];
+  await new Promise((resolve) => {
+    execFile(opener, openerArgs, { timeout: 8000 }, () => resolve(undefined));
+  });
+}
+
+/**
+ * Beginner mode: ask four quick questions, then run a standard audit.
+ * Only on an interactive TTY — piped/CI usage falls back to usage(1).
+ */
+async function cmdInteractive() {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) usage(1);
+  console.log("one-step-seo — answer 4 quick questions to audit a site.\n");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    let url = "";
+    while (!url) {
+      const raw = ((await rl.question("Website URL (e.g. https://example.com): ")) ?? "").trim();
+      const normalized = normalizeUrl(raw);
+      if (!normalized) console.error("That URL did not parse — try again, e.g. https://example.com");
+      else url = normalized;
+    }
+    let pages = 5;
+    const pagesRaw = ((await rl.question("Pages to audit, 1-20 (default 5): ")) ?? "").trim();
+    if (pagesRaw) {
+      const n = Number(pagesRaw);
+      if (Number.isInteger(n) && n >= 1 && n <= 20) pages = n;
+      else console.error("Keeping the default of 5 pages.");
+    }
+    const outRaw = ((await rl.question("Output folder (default ./seo-report): ")) ?? "").trim();
+    const out = outRaw || "./seo-report";
+    const openRaw = ((await rl.question("Open report.html when done? (y/N): ")) ?? "").trim().toLowerCase();
+    const open = openRaw === "y" || openRaw === "yes";
+    const interactiveArgs = parseArgs(["audit", url, "--pages", String(pages), "--out", out]);
+    await cmdAudit(url, interactiveArgs);
+    if (open) await openReport(join(resolve(out), "report.html"));
+  } finally {
+    rl.close();
+  }
+}
+
 // `--verbose` is also honoured from the env so CI logs can be made verbose
 // without changing the command line.
 let verbose = process.env.VERBOSE === "1";
@@ -727,17 +1065,29 @@ async function main() {
     }
     throw err;
   }
-  verbose = verbose || args.verbose;
+  verbose = verbose || args.verbose || args.debug;
   if (args.action === "help") usage(0);
   if (args.action === "version") {
     console.log(VERSION);
     return;
   }
   const [cmd, rawUrl] = args._;
-  if (!cmd) usage(1);
+  if (!cmd) return cmdInteractive();
   if (cmd === "doctor") return cmdDoctor(args);
   // `fix` targets local file paths — must route before URL normalization.
   if (cmd === "fix") return cmdFix(rawUrl ?? "", args);
+  if (cmd === "quick") {
+    const argv = process.argv.slice(2);
+    const explicitPages = argv.some((a) => a === "--pages" || a.startsWith("--pages="));
+    if (!explicitPages) args.pages = 5;
+    const quickUrl = normalizeUrl(rawUrl ?? "");
+    if (!quickUrl) {
+      console.error("Provide a valid URL, e.g. one-step-seo quick https://example.com");
+      process.exit(1);
+    }
+    console.log(`Quick audit: up to ${args.pages} page(s), all formats, into ${args.out}.`);
+    return cmdAudit(quickUrl, args);
+  }
   const url = normalizeUrl(rawUrl ?? "");
   if (!url) {
     console.error("Provide a valid URL, e.g. one-step-seo audit https://example.com");
@@ -747,6 +1097,7 @@ async function main() {
   if (cmd === "page") return cmdPage(url, args);
   if (cmd === "schema") return cmdSchema(url, args);
   if (cmd === "sitemap") return cmdSitemap(url, args);
+  if (cmd === "llms") return cmdLlms(url, args);
   console.error(`Unknown command: ${cmd}`);
   usage(1);
 }

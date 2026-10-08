@@ -7,7 +7,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { geoDetails, computeScores, GEO_WEIGHTS, GEO_ONLY_IDS, SEARCH_WEIGHTS } from "../lib/score.mjs";
-import { esc, escTruncate, escMd, buildReport, renderMarkdown, renderHtml } from "../lib/report.mjs";
+import {
+  esc,
+  escTruncate,
+  escMd,
+  buildReport,
+  renderMarkdown,
+  renderHtml,
+  verdictFor,
+  topFixes,
+  citableChecklist,
+  groupByCategory,
+  monitorItems,
+} from "../lib/report.mjs";
 
 // ---------- score.mjs: geoDetails ----------
 
@@ -311,6 +323,178 @@ test("renderHtml renders an em-dash placeholder when a fix is empty", () => {
     scores: { search: { score: 1, band: "F" }, ai: { score: 1, band: "F" } },
     findings: [
       {
+        id: "W01-social",
+        category: "onpage",
+        severity: "P3",
+        title: "Twitter card missing",
+        evidence: "e",
+        fix: "",
+      },
+    ],
+    parsed: {},
+    siteFiles: {},
+    meta: { version: "9" },
+    checkedAt: "2026-01-01T00:00:00.000Z",
+  });
+  // Cards replaced the old table layout; the empty-fix placeholder moved with it.
+  assert.match(renderHtml(r), /<span>—<\/span>/);
+});
+
+// ---------- report.mjs: verdict, triage helpers, new sections ----------
+
+/**
+ * @param {{ id: string, severity: string }} f
+ * @param {string} [category]
+ * @returns {import("../lib/report.mjs").Finding}
+ */
+function mkFinding(f, category = "technical") {
+  return { id: f.id, category, severity: f.severity, title: `t-${f.id}`, evidence: "e", fix: "do x" };
+}
+
+/**
+ * @param {import("../lib/report.mjs").Finding[]} findings
+ * @param {{ search?: number, ai?: number }} [scores]
+ */
+function mkReport(findings, scores = {}) {
+  const search = scores.search ?? 100;
+  const ai = scores.ai ?? 100;
+  /** @type {Record<string, number>} */
+  const counts = { P0: 0, P1: 0, P2: 0, P3: 0, pass: 0 };
+  for (const f of findings) counts[f.severity] = (counts[f.severity] ?? 0) + 1;
+  return {
+    tool: "one-step-seo",
+    version: "9",
+    url: "https://a.com/",
+    finalUrl: "https://a.com/",
+    checkedAt: "2026-01-01T00:00:00.000Z",
+    truncated: false,
+    scores: {
+      search: { score: search, band: "A" },
+      ai: { score: ai, band: "A" },
+    },
+    counts,
+    findings,
+    page: {},
+    site: {},
+  };
+}
+
+test("verdictFor hits every branch", () => {
+  assert.match(verdictFor(mkReport([mkFinding({ id: "T01-https", severity: "P0" })])), /urgent attention/);
+  assert.match(verdictFor(mkReport([mkFinding({ id: "x", severity: "P1" })], { search: 40 })), /Below par/);
+  assert.match(verdictFor(mkReport([mkFinding({ id: "x", severity: "P1" })], { ai: 55 })), /Below par/);
+  assert.match(verdictFor(mkReport([mkFinding({ id: "x", severity: "P1" })])), /Solid foundation/);
+  assert.match(verdictFor(mkReport([mkFinding({ id: "x", severity: "P2" })])), /good shape/);
+  assert.match(verdictFor(mkReport([mkFinding({ id: "x", severity: "pass" })])), /Excellent/);
+});
+
+test("topFixes returns the first three actionable findings", () => {
+  const r = mkReport([
+    mkFinding({ id: "a", severity: "P1" }),
+    mkFinding({ id: "b", severity: "pass" }),
+    mkFinding({ id: "c", severity: "P2" }),
+    mkFinding({ id: "d", severity: "P2" }),
+    mkFinding({ id: "e", severity: "P3" }),
+  ]);
+  assert.deepEqual(
+    topFixes(r).map((f) => f.id),
+    ["a", "c", "d"],
+  );
+  assert.deepEqual(topFixes(mkReport([])), []);
+});
+
+test("citableChecklist reflects pass/fail and skips unevaluated signals", () => {
+  const r = mkReport([
+    mkFinding({ id: "C02-answer", severity: "pass" }, "content"),
+    mkFinding({ id: "G01-llms", severity: "P2" }, "geo"),
+  ]);
+  const list = citableChecklist(r);
+  const byLabel = new Map(list.map((c) => [c.label, c.checked]));
+  assert.equal([...byLabel.values()].filter(Boolean).length >= 1, true);
+  assert.ok([...byLabel.keys()].some((l) => l.includes("Answer-first")));
+  // G04 was never evaluated -> no checklist row for it.
+  assert.ok(![...byLabel.keys()].some((l) => l.includes("Consistent titles")));
+  // S01 absent entirely -> skipped, not failed.
+  assert.ok(![...byLabel.keys()].some((l) => l.includes("Structured data")));
+});
+
+test("groupByCategory orders known categories and trails unknown ones", () => {
+  const r = mkReport([
+    mkFinding({ id: "w", severity: "P3" }, "mystery"),
+    mkFinding({ id: "g", severity: "P2" }, "geo"),
+    mkFinding({ id: "t", severity: "P1" }, "technical"),
+  ]);
+  assert.deepEqual(
+    groupByCategory(r).map((g) => g.key),
+    ["technical", "geo", "mystery"],
+  );
+});
+
+test("monitorItems picks P3 and performance findings only", () => {
+  const r = mkReport([
+    mkFinding({ id: "a", severity: "P1" }),
+    mkFinding({ id: "b", severity: "P2" }, "performance"),
+    mkFinding({ id: "c", severity: "P3" }),
+    mkFinding({ id: "d", severity: "pass" }),
+  ]);
+  assert.deepEqual(
+    monitorItems(r).map((f) => f.id),
+    ["b", "c"],
+  );
+});
+
+test("renderMarkdown includes the new report sections", () => {
+  const r = buildReport({
+    url: "https://a.com/",
+    finalUrl: "https://a.com/",
+    scores: { search: { score: 70, band: "C" }, ai: { score: 65, band: "D" } },
+    findings: [
+      {
+        id: "T01-https",
+        category: "technical",
+        severity: "P0",
+        title: "Not on HTTPS",
+        evidence: "e",
+        fix: "do x",
+      },
+      {
+        id: "W01-social",
+        category: "onpage",
+        severity: "P3",
+        title: "Twitter card missing",
+        evidence: "e",
+        fix: "",
+      },
+    ],
+    parsed: {},
+    siteFiles: {},
+    meta: { version: "9" },
+    checkedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const md = renderMarkdown(r);
+  for (const section of [
+    "## Executive summary",
+    "## Fix this first",
+    "## Priority actions",
+    "### Technical SEO",
+    "## Make this page more citable",
+    "## What passed",
+    "## What to monitor",
+  ]) {
+    assert.ok(md.includes(section), `missing section ${section}`);
+  }
+  assert.match(md, /Impact: high · Effort: hours · Owner: developer/);
+  assert.match(md, /```html/);
+  assert.match(md, /CHECKS\.md/);
+});
+
+test("renderHtml includes copy button, skip link and labelled sections", () => {
+  const r = buildReport({
+    url: "https://a.com/",
+    finalUrl: "https://a.com/",
+    scores: { search: { score: 100, band: "A" }, ai: { score: 100, band: "A" } },
+    findings: [
+      {
         id: "T01-https",
         category: "technical",
         severity: "pass",
@@ -324,5 +508,12 @@ test("renderHtml renders an em-dash placeholder when a fix is empty", () => {
     meta: { version: "9" },
     checkedAt: "2026-01-01T00:00:00.000Z",
   });
-  assert.match(renderHtml(r), /<td>—<\/td>/);
+  const html = renderHtml(r);
+  assert.match(html, /id="copy-summary"/);
+  assert.match(html, /Skip to report/);
+  assert.match(html, /<main id="main">/);
+  assert.match(html, /Executive summary/);
+  assert.match(html, /Make this page more citable/);
+  assert.match(html, /@media print/);
+  assert.ok(!html.includes("undefined"));
 });

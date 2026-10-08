@@ -1,6 +1,6 @@
 {
   "tool": "one-step-seo",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "url": "https://example.com/good/",
   "finalUrl": "https://example.com/good/",
   "checkedAt": "2026-10-08T00:00:00.000Z",
@@ -20,7 +20,7 @@
     "P1": 1,
     "P2": 2,
     "P3": 0,
-    "pass": 32
+    "pass": 33
   },
   "findings": [
     {
@@ -319,6 +319,16 @@
       "severity": "pass",
       "title": "AI crawlers not blanket-blocked",
       "evidence": "No full Disallow for AI bots",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "G04-entity",
+      "category": "geo",
+      "severity": "pass",
+      "title": "Titles name the same entity",
+      "evidence": "og:title matches <title>",
       "fix": "",
       "seoImpact": "-",
       "geoImpact": "-"

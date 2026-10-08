@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseArgs, normalizeUrl, canonicalizeUrl, CliError, VALID_FORMATS } from "../lib/args.mjs";
+import {
+  parseArgs,
+  normalizeUrl,
+  canonicalizeUrl,
+  CliError,
+  VALID_FORMATS,
+  MAX_PAGES,
+} from "../lib/args.mjs";
 
 test("parseArgs defaults", () => {
   const a = parseArgs(["audit", "https://example.com"]);
@@ -9,6 +16,9 @@ test("parseArgs defaults", () => {
   assert.equal(a.timeout, 15000);
   assert.deepEqual(a.formats, ["html", "md", "json"]);
   assert.equal(a.action, null);
+  assert.equal(a.delay, 250);
+  assert.equal(a.debug, false);
+  assert.equal(a.force, false);
 });
 
 test("parseArgs accepts valid flags", () => {
@@ -21,7 +31,7 @@ test("parseArgs accepts valid flags", () => {
 test("parseArgs rejects out-of-range numbers", () => {
   for (const argv of [
     ["audit", "x", "--pages", "0"],
-    ["audit", "x", "--pages", "21"],
+    ["audit", "x", "--pages", String(MAX_PAGES + 1)],
     ["audit", "x", "--pages", "abc"],
     ["audit", "x", "--timeout", "500"],
     ["audit", "x", "--timeout", "999999"],
@@ -93,4 +103,18 @@ test("parseArgs accepts all fix flags", () => {
 test("canonicalizeUrl returns empty for unparseable input", () => {
   assert.equal(canonicalizeUrl("not a url at all !!!"), "");
   assert.equal(canonicalizeUrl(""), "");
+});
+
+test("parseArgs accepts politeness and safety flags", () => {
+  const a = parseArgs(["audit", "x", "--delay", "0", "--debug", "--force"]);
+  assert.equal(a.delay, 0);
+  assert.equal(a.debug, true);
+  assert.equal(a.force, true);
+  assert.equal(parseArgs(["audit", "x", "--delay=500"]).delay, 500);
+});
+
+test("parseArgs rejects out-of-range --delay", () => {
+  assert.throws(() => parseArgs(["audit", "x", "--delay", "-1"]), CliError);
+  assert.throws(() => parseArgs(["audit", "x", "--delay", "10001"]), CliError);
+  assert.throws(() => parseArgs(["audit", "x", "--delay", "abc"]), CliError);
 });

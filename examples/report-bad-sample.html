@@ -5,70 +5,638 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>one-step-seo report — https://example.com/bad/</title>
 <style>
-:root{color-scheme:light dark}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:32px;line-height:1.55;max-width:1080px;margin-inline:auto}
-.cards{display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 24px}
-.card{border:1px solid #ccc;border-radius:12px;padding:16px 20px;min-width:220px}
-.score{font-size:40px;font-weight:800}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{border:1px solid #ccc;padding:8px 10px;text-align:left;vertical-align:top}
-tr.sev-P0{background:rgba(220,38,38,.08)}
-tr.sev-P1{background:rgba(234,88,12,.08)}
-.meta{color:#555;font-size:13px}
-.warn{border:1px solid #d97706;background:rgba(217,119,6,.12);border-radius:8px;padding:10px 14px}
-code{background:rgba(127,127,127,.15);padding:1px 6px;border-radius:6px}
+:root{--bg:#f6f7f9;--fg:#111418;--muted:#5b6472;--card:#fff;--line:#e3e7ed;--accent:#2563eb;--accent-fg:#fff;--code:#eef1f6;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--muted:#98a4b1;--card:#161b22;--line:#2a323d;--accent:#3b82f6;--code:#1c222b}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:74px}
+body{margin:0;background:var(--bg);color:var(--fg);line-height:1.55;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 60px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:0;z-index:100;background:var(--accent);color:var(--accent-fg);padding:10px 18px;font-weight:650;border-radius:0 0 8px 0}
+.skip:focus{left:0;top:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;background:var(--code);padding:1.5px 5px;border-radius:5px}
+pre{background:var(--code);padding:12px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:8px 0 0;font-size:12.5px}
+pre code{background:none;padding:0}
+.empty{color:var(--muted);font-style:italic}
+
+.masthead{position:sticky;top:0;z-index:50;background:var(--card);border-bottom:1px solid var(--line)}
+@media (prefers-color-scheme:dark){.masthead{background:rgba(22,27,34,.94);backdrop-filter:blur(8px)}}
+.masthead-in{max-width:1180px;margin:0 auto;padding:9px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.brand{font-weight:750;font-size:14.5px;white-space:nowrap}
+.brand span{color:var(--muted);font-weight:500}
+.toolbar{display:flex;gap:8px;align-items:center;flex:1;flex-wrap:wrap;min-width:0}
+.search{flex:1;min-width:170px;position:relative}
+.search input{width:100%;font:inherit;font-size:13.5px;padding:7px 11px 7px 30px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.5}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{font:inherit;font-size:12px;font-weight:650;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.chip .n{opacity:.7;font-weight:500}
+.result-count{font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.hero{padding:30px 0 4px}
+h1{font-size:25px;margin:0 0 6px;letter-spacing:-.02em}
+.url{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);word-break:break-all;margin:0}
+.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px;margin:22px 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px 19px}
+.gauge-panel{display:flex;gap:15px;align-items:center}
+.gauge{position:relative;flex:none;color:var(--muted)}
+.gauge svg{display:block}
+.gauge-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.02}
+.gauge-score{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.gauge-band{font-size:10.5px;font-weight:750;letter-spacing:.04em;color:hsl(var(--hue) 65% 40%)}
+@media (prefers-color-scheme:dark){.gauge-band{color:hsl(var(--hue) 70% 70%)}}
+.axis{font-weight:700;font-size:14px}
+.axis-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.dist-title{font-weight:700;font-size:14px;margin-bottom:11px}
+.dist-row{display:grid;grid-template-columns:36px 1fr 30px;gap:9px;align-items:center;margin:5px 0;font-size:12px}
+.dist-label{font-weight:700;color:var(--muted)}
+.dist-track{height:7px;border-radius:999px;background:rgba(127,127,127,.18);overflow:hidden}
+.dist-fill{display:block;height:100%;border-radius:999px;background:hsl(var(--hue) 70% 45%)}
+.dist-count{text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
+
+.toc{display:flex;gap:5px;flex-wrap:wrap;margin:20px 0 4px;padding:0;list-style:none}
+.toc a{font-size:12.5px;font-weight:650;text-decoration:none;color:var(--muted);padding:5px 11px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+.toc a:hover{color:var(--fg);border-color:var(--accent)}
+
+section{margin:32px 0;scroll-margin-top:78px}
+h2{font-size:18px;margin:0 0 12px;letter-spacing:-.01em;padding-bottom:8px;border-bottom:1px solid var(--line);display:flex;gap:9px;align-items:baseline;justify-content:space-between}
+h2 .n{font-size:12.5px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.lede{color:var(--muted);margin:0 0 15px;font-size:14px}
+
+.topfix{list-style:none;margin:0;padding:0;display:grid;gap:9px;counter-reset:tf}
+.topfix li{counter-increment:tf;position:relative;background:var(--card);border:1px solid var(--line);border-left:4px solid hsl(var(--hue) 68% 45%);border-radius:10px;padding:13px 15px 13px 50px}
+.topfix li::before{content:counter(tf);position:absolute;left:15px;top:13px;width:21px;height:21px;border-radius:999px;background:var(--accent);color:var(--accent-fg);font-size:11.5px;font-weight:750;display:grid;place-items:center}
+
+.badge{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.05em;padding:2px 7px;border-radius:5px;color:hsl(var(--hue) 68% 30%);background:hsl(var(--hue) 70% 92%);vertical-align:1px;white-space:nowrap}
+@media (prefers-color-scheme:dark){.badge{color:hsl(var(--hue) 75% 78%);background:hsl(var(--hue) 45% 22%)}}
+
+.group h3{display:flex;align-items:center;gap:8px;font-size:14.5px;margin:22px 0 11px;color:var(--muted);font-weight:700}
+.group-count{font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:rgba(127,127,127,.16)}
+.cards{display:grid;gap:11px;grid-template-columns:repeat(auto-fill,minmax(335px,1fr))}
+.finding{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px 15px;display:flex;flex-direction:column;gap:9px;transition:border-color .12s,box-shadow .12s}
+.finding:hover{border-color:var(--accent);box-shadow:0 2px 9px rgba(0,0,0,.07)}
+.finding[hidden]{display:none}
+.finding-head{display:flex;gap:8px;align-items:flex-start}
+.finding-head h4{font-size:14px;margin:0;flex:1;line-height:1.35}
+.finding-plain{margin:0;font-size:12.5px;color:var(--muted)}
+.finding-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(76px,1fr));gap:5px 11px;margin:0;font-size:11.5px}
+.finding-meta dt{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:650}
+.finding-meta dd{margin:1px 0 0;font-weight:650}
+.finding-row{margin:0;font-size:12.5px}
+.finding-row strong{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.finding-foot{display:flex;align-items:center;gap:9px;margin-top:auto;padding-top:3px}
+button.copy-fix{font:inherit;font-size:12px;font-weight:650;padding:5px 12px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+button.copy-fix:hover{border-color:var(--accent);color:var(--accent)}
+.copied{font-size:11.5px;color:#16a34a;font-weight:650}
+details.snippet summary{cursor:pointer;font-size:12px;font-weight:650;color:var(--accent)}
+summary::marker{color:var(--muted)}
+.none-msg{grid-column:1/-1;color:var(--muted);font-style:italic;padding:16px;text-align:center}
+
+.checklist{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+.checklist li{display:flex;gap:9px;align-items:flex-start;font-size:13px;padding:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:9px}
+.checklist .box{font-weight:800;flex:none;width:1.2em;text-align:center}
+.checklist li[data-checked="yes"] .box{color:#16a34a}
+.checklist li[data-checked="no"]{border-style:dashed}
+.progress{height:7px;border-radius:999px;background:rgba(127,127,127,.18);overflow:hidden;margin:0 0 15px;max-width:400px}
+.progress i{display:block;height:100%;background:#16a34a;border-radius:999px}
+
+details.passed summary{cursor:pointer;font-weight:650;font-size:13.5px;padding:10px 13px;background:var(--card);border:1px solid var(--line);border-radius:9px}
+details.passed ul{margin:9px 0 0;padding-left:21px;font-size:12.5px;columns:2;column-gap:26px}
+details.passed li{break-inside:avoid;margin:2.5px 0}
+
+.warn{border:1px solid #d97706;background:rgba(217,119,6,.12);border-radius:9px;padding:10px 14px;font-size:13px}
+footer.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+
+@media (max-width:760px){
+  .cards{grid-template-columns:1fr}
+  details.passed ul{columns:1}
+  .wrap,.masthead-in{padding-left:14px;padding-right:14px}
+  .gauge-panel{flex-direction:column;text-align:center;gap:11px}
+}
+@media print{
+  .no-print,.toc,.masthead{display:none!important}
+  html{scroll-behavior:auto}
+  body{background:#fff;color:#000}
+  .wrap{max-width:none;padding:0}
+  .finding,.panel,details.passed summary,.checklist li,.topfix li{break-inside:avoid;border-color:#bbb}
+  .cards{grid-template-columns:1fr 1fr}
+  a{color:#000;text-decoration:none}
+}
 </style>
 </head>
 <body>
-<h1>one-step-seo report</h1>
-<p class="meta">URL: <code>https://example.com/bad/</code><br>Final: <code>https://example.com/bad/</code><br>Checked: 2026-10-08T00:00:00.000Z · v0.3.0</p>
+<a class="skip" href="#main">Skip to report</a>
 
-<div class="cards">
-<div class="card"><div>Search SEO</div><div class="score">0<small>/100 F</small></div></div>
-<div class="card"><div>AI Visibility</div><div class="score">5<small>/100 F</small></div></div>
-<div class="card"><div>Counts</div><div>P0=0 · P1=9 · P2=11 · P3=1 · pass=14</div></div>
+<div class="masthead no-print"><div class="masthead-in">
+<div class="brand">one-step-seo <span>report</span></div>
+<div class="toolbar">
+<label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg><input type="search" id="q" placeholder="Filter findings…" autocomplete="off" aria-label="Filter findings by text"></label>
+<div class="chips" role="group" aria-label="Filter by severity">
+<button type="button" class="chip" data-sev="all" aria-pressed="true">All</button>
+<button type="button" class="chip" data-sev="P0">P0 <span class="n">0</span></button>
+<button type="button" class="chip" data-sev="P1">P1 <span class="n">9</span></button>
+<button type="button" class="chip" data-sev="P2">P2 <span class="n">11</span></button>
+<button type="button" class="chip" data-sev="P3">P3 <span class="n">1</span></button>
 </div>
-<table>
-<caption>Findings ordered by priority (P0 critical first, passed checks last)</caption>
-<thead><tr><th scope="col">Priority</th><th scope="col">Check</th><th scope="col">Evidence</th><th scope="col">Fix</th></tr></thead>
-<tbody>
-<tr class="sev-P1"><td><strong>P1</strong></td><td>Viewport meta missing/odd<br><small>T11-viewport · technical</small></td><td>(none)</td><td>Add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;.</td></tr>
-<tr class="sev-P1"><td><strong>P1</strong></td><td>Title too short<br><small>O01-title-short · onpage</small></td><td>&quot;Hi&quot; (2ch)</td><td>Expand to 30-60 chars: Primary Topic | Brand.</td></tr>
-<tr class="sev-P1"><td><strong>P1</strong></td><td>Meta description missing<br><small>O02-meta-missing · onpage</small></td><td>(empty)</td><td>Add a 120-155ch description with benefit + CTA. One per page.</td></tr>
-<tr class="sev-P1"><td><strong>P1</strong></td><td>Multiple H1s<br><small>O03-h1-multi · onpage</small></td><td>2 H1s</td><td>Keep one H1; demote the rest to H2.</td></tr>
-<tr class="sev-P1"><td><strong>P1</strong></td><td>2/2 images missing alt<br><small>O08-alt · onpage</small></td><td>Empty/missing alt attributes</td><td>Write descriptive alt for informative images; alt=&quot;&quot; for decorative.</td></tr>
-<tr class="sev-P1"><td><strong>P1</strong></td><td>No internal links detected<br><small>O10-internal · onpage</small></td><td>0 internal links</td><td>Add 3-10 contextual internal links to related pages.</td></tr>
-<tr class="sev-P1"><td><strong>P1</strong></td><td>Thin content<br><small>C01-thin · content</small></td><td>6 words</td><td>Expand to fully answer the query; add examples, steps, data.</td></tr>
-<tr class="sev-P1"><td><strong>P1</strong></td><td>No answer-first block<br><small>C02-answer · content</small></td><td>No direct answer in first ~150 words</td><td>Start with a 40-60 word direct answer, then explanation + evidence.</td></tr>
-<tr class="sev-P1"><td><strong>P1</strong></td><td>No JSON-LD structured data<br><small>S01-none · schema</small></td><td>0 schema nodes</td><td>Add Organization/WebSite + page-type markup (Article/FAQ/Breadcrumb). Only mark up visible content.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>Canonical missing<br><small>T08-canonical · technical</small></td><td>No rel=canonical found</td><td>Add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred URL.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>Missing html lang<br><small>T09-lang · technical</small></td><td>No &lt;html lang&gt;</td><td>Add lang, e.g. &lt;html lang=&quot;en&quot;&gt;.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>Charset not UTF-8<br><small>T10-charset · technical</small></td><td>not-found</td><td>Declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>Skipped heading level<br><small>O04-headings · onpage</small></td><td>e.g. H1 -&gt; H3</td><td>Nest headings sequentially (H1&gt;H2&gt;H3).</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>Open Graph incomplete<br><small>O06-og · onpage</small></td><td>title:false desc:false img:false</td><td>Add og:title, og:description, og:image + twitter:card.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>Favicon not detected<br><small>O07-favicon · onpage</small></td><td>No rel=icon link</td><td>Add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + SVG variant.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>Images missing dimensions (CLS risk)<br><small>O09-img-dims · onpage</small></td><td>2/2 without width+height</td><td>Add width/height or aspect-ratio to avoid layout shift.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>No tables/lists (harder to cite)<br><small>C03-extractable · content</small></td><td>0 tables/lists</td><td>Add a comparison table or steps list for key facts.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>No FAQ coverage<br><small>C04-faq · content</small></td><td>No questions answered on page</td><td>Add 3-6 genuine user questions with concise answers where natural.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>llms.txt missing<br><small>G01-llms · geo</small></td><td>GET /llms.txt not found</td><td>Optional: add /llms.txt summarizing key pages for AI crawlers.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>Facts hard to extract<br><small>G03-facts · geo</small></td><td>tables:0 lists:0 words:6</td><td>Surface prices/specs/steps/dates in tables or bolded fact lines with sources.</td></tr>
-<tr class="sev-P3"><td><strong>P3</strong></td><td>Twitter card missing<br><small>W01-social · onpage</small></td><td>No twitter:card meta</td><td>Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;.</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>HTTPS enabled<br><small>T01-https · technical</small></td><td>Final URL uses https</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>HTTP 200 OK<br><small>T02-status · technical</small></td><td>Status 200 in 12ms</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Redirect chain clean<br><small>T03-redirects · technical</small></td><td>0 redirect(s)</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>HTML content-type<br><small>T04-content-type · technical</small></td><td>text/html</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>robots.txt found<br><small>T05-robots · technical</small></td><td>Disallows: 1</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>XML sitemap found<br><small>T06-sitemap · technical</small></td><td>~10 URLs</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Indexable (no noindex)<br><small>T07-noindex · technical</small></td><td>meta robots: &quot;(none)&quot;</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Clean URL shape<br><small>T12-url · technical</small></td><td>/bad/</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Subheadings present<br><small>O05-h2 · onpage</small></td><td>0 H2(s)</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>AI crawlers not blanket-blocked<br><small>G02-ai-blocked · geo</small></td><td>No full Disallow for AI bots</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>HTML size reasonable<br><small>P01-html-size · performance</small></td><td>0KB</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Image count reasonable<br><small>P02-img-count · performance</small></td><td>2 &lt;img&gt;</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>og:url consistent<br><small>W02-og-url · onpage</small></td><td>(no og:url, ok)</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>No hreflang (single-locale ok)<br><small>W03-hreflang · onpage</small></td><td>0 alternates</td><td>—</td></tr>
-</tbody>
-</table>
-<p class="meta">Generated by one-step-seo. Two scores, never blended.</p>
+<span class="result-count" id="count" role="status" aria-live="polite">21 findings</span>
+</div></div></div>
+
+<div class="wrap"><main id="main">
+<header class="hero">
+<h1>one-step-seo report</h1>
+<p class="url">https://example.com/bad/<br>Checked 2026-10-08T00:00:00.000Z · v0.4.0</p>
+
+<div class="scores">
+<div class="panel gauge-panel"><div class="gauge"><svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true" focusable="false">
+<circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" stroke-width="7" opacity=".14"/>
+<circle cx="40" cy="40" r="34" fill="none" stroke="hsl(0 68% 44%)" stroke-width="7"
+  stroke-linecap="round" stroke-dasharray="0.0 213.6"
+  transform="rotate(-90 40 40)"/></svg>
+<div class="gauge-text"><span class="gauge-score">0</span><span class="gauge-band" style="--hue:0">F</span></div></div>
+<p class="sr-only">Search SEO: 0 out of 100, band F.</p>
+<div><div class="axis">Search SEO</div><div class="axis-sub">Crawlability, indexability, titles and links — what decides Google rankings.</div></div></div>
+<div class="panel gauge-panel"><div class="gauge"><svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true" focusable="false">
+<circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" stroke-width="7" opacity=".14"/>
+<circle cx="40" cy="40" r="34" fill="none" stroke="hsl(0 68% 44%)" stroke-width="7"
+  stroke-linecap="round" stroke-dasharray="10.7 213.6"
+  transform="rotate(-90 40 40)"/></svg>
+<div class="gauge-text"><span class="gauge-score">5</span><span class="gauge-band" style="--hue:0">F</span></div></div>
+<p class="sr-only">AI Visibility: 5 out of 100, band F.</p>
+<div><div class="axis">AI Visibility</div><div class="axis-sub">Answer-first structure, extractable facts and AI-crawler access — what decides AI answers.</div></div></div>
+<div class="panel"><div class="dist-title">Findings by severity</div><div class="dist-row"><span class="dist-label">P0</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:0;width:0.0%"></span></span>
+<span class="dist-count">0</span></div><div class="dist-row"><span class="dist-label">P1</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:25;width:64.3%"></span></span>
+<span class="dist-count">9</span></div><div class="dist-row"><span class="dist-label">P2</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:45;width:78.6%"></span></span>
+<span class="dist-count">11</span></div><div class="dist-row"><span class="dist-label">P3</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:210;width:7.1%"></span></span>
+<span class="dist-count">1</span></div><div class="dist-row"><span class="dist-label">pass</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:150;width:100.0%"></span></span>
+<span class="dist-count">14</span></div></div>
+</div>
+<ul class="toc">
+<li><a href="#summary">Summary</a></li><li><a href="#first">Fix this first</a></li>
+<li><a href="#actions">All findings</a></li><li><a href="#citable">Citability</a></li>
+<li><a href="#passed">Passed</a></li><li><a href="#monitor">Monitor</a></li>
+</ul>
+</header>
+
+<section id="summary" aria-labelledby="summary-h"><h2 id="summary-h">Executive summary</h2>
+<p class="lede" id="exec-summary-text">Below par: Search SEO and AI Visibility are both under 60. Work through the P1 fixes first, this week. Search SEO 0/100 (F) · AI Visibility 5/100 (F). 21 actionable issues — fix P0 today, P1 this week, P2 this month.</p>
+<p class="no-print"><button type="button" class="chip" id="copy-summary">Copy summary</button></p></section>
+
+<section id="first" aria-labelledby="first-h"><h2 id="first-h">Fix this first</h2>
+<p class="lede">Highest impact per unit of effort, ranked by severity.</p><ol class="topfix">
+<li style="--hue:25"><span class="badge">P1</span> <strong>Viewport meta missing/odd</strong> <code>T11-viewport</code><br><span class="finding-plain">The mobile viewport tag is missing, so phones render a shrunken desktop layout. Most search traffic is mobile.</span></li>
+<li style="--hue:25"><span class="badge">P1</span> <strong>Title too short</strong> <code>O01-title-short</code><br><span class="finding-plain">The title is too short to describe the page. Short titles waste the most influential on-page ranking slot.</span></li>
+<li style="--hue:25"><span class="badge">P1</span> <strong>Meta description missing</strong> <code>O02-meta-missing</code><br><span class="finding-plain">There is no meta description, so Google invents the snippet text under your headline — usually badly. Good descriptions lift click-through.</span></li>
+</ol></section>
+
+<section id="actions" aria-labelledby="actions-h"><h2 id="actions-h"><span>All findings</span><span class="n">21</span></h2>
+<p class="lede">Use the search box and severity chips above to narrow this down. Every card has a one-click copy of its fix.</p>
+<section class="group" id="cat-technical" aria-labelledby="h-technical">
+<h3 id="h-technical">Technical SEO <span class="group-count">4</span></h3>
+<div class="cards"><article class="finding" data-sev="P1" data-search="viewport meta missing/odd t11-viewport (none) add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;. the mobile viewport tag is missing, so phones render a shrunken desktop layout. most search traffic is mobile. technical">
+<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<h4>Viewport meta missing/odd</h4></header>
+<p class="finding-plain">The mobile viewport tag is missing, so phones render a shrunken desktop layout. Most search traffic is mobile.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>T11-viewport</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>(none)</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="canonical missing t08-canonical no rel=canonical found add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred url. the canonical tag — the page’s way of saying “this is my official url” — is missing or points somewhere unexpected. duplicates can then split ranking signal. technical">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>Canonical missing</h4></header>
+<p class="finding-plain">The canonical tag — the page’s way of saying “this is my official URL” — is missing or points somewhere unexpected. Duplicates can then split ranking signal.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>T08-canonical</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>No rel=canonical found</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred URL.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;link rel=&quot;canonical&quot; href=&quot;https://example.com/page/&quot;&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred URL.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="missing html lang t09-lang no &lt;html lang&gt; add lang, e.g. &lt;html lang=&quot;en&quot;&gt;. the page never declares its language. screen readers then mispronounce text and search engines can misclassify the audience. technical">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>Missing html lang</h4></header>
+<p class="finding-plain">The page never declares its language. Screen readers then mispronounce text and search engines can misclassify the audience.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>T09-lang</code></dd></div>
+<div><dt>Impact</dt><dd>low</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>No &lt;html lang&gt;</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add lang, e.g. &lt;html lang=&quot;en&quot;&gt;.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;html lang=&quot;en&quot;&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add lang, e.g. &lt;html lang=&quot;en&quot;&gt;.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="charset not utf-8 t10-charset not-found declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;. no utf-8 charset is declared, so special characters (accents, symbols, emoji) can render as mojibake. technical">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>Charset not UTF-8</h4></header>
+<p class="finding-plain">No UTF-8 charset is declared, so special characters (accents, symbols, emoji) can render as mojibake.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>T10-charset</code></dd></div>
+<div><dt>Impact</dt><dd>low</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>not-found</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;meta charset=&quot;utf-8&quot;&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article></div></section>
+<section class="group" id="cat-onpage" aria-labelledby="h-onpage">
+<h3 id="h-onpage">On-page <span class="group-count">10</span></h3>
+<div class="cards"><article class="finding" data-sev="P1" data-search="title too short o01-title-short &quot;hi&quot; (2ch) expand to 30-60 chars: primary topic | brand. the title is too short to describe the page. short titles waste the most influential on-page ranking slot. onpage">
+<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<h4>Title too short</h4></header>
+<p class="finding-plain">The title is too short to describe the page. Short titles waste the most influential on-page ranking slot.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>O01-title-short</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>&quot;Hi&quot; (2ch)</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Expand to 30-60 chars: Primary Topic | Brand.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;title&gt;Primary Topic — Key Benefit | Brand Name&lt;/title&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Expand to 30-60 chars: Primary Topic | Brand.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P1" data-search="meta description missing o02-meta-missing (empty) add a 120-155ch description with benefit + cta. one per page. there is no meta description, so google invents the snippet text under your headline — usually badly. good descriptions lift click-through. onpage">
+<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<h4>Meta description missing</h4></header>
+<p class="finding-plain">There is no meta description, so Google invents the snippet text under your headline — usually badly. Good descriptions lift click-through.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>O02-meta-missing</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>(empty)</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add a 120-155ch description with benefit + CTA. One per page.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;meta name=&quot;description&quot; content=&quot;What this page offers, who it is for, and what to do next (120–155 characters).&quot;&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add a 120-155ch description with benefit + CTA. One per page.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P1" data-search="multiple h1s o03-h1-multi 2 h1s keep one h1; demote the rest to h2. the page has several h1s, so nothing is clearly the main topic. keep one h1 and demote the rest to h2. onpage">
+<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<h4>Multiple H1s</h4></header>
+<p class="finding-plain">The page has several H1s, so nothing is clearly the main topic. Keep one H1 and demote the rest to H2.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>O03-h1-multi</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>2 H1s</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Keep one H1; demote the rest to H2.</span></p>
+
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Keep one H1; demote the rest to H2.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P1" data-search="2/2 images missing alt o08-alt empty/missing alt attributes write descriptive alt for informative images; alt=&quot;&quot; for decorative. some images have no alt text, so screen-reader users miss them and image search cannot understand them. onpage">
+<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<h4>2/2 images missing alt</h4></header>
+<p class="finding-plain">Some images have no alt text, so screen-reader users miss them and image search cannot understand them.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>O08-alt</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>hours</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>Empty/missing alt attributes</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Write descriptive alt for informative images; alt=&quot;&quot; for decorative.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;img src=&quot;/photo.jpg&quot; alt=&quot;Describe what the image shows&quot; width=&quot;800&quot; height=&quot;600&quot; loading=&quot;lazy&quot;&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Write descriptive alt for informative images; alt=&quot;&quot; for decorative.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P1" data-search="no internal links detected o10-internal 0 internal links add 3-10 contextual internal links to related pages. the page links to nothing else on the site. internal links spread ranking signal and guide readers deeper. onpage">
+<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<h4>No internal links detected</h4></header>
+<p class="finding-plain">The page links to nothing else on the site. Internal links spread ranking signal and guide readers deeper.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>O10-internal</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>hours</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>0 internal links</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add 3-10 contextual internal links to related pages.</span></p>
+
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add 3-10 contextual internal links to related pages.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="skipped heading level o04-headings e.g. h1 -&gt; h3 nest headings sequentially (h1&gt;h2&gt;h3). heading levels skip (e.g. h1 straight to h3). screen readers and ai parsers use heading order as the page outline. onpage">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>Skipped heading level</h4></header>
+<p class="finding-plain">Heading levels skip (e.g. H1 straight to H3). Screen readers and AI parsers use heading order as the page outline.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>O04-headings</code></dd></div>
+<div><dt>Impact</dt><dd>low</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>e.g. H1 -&gt; H3</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Nest headings sequentially (H1&gt;H2&gt;H3).</span></p>
+
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Nest headings sequentially (H1&gt;H2&gt;H3).">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="open graph incomplete o06-og title:false desc:false img:false add og:title, og:description, og:image + twitter:card. open graph tags are incomplete, so shares on social and chat apps show a bare link instead of a rich preview card. onpage">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>Open Graph incomplete</h4></header>
+<p class="finding-plain">Open Graph tags are incomplete, so shares on social and chat apps show a bare link instead of a rich preview card.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>O06-og</code></dd></div>
+<div><dt>Impact</dt><dd>low</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>title:false desc:false img:false</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add og:title, og:description, og:image + twitter:card.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;meta property=&quot;og:title&quot; content=&quot;Page title as it should appear when shared&quot;&gt;
+&lt;meta property=&quot;og:description&quot; content=&quot;One-sentence summary for link previews.&quot;&gt;
+&lt;meta property=&quot;og:image&quot; content=&quot;https://example.com/og-image.png&quot;&gt;
+&lt;meta property=&quot;og:url&quot; content=&quot;https://example.com/page/&quot;&gt;
+&lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add og:title, og:description, og:image + twitter:card.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="favicon not detected o07-favicon no rel=icon link add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + svg variant. no favicon was detected. tabs and bookmarks show a generic icon, which looks unfinished and hurts brand recognition. onpage">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>Favicon not detected</h4></header>
+<p class="finding-plain">No favicon was detected. Tabs and bookmarks show a generic icon, which looks unfinished and hurts brand recognition.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>O07-favicon</code></dd></div>
+<div><dt>Impact</dt><dd>low</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>No rel=icon link</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + SVG variant.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot; sizes=&quot;any&quot;&gt;
+&lt;link rel=&quot;icon&quot; href=&quot;/favicon.svg&quot; type=&quot;image/svg+xml&quot;&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + SVG variant.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="images missing dimensions (cls risk) o09-img-dims 2/2 without width+height add width/height or aspect-ratio to avoid layout shift. most images lack width/height, so the page layout jumps while loading (cls). declare dimensions or an aspect ratio. onpage">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>Images missing dimensions (CLS risk)</h4></header>
+<p class="finding-plain">Most images lack width/height, so the page layout jumps while loading (CLS). Declare dimensions or an aspect ratio.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>O09-img-dims</code></dd></div>
+<div><dt>Impact</dt><dd>low</dd></div>
+<div><dt>Effort</dt><dd>hours</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>2/2 without width+height</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add width/height or aspect-ratio to avoid layout shift.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;img src=&quot;/photo.jpg&quot; alt=&quot;Describe what the image shows&quot; width=&quot;800&quot; height=&quot;600&quot; loading=&quot;lazy&quot;&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add width/height or aspect-ratio to avoid layout shift.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P3" data-search="twitter card missing w01-social no twitter:card meta add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;. no twitter/x card tag. link previews on x fall back to a plain card without it. onpage">
+<header class="finding-head"><span class="badge" style="--hue:210">P3</span>
+<h4>Twitter card missing</h4></header>
+<p class="finding-plain">No Twitter/X card tag. Link previews on X fall back to a plain card without it.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>W01-social</code></dd></div>
+<div><dt>Impact</dt><dd>low</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>No twitter:card meta</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article></div></section>
+<section class="group" id="cat-content" aria-labelledby="h-content">
+<h3 id="h-content">Content <span class="group-count">4</span></h3>
+<div class="cards"><article class="finding" data-sev="P1" data-search="thin content c01-thin 6 words expand to fully answer the query; add examples, steps, data. the page has very little text. thin pages rarely satisfy a query fully and give ai answers nothing to cite. content">
+<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<h4>Thin content</h4></header>
+<p class="finding-plain">The page has very little text. Thin pages rarely satisfy a query fully and give AI answers nothing to cite.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>C01-thin</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>days</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>6 words</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Expand to fully answer the query; add examples, steps, data.</span></p>
+
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Expand to fully answer the query; add examples, steps, data.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P1" data-search="no answer-first block c02-answer no direct answer in first ~150 words start with a 40-60 word direct answer, then explanation + evidence. the page never answers its own question up front. ai overviews and featured snippets quote pages that lead with a direct 40–60 word answer. content">
+<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<h4>No answer-first block</h4></header>
+<p class="finding-plain">The page never answers its own question up front. AI overviews and featured snippets quote pages that lead with a direct 40–60 word answer.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>C02-answer</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>hours</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>No direct answer in first ~150 words</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Start with a 40-60 word direct answer, then explanation + evidence.</span></p>
+
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Start with a 40-60 word direct answer, then explanation + evidence.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="no tables/lists (harder to cite) c03-extractable 0 tables/lists add a comparison table or steps list for key facts. no tables or lists were found. ai systems lift facts most easily from tables, steps, and bullet lists. content">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>No tables/lists (harder to cite)</h4></header>
+<p class="finding-plain">No tables or lists were found. AI systems lift facts most easily from tables, steps, and bullet lists.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>C03-extractable</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>hours</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>0 tables/lists</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add a comparison table or steps list for key facts.</span></p>
+
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add a comparison table or steps list for key facts.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="no faq coverage c04-faq no questions answered on page add 3-6 genuine user questions with concise answers where natural. no faq content was detected. a short set of genuine user questions with concise answers feeds both “people also ask” and ai answers. content">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>No FAQ coverage</h4></header>
+<p class="finding-plain">No FAQ content was detected. A short set of genuine user questions with concise answers feeds both “People also ask” and AI answers.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>C04-faq</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>hours</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>No questions answered on page</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add 3-6 genuine user questions with concise answers where natural.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;script type=&quot;application/ld+json&quot;&gt;
+{
+  &quot;@context&quot;: &quot;https://schema.org&quot;,
+  &quot;@type&quot;: &quot;FAQPage&quot;,
+  &quot;mainEntity&quot;: [
+    {
+      &quot;@type&quot;: &quot;Question&quot;,
+      &quot;name&quot;: &quot;YOUR FIRST REAL USER QUESTION?&quot;,
+      &quot;acceptedAnswer&quot;: { &quot;@type&quot;: &quot;Answer&quot;, &quot;text&quot;: &quot;Your concise, factual answer.&quot; }
+    }
+  ]
+}
+&lt;/script&gt;
+&lt;!-- Only mark up questions + answers that are visible on the page. --&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add 3-6 genuine user questions with concise answers where natural.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article></div></section>
+<section class="group" id="cat-schema" aria-labelledby="h-schema">
+<h3 id="h-schema">Schema <span class="group-count">1</span></h3>
+<div class="cards"><article class="finding" data-sev="P1" data-search="no json-ld structured data s01-none 0 schema nodes add organization/website + page-type markup (article/faq/breadcrumb). only mark up visible content. no structured data was found. schema markup is how you tell google — in its own language — what this page is. schema">
+<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<h4>No JSON-LD structured data</h4></header>
+<p class="finding-plain">No structured data was found. Schema markup is how you tell Google — in its own language — what this page is.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>S01-none</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>hours</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>0 schema nodes</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Add Organization/WebSite + page-type markup (Article/FAQ/Breadcrumb). Only mark up visible content.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code>&lt;script type=&quot;application/ld+json&quot;&gt;
+{
+  &quot;@context&quot;: &quot;https://schema.org&quot;,
+  &quot;@type&quot;: &quot;WebSite&quot;,
+  &quot;name&quot;: &quot;YOUR SITE NAME&quot;,
+  &quot;url&quot;: &quot;https://example.com&quot;
+}
+&lt;/script&gt;</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add Organization/WebSite + page-type markup (Article/FAQ/Breadcrumb). Only mark up visible content.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article></div></section>
+<section class="group" id="cat-geo" aria-labelledby="h-geo">
+<h3 id="h-geo">AI visibility <span class="group-count">2</span></h3>
+<div class="cards"><article class="finding" data-sev="P2" data-search="llms.txt missing g01-llms get /llms.txt not found optional: add /llms.txt summarizing key pages for ai crawlers. there is no llms.txt file — a small machine-readable summary some ai crawlers look for. it is optional, but cheap to add. geo">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>llms.txt missing</h4></header>
+<p class="finding-plain">There is no llms.txt file — a small machine-readable summary some AI crawlers look for. It is optional, but cheap to add.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>G01-llms</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>GET /llms.txt not found</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Optional: add /llms.txt summarizing key pages for AI crawlers.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code># Your Site Name
+
+&gt; One-paragraph summary of what this site offers and who it is for.
+
+## Key pages
+
+- [Pricing](https://example.com/page/pricing)
+- [Docs](https://example.com/page/docs)
+
+## Optional
+
+- Replace the links above with your most-cited pages.</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Optional: add /llms.txt summarizing key pages for AI crawlers.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="facts hard to extract g03-facts tables:0 lists:0 words:6 surface prices/specs/steps/dates in tables or bolded fact lines with sources. key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so ai systems struggle to extract and cite them. geo">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>Facts hard to extract</h4></header>
+<p class="finding-plain">Key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so AI systems struggle to extract and cite them.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>G03-facts</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>hours</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>tables:0 lists:0 words:6</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Surface prices/specs/steps/dates in tables or bolded fact lines with sources.</span></p>
+
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Surface prices/specs/steps/dates in tables or bolded fact lines with sources.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article></div></section></section>
+
+<section id="citable" aria-labelledby="citable-h"><h2 id="citable-h"><span>Make this page more citable</span><span class="n">1/7</span></h2>
+<div class="progress" role="img" aria-label="1 of 7 citability signals present"><i style="width:14%"></i></div>
+<ul class="checklist">
+<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>Answer-first opening (direct answer in the first ~150 words)</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>Extractable structures (tables or lists for key facts)</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>FAQ coverage (real questions with concise answers)</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>Facts surfaced for extraction (prices, specs, steps, dates)</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>Structured data present and valid</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>llms.txt present</span></li>
+<li data-checked="yes"><span class="box" aria-hidden="true">✓</span><span>AI crawlers allowed</span></li>
+</ul></section>
+
+<section id="passed" aria-labelledby="passed-h"><h2 id="passed-h"><span>What passed</span><span class="n">14</span></h2><details class="passed"><summary>14 checks passed</summary><ul>
+<li>HTTPS enabled <code>T01-https</code></li>
+<li>HTTP 200 OK <code>T02-status</code></li>
+<li>Redirect chain clean <code>T03-redirects</code></li>
+<li>HTML content-type <code>T04-content-type</code></li>
+<li>robots.txt found <code>T05-robots</code></li>
+<li>XML sitemap found <code>T06-sitemap</code></li>
+<li>Indexable (no noindex) <code>T07-noindex</code></li>
+<li>Clean URL shape <code>T12-url</code></li>
+<li>Subheadings present <code>O05-h2</code></li>
+<li>AI crawlers not blanket-blocked <code>G02-ai-blocked</code></li>
+<li>HTML size reasonable <code>P01-html-size</code></li>
+<li>Image count reasonable <code>P02-img-count</code></li>
+<li>og:url consistent <code>W02-og-url</code></li>
+<li>No hreflang (single-locale ok) <code>W03-hreflang</code></li>
+</ul></details></section>
+
+<section id="monitor" aria-labelledby="monitor-h"><h2 id="monitor-h"><span>What to monitor</span><span class="n">1</span></h2><ul>
+<li><span class="badge" style="--hue:210">P3</span> Twitter card missing <code>W01-social</code> — Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;.</li>
+</ul></section>
+
+<footer class="foot"><span>Generated by one-step-seo v0.4.0 — two scores, never blended.</span><span>https://example.com/bad/</span></footer>
+</main></div>
+
+<script>
+(function(){
+  var q=document.getElementById('q');
+  var chips=[].slice.call(document.querySelectorAll('.chip[data-sev]'));
+  var out=document.getElementById('count');
+  var findings=[].slice.call(document.querySelectorAll('.finding'));
+  var groups=[].slice.call(document.querySelectorAll('.group'));
+  var sev='all';
+  function apply(){
+    var term=(q&&q.value||'').toLowerCase().trim();
+    var shown=0;
+    findings.forEach(function(el){
+      var okSev=sev==='all'||el.getAttribute('data-sev')===sev;
+      var hay=el.getAttribute('data-search')||'';
+      var vis=okSev&&(!term||hay.indexOf(term)!==-1);
+      el.hidden=!vis; if(vis) shown++;
+    });
+    groups.forEach(function(g){
+      var any=false;
+      [].forEach.call(g.querySelectorAll('.finding'),function(el){ if(!el.hidden) any=true; });
+      g.hidden=!any;
+    });
+    if(out) out.textContent=shown+' of '+findings.length+' finding'+(findings.length===1?'':'s');
+  }
+  if(q) q.addEventListener('input',apply);
+  chips.forEach(function(c){ c.addEventListener('click',function(){
+    sev=c.getAttribute('data-sev');
+    chips.forEach(function(o){ o.setAttribute('aria-pressed', o===c?'true':'false'); });
+    apply();
+  });});
+  function copy(text,ok,fail){
+    var note=null,btn=this;
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok,fail);
+    }else{
+      var ta=document.createElement('textarea');ta.value=text;
+      document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');ok();}catch(e){fail();}
+      document.body.removeChild(ta);
+    }
+  }
+  [].forEach.call(document.querySelectorAll('.copy-fix'),function(btn){
+    btn.addEventListener('click',function(){
+      var text=btn.getAttribute('data-copy')||'';
+      var note=btn.parentNode.querySelector('.copied');
+      var done=function(good){
+        if(note) note.textContent=good?'Copied ✓':'Copy failed';
+        setTimeout(function(){ if(note) note.textContent=''; },2000);
+      };
+      copy.call(btn,text,function(){done(true);},function(){done(false);});
+    });
+  });
+  var cs=document.getElementById('copy-summary');
+  if(cs) cs.addEventListener('click',function(){
+    var t=document.getElementById('exec-summary-text');
+    var s=(t&&(t.innerText||t.textContent))||'';
+    var done=function(good){
+      cs.textContent=good?'Copied ✓':'Copy failed';
+      setTimeout(function(){ cs.textContent='Copy summary'; },2000);
+    };
+    copy.call(cs,s,function(){done(true);},function(){done(false);});
+  });
+})();
+</script>
 </body>
 </html>

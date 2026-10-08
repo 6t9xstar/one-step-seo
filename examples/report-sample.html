@@ -5,70 +5,373 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>one-step-seo report — https://example.com/good/</title>
 <style>
-:root{color-scheme:light dark}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:32px;line-height:1.55;max-width:1080px;margin-inline:auto}
-.cards{display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 24px}
-.card{border:1px solid #ccc;border-radius:12px;padding:16px 20px;min-width:220px}
-.score{font-size:40px;font-weight:800}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{border:1px solid #ccc;padding:8px 10px;text-align:left;vertical-align:top}
-tr.sev-P0{background:rgba(220,38,38,.08)}
-tr.sev-P1{background:rgba(234,88,12,.08)}
-.meta{color:#555;font-size:13px}
-.warn{border:1px solid #d97706;background:rgba(217,119,6,.12);border-radius:8px;padding:10px 14px}
-code{background:rgba(127,127,127,.15);padding:1px 6px;border-radius:6px}
+:root{--bg:#f6f7f9;--fg:#111418;--muted:#5b6472;--card:#fff;--line:#e3e7ed;--accent:#2563eb;--accent-fg:#fff;--code:#eef1f6;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--muted:#98a4b1;--card:#161b22;--line:#2a323d;--accent:#3b82f6;--code:#1c222b}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:74px}
+body{margin:0;background:var(--bg);color:var(--fg);line-height:1.55;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 60px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:0;z-index:100;background:var(--accent);color:var(--accent-fg);padding:10px 18px;font-weight:650;border-radius:0 0 8px 0}
+.skip:focus{left:0;top:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;background:var(--code);padding:1.5px 5px;border-radius:5px}
+pre{background:var(--code);padding:12px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:8px 0 0;font-size:12.5px}
+pre code{background:none;padding:0}
+.empty{color:var(--muted);font-style:italic}
+
+.masthead{position:sticky;top:0;z-index:50;background:var(--card);border-bottom:1px solid var(--line)}
+@media (prefers-color-scheme:dark){.masthead{background:rgba(22,27,34,.94);backdrop-filter:blur(8px)}}
+.masthead-in{max-width:1180px;margin:0 auto;padding:9px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.brand{font-weight:750;font-size:14.5px;white-space:nowrap}
+.brand span{color:var(--muted);font-weight:500}
+.toolbar{display:flex;gap:8px;align-items:center;flex:1;flex-wrap:wrap;min-width:0}
+.search{flex:1;min-width:170px;position:relative}
+.search input{width:100%;font:inherit;font-size:13.5px;padding:7px 11px 7px 30px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.5}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{font:inherit;font-size:12px;font-weight:650;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.chip .n{opacity:.7;font-weight:500}
+.result-count{font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.hero{padding:30px 0 4px}
+h1{font-size:25px;margin:0 0 6px;letter-spacing:-.02em}
+.url{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);word-break:break-all;margin:0}
+.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px;margin:22px 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px 19px}
+.gauge-panel{display:flex;gap:15px;align-items:center}
+.gauge{position:relative;flex:none;color:var(--muted)}
+.gauge svg{display:block}
+.gauge-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.02}
+.gauge-score{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.gauge-band{font-size:10.5px;font-weight:750;letter-spacing:.04em;color:hsl(var(--hue) 65% 40%)}
+@media (prefers-color-scheme:dark){.gauge-band{color:hsl(var(--hue) 70% 70%)}}
+.axis{font-weight:700;font-size:14px}
+.axis-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.dist-title{font-weight:700;font-size:14px;margin-bottom:11px}
+.dist-row{display:grid;grid-template-columns:36px 1fr 30px;gap:9px;align-items:center;margin:5px 0;font-size:12px}
+.dist-label{font-weight:700;color:var(--muted)}
+.dist-track{height:7px;border-radius:999px;background:rgba(127,127,127,.18);overflow:hidden}
+.dist-fill{display:block;height:100%;border-radius:999px;background:hsl(var(--hue) 70% 45%)}
+.dist-count{text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
+
+.toc{display:flex;gap:5px;flex-wrap:wrap;margin:20px 0 4px;padding:0;list-style:none}
+.toc a{font-size:12.5px;font-weight:650;text-decoration:none;color:var(--muted);padding:5px 11px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+.toc a:hover{color:var(--fg);border-color:var(--accent)}
+
+section{margin:32px 0;scroll-margin-top:78px}
+h2{font-size:18px;margin:0 0 12px;letter-spacing:-.01em;padding-bottom:8px;border-bottom:1px solid var(--line);display:flex;gap:9px;align-items:baseline;justify-content:space-between}
+h2 .n{font-size:12.5px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.lede{color:var(--muted);margin:0 0 15px;font-size:14px}
+
+.topfix{list-style:none;margin:0;padding:0;display:grid;gap:9px;counter-reset:tf}
+.topfix li{counter-increment:tf;position:relative;background:var(--card);border:1px solid var(--line);border-left:4px solid hsl(var(--hue) 68% 45%);border-radius:10px;padding:13px 15px 13px 50px}
+.topfix li::before{content:counter(tf);position:absolute;left:15px;top:13px;width:21px;height:21px;border-radius:999px;background:var(--accent);color:var(--accent-fg);font-size:11.5px;font-weight:750;display:grid;place-items:center}
+
+.badge{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.05em;padding:2px 7px;border-radius:5px;color:hsl(var(--hue) 68% 30%);background:hsl(var(--hue) 70% 92%);vertical-align:1px;white-space:nowrap}
+@media (prefers-color-scheme:dark){.badge{color:hsl(var(--hue) 75% 78%);background:hsl(var(--hue) 45% 22%)}}
+
+.group h3{display:flex;align-items:center;gap:8px;font-size:14.5px;margin:22px 0 11px;color:var(--muted);font-weight:700}
+.group-count{font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:rgba(127,127,127,.16)}
+.cards{display:grid;gap:11px;grid-template-columns:repeat(auto-fill,minmax(335px,1fr))}
+.finding{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px 15px;display:flex;flex-direction:column;gap:9px;transition:border-color .12s,box-shadow .12s}
+.finding:hover{border-color:var(--accent);box-shadow:0 2px 9px rgba(0,0,0,.07)}
+.finding[hidden]{display:none}
+.finding-head{display:flex;gap:8px;align-items:flex-start}
+.finding-head h4{font-size:14px;margin:0;flex:1;line-height:1.35}
+.finding-plain{margin:0;font-size:12.5px;color:var(--muted)}
+.finding-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(76px,1fr));gap:5px 11px;margin:0;font-size:11.5px}
+.finding-meta dt{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:650}
+.finding-meta dd{margin:1px 0 0;font-weight:650}
+.finding-row{margin:0;font-size:12.5px}
+.finding-row strong{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.finding-foot{display:flex;align-items:center;gap:9px;margin-top:auto;padding-top:3px}
+button.copy-fix{font:inherit;font-size:12px;font-weight:650;padding:5px 12px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+button.copy-fix:hover{border-color:var(--accent);color:var(--accent)}
+.copied{font-size:11.5px;color:#16a34a;font-weight:650}
+details.snippet summary{cursor:pointer;font-size:12px;font-weight:650;color:var(--accent)}
+summary::marker{color:var(--muted)}
+.none-msg{grid-column:1/-1;color:var(--muted);font-style:italic;padding:16px;text-align:center}
+
+.checklist{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+.checklist li{display:flex;gap:9px;align-items:flex-start;font-size:13px;padding:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:9px}
+.checklist .box{font-weight:800;flex:none;width:1.2em;text-align:center}
+.checklist li[data-checked="yes"] .box{color:#16a34a}
+.checklist li[data-checked="no"]{border-style:dashed}
+.progress{height:7px;border-radius:999px;background:rgba(127,127,127,.18);overflow:hidden;margin:0 0 15px;max-width:400px}
+.progress i{display:block;height:100%;background:#16a34a;border-radius:999px}
+
+details.passed summary{cursor:pointer;font-weight:650;font-size:13.5px;padding:10px 13px;background:var(--card);border:1px solid var(--line);border-radius:9px}
+details.passed ul{margin:9px 0 0;padding-left:21px;font-size:12.5px;columns:2;column-gap:26px}
+details.passed li{break-inside:avoid;margin:2.5px 0}
+
+.warn{border:1px solid #d97706;background:rgba(217,119,6,.12);border-radius:9px;padding:10px 14px;font-size:13px}
+footer.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+
+@media (max-width:760px){
+  .cards{grid-template-columns:1fr}
+  details.passed ul{columns:1}
+  .wrap,.masthead-in{padding-left:14px;padding-right:14px}
+  .gauge-panel{flex-direction:column;text-align:center;gap:11px}
+}
+@media print{
+  .no-print,.toc,.masthead{display:none!important}
+  html{scroll-behavior:auto}
+  body{background:#fff;color:#000}
+  .wrap{max-width:none;padding:0}
+  .finding,.panel,details.passed summary,.checklist li,.topfix li{break-inside:avoid;border-color:#bbb}
+  .cards{grid-template-columns:1fr 1fr}
+  a{color:#000;text-decoration:none}
+}
 </style>
 </head>
 <body>
-<h1>one-step-seo report</h1>
-<p class="meta">URL: <code>https://example.com/good/</code><br>Final: <code>https://example.com/good/</code><br>Checked: 2026-10-08T00:00:00.000Z · v0.3.0</p>
+<a class="skip" href="#main">Skip to report</a>
 
-<div class="cards">
-<div class="card"><div>Search SEO</div><div class="score">87<small>/100 B</small></div></div>
-<div class="card"><div>AI Visibility</div><div class="score">80<small>/100 B</small></div></div>
-<div class="card"><div>Counts</div><div>P0=0 · P1=1 · P2=2 · P3=0 · pass=32</div></div>
+<div class="masthead no-print"><div class="masthead-in">
+<div class="brand">one-step-seo <span>report</span></div>
+<div class="toolbar">
+<label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg><input type="search" id="q" placeholder="Filter findings…" autocomplete="off" aria-label="Filter findings by text"></label>
+<div class="chips" role="group" aria-label="Filter by severity">
+<button type="button" class="chip" data-sev="all" aria-pressed="true">All</button>
+<button type="button" class="chip" data-sev="P0">P0 <span class="n">0</span></button>
+<button type="button" class="chip" data-sev="P1">P1 <span class="n">1</span></button>
+<button type="button" class="chip" data-sev="P2">P2 <span class="n">2</span></button>
+<button type="button" class="chip" data-sev="P3">P3 <span class="n">0</span></button>
 </div>
-<table>
-<caption>Findings ordered by priority (P0 critical first, passed checks last)</caption>
-<thead><tr><th scope="col">Priority</th><th scope="col">Check</th><th scope="col">Evidence</th><th scope="col">Fix</th></tr></thead>
-<tbody>
-<tr class="sev-P1"><td><strong>P1</strong></td><td>Thin content<br><small>C01-thin · content</small></td><td>130 words</td><td>Expand to fully answer the query; add examples, steps, data.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>llms.txt missing<br><small>G01-llms · geo</small></td><td>GET /llms.txt not found</td><td>Optional: add /llms.txt summarizing key pages for AI crawlers.</td></tr>
-<tr class="sev-P2"><td><strong>P2</strong></td><td>Facts hard to extract<br><small>G03-facts · geo</small></td><td>tables:1 lists:1 words:130</td><td>Surface prices/specs/steps/dates in tables or bolded fact lines with sources.</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>HTTPS enabled<br><small>T01-https · technical</small></td><td>Final URL uses https</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>HTTP 200 OK<br><small>T02-status · technical</small></td><td>Status 200 in 12ms</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Redirect chain clean<br><small>T03-redirects · technical</small></td><td>0 redirect(s)</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>HTML content-type<br><small>T04-content-type · technical</small></td><td>text/html</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>robots.txt found<br><small>T05-robots · technical</small></td><td>Disallows: 1</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>XML sitemap found<br><small>T06-sitemap · technical</small></td><td>~10 URLs</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Indexable (no noindex)<br><small>T07-noindex · technical</small></td><td>meta robots: &quot;(none)&quot;</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Canonical self-references<br><small>T08-canonical · technical</small></td><td>https://example.com/good/</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>HTML lang=&quot;en&quot;<br><small>T09-lang · technical</small></td><td>lang: en</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>UTF-8 charset declared<br><small>T10-charset · technical</small></td><td>utf-8</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Responsive viewport set<br><small>T11-viewport · technical</small></td><td>width=device-width, initial-scale=1</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Clean URL shape<br><small>T12-url · technical</small></td><td>/good/</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Title length healthy<br><small>O01-title · onpage</small></td><td>&quot;Good Example Page — One-Step-SEO Demo&quot; (37ch)</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Meta description healthy<br><small>O02-meta · onpage</small></td><td>125ch</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Single H1<br><small>O03-h1 · onpage</small></td><td>&quot;Good example page&quot;</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Heading order logical<br><small>O04-headings · onpage</small></td><td>4 headings</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Subheadings present<br><small>O05-h2 · onpage</small></td><td>3 H2(s)</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Open Graph complete<br><small>O06-og · onpage</small></td><td>og:title/description/image present</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Favicon present<br><small>O07-favicon · onpage</small></td><td>rel=icon found</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>All images have alt<br><small>O08-alt · onpage</small></td><td>1 img</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Image dimensions OK<br><small>O09-img-dims · onpage</small></td><td>1 img checked</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Internal linking present<br><small>O10-internal · onpage</small></td><td>2 internal links</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Answer-first opening detected<br><small>C02-answer · content</small></td><td>Question/direct-answer near top</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Extractable structures present<br><small>C03-extractable · content</small></td><td>1 tables, 1 lists</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>FAQ signals present<br><small>C04-faq · content</small></td><td>FAQ text or markup detected</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Structured data present (1 node(s))<br><small>S01-present · schema</small></td><td>Types: Article</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>AI crawlers not blanket-blocked<br><small>G02-ai-blocked · geo</small></td><td>No full Disallow for AI bots</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>HTML size reasonable<br><small>P01-html-size · performance</small></td><td>2KB</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Image count reasonable<br><small>P02-img-count · performance</small></td><td>1 &lt;img&gt;</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>Twitter card present<br><small>W01-social · onpage</small></td><td>summary_large_image</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>og:url consistent<br><small>W02-og-url · onpage</small></td><td>(no og:url, ok)</td><td>—</td></tr>
-<tr class="sev-pass"><td><strong>pass</strong></td><td>No hreflang (single-locale ok)<br><small>W03-hreflang · onpage</small></td><td>0 alternates</td><td>—</td></tr>
-</tbody>
-</table>
-<p class="meta">Generated by one-step-seo. Two scores, never blended.</p>
+<span class="result-count" id="count" role="status" aria-live="polite">3 findings</span>
+</div></div></div>
+
+<div class="wrap"><main id="main">
+<header class="hero">
+<h1>one-step-seo report</h1>
+<p class="url">https://example.com/good/<br>Checked 2026-10-08T00:00:00.000Z · v0.4.0</p>
+
+<div class="scores">
+<div class="panel gauge-panel"><div class="gauge"><svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true" focusable="false">
+<circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" stroke-width="7" opacity=".14"/>
+<circle cx="40" cy="40" r="34" fill="none" stroke="hsl(95 68% 44%)" stroke-width="7"
+  stroke-linecap="round" stroke-dasharray="185.9 213.6"
+  transform="rotate(-90 40 40)"/></svg>
+<div class="gauge-text"><span class="gauge-score">87</span><span class="gauge-band" style="--hue:95">B</span></div></div>
+<p class="sr-only">Search SEO: 87 out of 100, band B.</p>
+<div><div class="axis">Search SEO</div><div class="axis-sub">Crawlability, indexability, titles and links — what decides Google rankings.</div></div></div>
+<div class="panel gauge-panel"><div class="gauge"><svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true" focusable="false">
+<circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" stroke-width="7" opacity=".14"/>
+<circle cx="40" cy="40" r="34" fill="none" stroke="hsl(95 68% 44%)" stroke-width="7"
+  stroke-linecap="round" stroke-dasharray="170.9 213.6"
+  transform="rotate(-90 40 40)"/></svg>
+<div class="gauge-text"><span class="gauge-score">80</span><span class="gauge-band" style="--hue:95">B</span></div></div>
+<p class="sr-only">AI Visibility: 80 out of 100, band B.</p>
+<div><div class="axis">AI Visibility</div><div class="axis-sub">Answer-first structure, extractable facts and AI-crawler access — what decides AI answers.</div></div></div>
+<div class="panel"><div class="dist-title">Findings by severity</div><div class="dist-row"><span class="dist-label">P0</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:0;width:0.0%"></span></span>
+<span class="dist-count">0</span></div><div class="dist-row"><span class="dist-label">P1</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:25;width:3.0%"></span></span>
+<span class="dist-count">1</span></div><div class="dist-row"><span class="dist-label">P2</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:45;width:6.1%"></span></span>
+<span class="dist-count">2</span></div><div class="dist-row"><span class="dist-label">P3</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:210;width:0.0%"></span></span>
+<span class="dist-count">0</span></div><div class="dist-row"><span class="dist-label">pass</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:150;width:100.0%"></span></span>
+<span class="dist-count">33</span></div></div>
+</div>
+<ul class="toc">
+<li><a href="#summary">Summary</a></li><li><a href="#first">Fix this first</a></li>
+<li><a href="#actions">All findings</a></li><li><a href="#citable">Citability</a></li>
+<li><a href="#passed">Passed</a></li><li><a href="#monitor">Monitor</a></li>
+</ul>
+</header>
+
+<section id="summary" aria-labelledby="summary-h"><h2 id="summary-h">Executive summary</h2>
+<p class="lede" id="exec-summary-text">Solid foundation with 1 high-priority fix to work through this week. Search SEO 87/100 (B) · AI Visibility 80/100 (B). 3 actionable issues — fix P0 today, P1 this week, P2 this month.</p>
+<p class="no-print"><button type="button" class="chip" id="copy-summary">Copy summary</button></p></section>
+
+<section id="first" aria-labelledby="first-h"><h2 id="first-h">Fix this first</h2>
+<p class="lede">Highest impact per unit of effort, ranked by severity.</p><ol class="topfix">
+<li style="--hue:25"><span class="badge">P1</span> <strong>Thin content</strong> <code>C01-thin</code><br><span class="finding-plain">The page has very little text. Thin pages rarely satisfy a query fully and give AI answers nothing to cite.</span></li>
+<li style="--hue:45"><span class="badge">P2</span> <strong>llms.txt missing</strong> <code>G01-llms</code><br><span class="finding-plain">There is no llms.txt file — a small machine-readable summary some AI crawlers look for. It is optional, but cheap to add.</span></li>
+<li style="--hue:45"><span class="badge">P2</span> <strong>Facts hard to extract</strong> <code>G03-facts</code><br><span class="finding-plain">Key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so AI systems struggle to extract and cite them.</span></li>
+</ol></section>
+
+<section id="actions" aria-labelledby="actions-h"><h2 id="actions-h"><span>All findings</span><span class="n">3</span></h2>
+<p class="lede">Use the search box and severity chips above to narrow this down. Every card has a one-click copy of its fix.</p>
+<section class="group" id="cat-content" aria-labelledby="h-content">
+<h3 id="h-content">Content <span class="group-count">1</span></h3>
+<div class="cards"><article class="finding" data-sev="P1" data-search="thin content c01-thin 130 words expand to fully answer the query; add examples, steps, data. the page has very little text. thin pages rarely satisfy a query fully and give ai answers nothing to cite. content">
+<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<h4>Thin content</h4></header>
+<p class="finding-plain">The page has very little text. Thin pages rarely satisfy a query fully and give AI answers nothing to cite.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>C01-thin</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>days</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>130 words</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Expand to fully answer the query; add examples, steps, data.</span></p>
+
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Expand to fully answer the query; add examples, steps, data.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article></div></section>
+<section class="group" id="cat-geo" aria-labelledby="h-geo">
+<h3 id="h-geo">AI visibility <span class="group-count">2</span></h3>
+<div class="cards"><article class="finding" data-sev="P2" data-search="llms.txt missing g01-llms get /llms.txt not found optional: add /llms.txt summarizing key pages for ai crawlers. there is no llms.txt file — a small machine-readable summary some ai crawlers look for. it is optional, but cheap to add. geo">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>llms.txt missing</h4></header>
+<p class="finding-plain">There is no llms.txt file — a small machine-readable summary some AI crawlers look for. It is optional, but cheap to add.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>G01-llms</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>minutes</dd></div>
+<div><dt>Owner</dt><dd>developer</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>GET /llms.txt not found</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Optional: add /llms.txt summarizing key pages for AI crawlers.</span></p>
+<details class="snippet"><summary>Copy-paste starting point</summary><pre><code># Your Site Name
+
+&gt; One-paragraph summary of what this site offers and who it is for.
+
+## Key pages
+
+- [Pricing](https://example.com/page/pricing)
+- [Docs](https://example.com/page/docs)
+
+## Optional
+
+- Replace the links above with your most-cited pages.</code></pre></details>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Optional: add /llms.txt summarizing key pages for AI crawlers.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article>
+<article class="finding" data-sev="P2" data-search="facts hard to extract g03-facts tables:1 lists:1 words:130 surface prices/specs/steps/dates in tables or bolded fact lines with sources. key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so ai systems struggle to extract and cite them. geo">
+<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<h4>Facts hard to extract</h4></header>
+<p class="finding-plain">Key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so AI systems struggle to extract and cite them.</p>
+<dl class="finding-meta">
+<div><dt>Check</dt><dd><code>G03-facts</code></dd></div>
+<div><dt>Impact</dt><dd>medium</dd></div>
+<div><dt>Effort</dt><dd>hours</dd></div>
+<div><dt>Owner</dt><dd>content</dd></div></dl>
+<p class="finding-row"><strong>Evidence</strong><span>tables:1 lists:1 words:130</span></p>
+<p class="finding-row"><strong>Fix</strong><span>Surface prices/specs/steps/dates in tables or bolded fact lines with sources.</span></p>
+
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Surface prices/specs/steps/dates in tables or bolded fact lines with sources.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+</article></div></section></section>
+
+<section id="citable" aria-labelledby="citable-h"><h2 id="citable-h"><span>Make this page more citable</span><span class="n">6/8</span></h2>
+<div class="progress" role="img" aria-label="6 of 8 citability signals present"><i style="width:75%"></i></div>
+<ul class="checklist">
+<li data-checked="yes"><span class="box" aria-hidden="true">✓</span><span>Answer-first opening (direct answer in the first ~150 words)</span></li>
+<li data-checked="yes"><span class="box" aria-hidden="true">✓</span><span>Extractable structures (tables or lists for key facts)</span></li>
+<li data-checked="yes"><span class="box" aria-hidden="true">✓</span><span>FAQ coverage (real questions with concise answers)</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>Facts surfaced for extraction (prices, specs, steps, dates)</span></li>
+<li data-checked="yes"><span class="box" aria-hidden="true">✓</span><span>Structured data present and valid</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>llms.txt present</span></li>
+<li data-checked="yes"><span class="box" aria-hidden="true">✓</span><span>AI crawlers allowed</span></li>
+<li data-checked="yes"><span class="box" aria-hidden="true">✓</span><span>Consistent titles (share title matches page title)</span></li>
+</ul></section>
+
+<section id="passed" aria-labelledby="passed-h"><h2 id="passed-h"><span>What passed</span><span class="n">33</span></h2><details class="passed"><summary>33 checks passed</summary><ul>
+<li>HTTPS enabled <code>T01-https</code></li>
+<li>HTTP 200 OK <code>T02-status</code></li>
+<li>Redirect chain clean <code>T03-redirects</code></li>
+<li>HTML content-type <code>T04-content-type</code></li>
+<li>robots.txt found <code>T05-robots</code></li>
+<li>XML sitemap found <code>T06-sitemap</code></li>
+<li>Indexable (no noindex) <code>T07-noindex</code></li>
+<li>Canonical self-references <code>T08-canonical</code></li>
+<li>HTML lang=&quot;en&quot; <code>T09-lang</code></li>
+<li>UTF-8 charset declared <code>T10-charset</code></li>
+<li>Responsive viewport set <code>T11-viewport</code></li>
+<li>Clean URL shape <code>T12-url</code></li>
+<li>Title length healthy <code>O01-title</code></li>
+<li>Meta description healthy <code>O02-meta</code></li>
+<li>Single H1 <code>O03-h1</code></li>
+<li>Heading order logical <code>O04-headings</code></li>
+<li>Subheadings present <code>O05-h2</code></li>
+<li>Open Graph complete <code>O06-og</code></li>
+<li>Favicon present <code>O07-favicon</code></li>
+<li>All images have alt <code>O08-alt</code></li>
+<li>Image dimensions OK <code>O09-img-dims</code></li>
+<li>Internal linking present <code>O10-internal</code></li>
+<li>Answer-first opening detected <code>C02-answer</code></li>
+<li>Extractable structures present <code>C03-extractable</code></li>
+<li>FAQ signals present <code>C04-faq</code></li>
+<li>Structured data present (1 node(s)) <code>S01-present</code></li>
+<li>AI crawlers not blanket-blocked <code>G02-ai-blocked</code></li>
+<li>Titles name the same entity <code>G04-entity</code></li>
+<li>HTML size reasonable <code>P01-html-size</code></li>
+<li>Image count reasonable <code>P02-img-count</code></li>
+<li>Twitter card present <code>W01-social</code></li>
+<li>og:url consistent <code>W02-og-url</code></li>
+<li>No hreflang (single-locale ok) <code>W03-hreflang</code></li>
+</ul></details></section>
+
+<section id="monitor" aria-labelledby="monitor-h"><h2 id="monitor-h"><span>What to monitor</span><span class="n">0</span></h2><p class="empty">Nothing specific — re-audit after site changes.</p></section>
+
+<footer class="foot"><span>Generated by one-step-seo v0.4.0 — two scores, never blended.</span><span>https://example.com/good/</span></footer>
+</main></div>
+
+<script>
+(function(){
+  var q=document.getElementById('q');
+  var chips=[].slice.call(document.querySelectorAll('.chip[data-sev]'));
+  var out=document.getElementById('count');
+  var findings=[].slice.call(document.querySelectorAll('.finding'));
+  var groups=[].slice.call(document.querySelectorAll('.group'));
+  var sev='all';
+  function apply(){
+    var term=(q&&q.value||'').toLowerCase().trim();
+    var shown=0;
+    findings.forEach(function(el){
+      var okSev=sev==='all'||el.getAttribute('data-sev')===sev;
+      var hay=el.getAttribute('data-search')||'';
+      var vis=okSev&&(!term||hay.indexOf(term)!==-1);
+      el.hidden=!vis; if(vis) shown++;
+    });
+    groups.forEach(function(g){
+      var any=false;
+      [].forEach.call(g.querySelectorAll('.finding'),function(el){ if(!el.hidden) any=true; });
+      g.hidden=!any;
+    });
+    if(out) out.textContent=shown+' of '+findings.length+' finding'+(findings.length===1?'':'s');
+  }
+  if(q) q.addEventListener('input',apply);
+  chips.forEach(function(c){ c.addEventListener('click',function(){
+    sev=c.getAttribute('data-sev');
+    chips.forEach(function(o){ o.setAttribute('aria-pressed', o===c?'true':'false'); });
+    apply();
+  });});
+  function copy(text,ok,fail){
+    var note=null,btn=this;
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok,fail);
+    }else{
+      var ta=document.createElement('textarea');ta.value=text;
+      document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');ok();}catch(e){fail();}
+      document.body.removeChild(ta);
+    }
+  }
+  [].forEach.call(document.querySelectorAll('.copy-fix'),function(btn){
+    btn.addEventListener('click',function(){
+      var text=btn.getAttribute('data-copy')||'';
+      var note=btn.parentNode.querySelector('.copied');
+      var done=function(good){
+        if(note) note.textContent=good?'Copied ✓':'Copy failed';
+        setTimeout(function(){ if(note) note.textContent=''; },2000);
+      };
+      copy.call(btn,text,function(){done(true);},function(){done(false);});
+    });
+  });
+  var cs=document.getElementById('copy-summary');
+  if(cs) cs.addEventListener('click',function(){
+    var t=document.getElementById('exec-summary-text');
+    var s=(t&&(t.innerText||t.textContent))||'';
+    var done=function(good){
+      cs.textContent=good?'Copied ✓':'Copy failed';
+      setTimeout(function(){ cs.textContent='Copy summary'; },2000);
+    };
+    copy.call(cs,s,function(){done(true);},function(){done(false);});
+  });
+})();
+</script>
 </body>
 </html>
