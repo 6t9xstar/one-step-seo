@@ -20,33 +20,60 @@
   <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome"></a>
 </p>
 
-A page can rank in Google yet be uncitable by ChatGPT, Perplexity, or AI Overviews — or the reverse. `one-step-seo` measures **both** and tells you exactly what to fix.
+A page can rank in Google yet be uncitable by ChatGPT, Perplexity, or AI Overviews — or the reverse. `one-step-seo` measures **both** and tells you exactly what to fix, in plain language, with copy-paste snippets.
 
 ## See it in 30 seconds
 
-![Terminal demo: npx one-step-seo audit scores a site 87 Search / 80 AI and writes three report files](./assets/demo.svg)
+![Terminal demo: npx one-step-seo quick scores a site 87 Search / 80 AI and writes three report files](./assets/demo.svg)
 
 ```bash
-npx one-step-seo audit https://your-site.com --pages 5
+npx one-step-seo quick https://your-site.com
 ```
 
-That one command checks technical SEO, on-page, content, schema, sitemap, performance hints, and GEO/AEO readiness — then writes `report.json` + `report.md` + `report.html` into `./seo-report/`.
+That one command checks technical SEO, on-page, content, schema, sitemap, performance hints, and GEO/AEO readiness — then writes `report.json` + `report.md` + `report.html` into `./seo-report/`, and prints the top 3 fixes in your terminal:
+
+```text
+Search SEO: 87/100 (B)  |  AI Visibility: 80/100 (B)
+Pages audited: 5
+Counts: P0=0 P1=1 P2=2 P3=0 pass=33
+Top fixes:
+  [P1] Thin content (C01-thin) — Expand to fully answer the query; add examples, steps, data.
+    Impact: medium · Effort: days · Owner: content
+  [P2] llms.txt missing (G01-llms) — Optional: add /llms.txt summarizing key pages for AI crawlers.
+    Impact: medium · Effort: minutes · Owner: developer
+  ...
+Next: fix the items above, then re-run `one-step-seo audit https://your-site.com --pages 5`.
+Wrote:
+  ./seo-report/report.json
+  ./seo-report/report.md
+  ./seo-report/report.html
+```
 
 ## Contents
 
 - [Quickstart](#quickstart)
+- [Who it is for](#who-it-is-for)
 - [Scores](#scores)
 - [Features](#features)
 - [Reports](#reports)
 - [AI-agent usage](#ai-agent-usage)
+- [CI usage](#ci-usage)
+- [Privacy](#privacy)
 - [Comparison](#comparison)
 - [Docs](#docs)
 - [Contributing](#contributing)
+- [License](#license)
 
 ## Quickstart
 
 ```bash
-# No install needed
+# Easiest: sensible defaults (5 pages, all formats)
+npx one-step-seo quick https://example.com
+
+# Interactive: answer 4 questions, optionally open the report after
+npx one-step-seo
+
+# Full control: crawl up to N pages
 npx one-step-seo audit https://example.com --pages 5 --out ./seo-report
 
 # Single page deep dive
@@ -58,6 +85,9 @@ npx one-step-seo schema https://example.com --generate faq
 # Sitemap / robots / llms.txt overview
 npx one-step-seo sitemap https://example.com
 
+# llms.txt status + starter draft + AI-crawler robots.txt snippet
+npx one-step-seo llms https://example.com
+
 # Safe auto-fixes for local HTML — dry-run diff first, then --apply
 npx one-step-seo fix ./dist/index.html --url https://example.com/
 
@@ -65,7 +95,19 @@ npx one-step-seo fix ./dist/index.html --url https://example.com/
 npx one-step-seo doctor
 ```
 
-Open `./seo-report/report.html` in a browser or read `report.md`.
+Open `./seo-report/report.html` in a browser or read `report.md`. Every
+finding carries a plain-language explanation, impact/effort/owner labels,
+and — where safe — a copy-paste snippet.
+
+## Who it is for
+
+| You are…                    | You get…                                                                                      |
+| --------------------------- | --------------------------------------------------------------------------------------------- |
+| **New to SEO**              | `quick` + interactive mode, plain-language findings, “Fix this first” top 3, no jargon needed |
+| **Marketer / content lead** | Executive summary + verdict in `report.md`, citable checklist, impact/effort/owner per fix    |
+| **Developer**               | Zero-dep CLI, exit codes + `--fail-on` for CI, JSON schema for `report.json`, copy-paste code |
+| **Agency / freelancer**     | Shareable single-file `report.html` (print + copy-summary button), client-ready language      |
+| **AI-agent user**           | `SKILL.md` + stable `report.json` shape — agents audit, plan, and explain fixes for you       |
 
 ## Scores
 
@@ -76,36 +118,46 @@ Open `./seo-report/report.html` in a browser or read `report.md`.
 
 Bands: `A ≥90 · B ≥80 · C ≥70 · D ≥60 · F <60`
 
+Why two scores? Because “rank” and “get cited by AI answers” are different
+skills. A thin affiliate page can rank yet offer nothing quotable; a deep
+essay can be AI-ready yet invisible to Google without titles and sitemaps.
+One blended number would hide which half needs work — so the Search score
+deducts per finding while the AI score is a weighted readiness checklist,
+and they are reported side by side, never merged.
+
 Real output (from [`examples/`](./examples/report-sample.md)):
 
 ```text
 Search SEO: 87/100 (B)  |  AI Visibility: 80/100 (B)
-Counts: P0=0 P1=1 P2=2 P3=0 pass=32
+Counts: P0=0 P1=1 P2=2 P3=0 pass=33
 ```
 
-Priorities: **P0** critical (fix today) → **P1** high (this week) → **P2** medium (this month) → **P3** polish. Details: [`docs/SCORING.md`](./docs/SCORING.md). Full check list: [`docs/CHECKS.md`](./docs/CHECKS.md).
+Priorities: **P0** critical (fix today) → **P1** high (this week) → **P2** medium (this month) → **P3** polish. Details: [`docs/SCORING.md`](./docs/SCORING.md). Full check list: [`docs/CHECKS.md`](./docs/CHECKS.md). More examples: [`examples/page-types.md`](./examples/page-types.md) (WordPress, Next.js, product, blog, pricing).
 
 ## Features
 
-|                       |                                                                  |
-| --------------------- | ---------------------------------------------------------------- |
-| **Zero dependencies** | Plain Node 18+ ESM. No Python, no Playwright, no browser.        |
-| **Any stack**         | Astro, Next.js, WordPress, Shopify, static HTML.                 |
-| **1–20 page crawl**   | `audit --pages N` walks same-host links automatically.           |
-| **Safe auto-fix**     | `fix` patches local HTML — dry-run diff, backups, additive only. |
-| **AI-agent ready**    | Ships `SKILL.md` for Claude Code, OpenCode, Codex, Cursor.       |
-| **CI ready**          | Same command locally and in Actions, with report artifacts.      |
-| **Original + MIT**    | Not a fork. No tracking, reports stay on your machine.           |
+|                       |                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------- |
+| **Zero dependencies** | Plain Node 18+ ESM. No Python, no Playwright, no browser.                                   |
+| **Beginner friendly** | `quick`, interactive prompts, plain-language findings, top-3 terminal fix list              |
+| **Any stack**         | Astro, Next.js, WordPress, Shopify, static HTML.                                            |
+| **1–20 page crawl**   | `audit --pages N` walks same-host links automatically.                                      |
+| **Polite crawler**    | Same-host only, `robots.txt` enforced (`--force` override), request delay, clear User-Agent |
+| **Safe auto-fix**     | `fix` patches local HTML — dry-run diff, backups, additive only.                            |
+| **AI paperwork**      | `llms` prints a starter `llms.txt` + AI-crawler `robots.txt` snippet.                       |
+| **AI-agent ready**    | Ships `SKILL.md` for Claude Code, OpenCode, Codex, Cursor.                                  |
+| **CI ready**          | Same command locally and in Actions, with report artifacts.                                 |
+| **Original + MIT**    | Not a fork. No tracking, reports stay on your machine.                                      |
 
 ## Reports
 
-| File          | For                                          |
-| ------------- | -------------------------------------------- |
-| `report.json` | Machines — scores, counts, every finding     |
-| `report.md`   | Humans — priority-ordered actions            |
-| `report.html` | Sharing — single portable file (page 1 only) |
+| File          | For                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------- |
+| `report.json` | Machines — scores, counts, every finding (schema: `lib/schema-report.json`)               |
+| `report.md`   | Humans — executive summary, fix-first top 3, grouped actions, snippets, citable checklist |
+| `report.html` | Sharing — single portable file, copy-summary button, print styles, mobile-friendly        |
 
-Preview: [`examples/report-sample.md`](./examples/report-sample.md) · [`examples/report-sample.html`](./examples/report-sample.html)
+Preview: [`examples/report-sample.md`](./examples/report-sample.md) · [`examples/report-sample.html`](./examples/report-sample.html) · [page-type examples](./examples/page-types.md)
 
 ## AI-agent usage
 
@@ -118,27 +170,60 @@ cp one-step-seo/SKILL.md ~/.claude/skills/one-step-seo/SKILL.md
 
 Or copy [`SKILL.md`](./SKILL.md) into your agent's skills folder and ask:
 
-> "Audit https://my-site.com with one-step-seo and give me P0 fixes first."
+> "Audit https://my-site.com with one-step-seo, summarize the top 5 fixes, and create an implementation plan."
+
+The skill teaches agents to run the audit, read `report.json` (stable,
+schema-documented shape), prioritize P0/P1 with evidence, propose
+additive-only fixes with diffs for approval, and write a client-ready
+summary — never blending the two scores, never promising rankings.
 
 Sub-skills: [`skills/seo-audit/SKILL.md`](./skills/seo-audit/SKILL.md) (audit → plan), [`skills/seo-fix/SKILL.md`](./skills/seo-fix/SKILL.md) (opt-in safe fixes, preview by default).
 
+## CI usage
+
+```yaml
+- run: npx one-step-seo audit https://example.com --pages 5 --out ./seo-report --fail-on P0
+- uses: actions/upload-artifact@v4
+  with:
+    name: seo-report
+    path: seo-report/
+```
+
+`--fail-on P0` exits 2 on critical findings; artifacts keep the reports.
+Full recipe (score gates, PR-comment format, scheduled audits): [`docs/CI.md`](./docs/CI.md).
+
+## Privacy
+
+- **No tracking, no telemetry, no accounts.** The only network requests are
+  the ones your audit makes to the target site.
+- Reports are written locally to `--out` and never uploaded anywhere.
+- The crawler identifies itself (`one-step-seo/<version>`), stays same-host,
+  pauses between requests, and obeys `robots.txt`.
+- Only audit sites you own or are allowed to test. Security reports:
+  [`SECURITY.md`](./SECURITY.md). If you ever find telemetry, that is a bug —
+  please report it.
+
 ## Comparison
 
-|                           | one-step-seo                 | claude-seo style plugins                 |
-| ------------------------- | ---------------------------- | ---------------------------------------- |
-| Install                   | `npx` — nothing to install   | Python venv + Playwright + setup command |
-| Runtime                   | Zero-dep Node                | Python + browser + API keys              |
-| Works outside Claude Code | Yes (any terminal, any CI)   | No (plugin only)                         |
-| Pages per run             | 1–20 crawl built in          | Agent-dependent                          |
-| Report                    | JSON + Markdown + HTML files | Chat transcript                          |
-| License                   | MIT, original code           | MIT, fork-heavy                          |
+|                           | one-step-seo                  | claude-seo style plugins                 |
+| ------------------------- | ----------------------------- | ---------------------------------------- |
+| Install                   | `npx` — nothing to install    | Python venv + Playwright + setup command |
+| Runtime                   | Zero-dep Node                 | Python + browser + API keys              |
+| Beginner mode             | `quick` + interactive prompts | Agent-dependent                          |
+| Works outside Claude Code | Yes (any terminal, any CI)    | No (plugin only)                         |
+| Pages per run             | 1–20 crawl built in           | Agent-dependent                          |
+| Report                    | JSON + Markdown + HTML files  | Chat transcript                          |
+| License                   | MIT, original code            | MIT, fork-heavy                          |
 
 ## Docs
 
 - [`docs/USAGE.md`](./docs/USAGE.md) — flags, formats, exit codes
-- [`docs/CHECKS.md`](./docs/CHECKS.md) — all ~40 checks
+- [`docs/CHECKS.md`](./docs/CHECKS.md) — all ~45 checks + crawler behavior
 - [`docs/SCORING.md`](./docs/SCORING.md) — dual-score math
 - [`docs/CI.md`](./docs/CI.md) — GitHub Actions recipe
+- [`docs/FAQ.md`](./docs/FAQ.md) — questions, answered plainly
+- [`docs/TROUBLESHOOTING.md`](./docs/TROUBLESHOOTING.md) — fixes for common failures
+- [`docs/ROADMAP.md`](./docs/ROADMAP.md) — where the project is heading
 
 ## Contributing
 

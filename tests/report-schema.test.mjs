@@ -189,3 +189,87 @@ test("escMd escapes markdown metacharacters", () => {
   assert.ok(!escMd("# hi").startsWith("#"));
   assert.ok(escMd("a|b").includes("\\|"));
 });
+
+test("example reports conform to the report.json shape (lib/schema-report.json)", () => {
+  const schema = JSON.parse(readFileSync(join(ROOT, "lib/schema-report.json"), "utf8"));
+  for (const name of ["report-sample.json", "report-bad-sample.json"]) {
+    const report = JSON.parse(readFileSync(join(ROOT, "examples", name), "utf8"));
+    for (const key of schema.required) {
+      assert.ok(key in report, `${name}: missing required field ${key}`);
+    }
+    assert.equal(report.tool, "one-step-seo");
+    for (const axis of ["search", "ai"]) {
+      const s = report.scores[axis];
+      assert.ok(s.score >= 0 && s.score <= 100, `${name}: ${axis} score out of range`);
+      assert.ok(["A", "B", "C", "D", "F"].includes(s.band), `${name}: bad ${axis} band`);
+    }
+    for (const f of report.findings)
+      assert.ok(matchesFindingSchema(f), `${name}: finding fails schema: ${f.id}`);
+    assert.ok(Array.isArray(report.page.h1), `${name}: page.h1 must be an array`);
+  }
+});
+
+test("every emitted failure finding has finding-meta triage data", async () => {
+  const { readdirSync } = await import("node:fs");
+  const { getFindingMeta, FINDING_META } = await import("../lib/finding-meta.mjs");
+  /** @type {Set<string>} */
+  const ids = new Set(["T05-robots-disallow"]);
+  for (const file of readdirSync(join(ROOT, "tests/fixtures")).filter((f) => f.endsWith(".html"))) {
+    const html = readFileSync(join(ROOT, "tests/fixtures", file), "utf8");
+    const url = `https://example.com/${file.replace(/\.html$/, "/")}`;
+    const parsed = parseHtml(html, url);
+    const raw = extractJsonLd(parsed.jsonLdBlocks);
+    const validated = validateSchema(raw.items);
+    const findings = runChecks(
+      parsed,
+      files(),
+      { finalUrl: url },
+      {
+        items: raw.items,
+        types: validated.types,
+        issues: validated.issues,
+        errors: raw.errors,
+      },
+    );
+    for (const f of findings) if (f.severity !== "pass") ids.add(f.id);
+  }
+  // Findings no fixture trips on its own: AI-blocked robots, invalid
+  // JSON-LD, and a dynamic S02 schema-issue ID.
+  const badHtml = readFileSync(join(ROOT, "tests/fixtures/bad.html"), "utf8");
+  const badParsed = parseHtml(badHtml, "https://example.com/bad/");
+  const badFetch = { finalUrl: "https://example.com/bad/" };
+  const blockedFiles = { ...files(), robots: { ...files().robots, aiBlocked: true } };
+  for (const f of runChecks(badParsed, blockedFiles, badFetch, {
+    items: [],
+    types: [],
+    issues: [],
+    errors: [],
+  })) {
+    if (f.severity !== "pass") ids.add(f.id);
+  }
+  const schemaInfo = {
+    items: [{ "@type": "Article" }],
+    types: ["Article"],
+    issues: [{ type: "Article", issue: "Article without headline" }],
+    errors: ["invalid JSON-LD block: oops"],
+  };
+  for (const f of runChecks(badParsed, files(), badFetch, schemaInfo)) {
+    if (f.severity !== "pass") ids.add(f.id);
+  }
+  assert.ok(ids.size >= 30, `expected broad finding coverage, got ${ids.size}`);
+  const generic = getFindingMeta("definitely-not-a-real-id");
+  for (const id of ids) {
+    const meta = getFindingMeta(id);
+    assert.ok(meta.plain.length >= 20, `${id}: plain explanation too short`);
+    assert.ok(["low", "medium", "high"].includes(meta.impact), `${id}: bad impact`);
+    assert.ok(["minutes", "hours", "days"].includes(meta.effort), `${id}: bad effort`);
+    assert.ok(["developer", "content", "SEO", "agency"].includes(meta.owner), `${id}: bad owner`);
+    assert.equal(typeof meta.snippet, "string", `${id}: snippet must be a string`);
+    if (!id.startsWith("S02-")) {
+      assert.notEqual(meta.plain, generic.plain, `${id}: missing dedicated meta entry`);
+    }
+  }
+  // Dynamic schema-issue IDs share the S02 fallback; unknown IDs degrade gracefully.
+  assert.equal(getFindingMeta("S02-something-new").plain, FINDING_META["S02-"]?.plain);
+  assert.equal(generic.impact, "low");
+});

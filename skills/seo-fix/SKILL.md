@@ -15,6 +15,9 @@ Only run when the user explicitly asks to fix. Default: preview only.
 - JSON-LD snippets from `one-step-seo schema <url> --generate <kind>`
   (kinds: organization, website, article, faq, breadcrumb, product, event, localbusiness, howto)
 - `robots.txt` sitemap line, `sitemap.xml` entry, `llms.txt` draft
+- Snippets printed in `report.md` (“Copy-paste starting point”) and by
+  `one-step-seo llms <url>` (starter `llms.txt`, AI-crawler `robots.txt`
+  snippet) — review placeholders with the user before publishing
 
 ## Needs per-item approval
 

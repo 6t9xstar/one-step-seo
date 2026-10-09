@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "one-step-seo report",
+  "description": "Machine-readable audit report written as report.json. The two scores are always separate objects and are never blended.",
+  "type": "object",
+  "required": [
+    "tool",
+    "version",
+    "url",
+    "finalUrl",
+    "checkedAt",
+    "scores",
+    "counts",
+    "findings",
+    "page",
+    "site"
+  ],
+  "properties": {
+    "tool": { "type": "string", "const": "one-step-seo" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+.*" },
+    "url": { "type": "string" },
+    "finalUrl": { "type": "string" },
+    "checkedAt": { "type": "string" },
+    "truncated": { "type": "boolean" },
+    "scores": {
+      "type": "object",
+      "required": ["search", "ai"],
+      "properties": {
+        "search": {
+          "type": "object",
+          "required": ["score", "band"],
+          "properties": {
+            "score": { "type": "number", "minimum": 0, "maximum": 100 },
+            "band": { "type": "string", "enum": ["A", "B", "C", "D", "F"] }
+          }
+        },
+        "ai": {
+          "type": "object",
+          "required": ["score", "band"],
+          "properties": {
+            "score": { "type": "number", "minimum": 0, "maximum": 100 },
+            "band": { "type": "string", "enum": ["A", "B", "C", "D", "F"] }
+          }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "required": ["P0", "P1", "P2", "P3", "pass"],
+      "properties": {
+        "P0": { "type": "integer", "minimum": 0 },
+        "P1": { "type": "integer", "minimum": 0 },
+        "P2": { "type": "integer", "minimum": 0 },
+        "P3": { "type": "integer", "minimum": 0 },
+        "pass": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "schema-finding.json" }
+    },
+    "page": {
+      "type": "object",
+      "required": [
+        "title",
+        "metaDescription",
+        "canonical",
+        "wordCount",
+        "h1",
+        "images",
+        "internalLinks",
+        "externalLinks"
+      ],
+      "properties": {
+        "title": { "type": "string" },
+        "metaDescription": { "type": "string" },
+        "canonical": { "type": "string" },
+        "wordCount": { "type": "number", "minimum": 0 },
+        "h1": { "type": "array", "items": { "type": "string" } },
+        "images": { "type": "number", "minimum": 0 },
+        "internalLinks": { "type": "number", "minimum": 0 },
+        "externalLinks": { "type": "number", "minimum": 0 }
+      }
+    },
+    "site": {
+      "type": "object",
+      "required": ["origin", "robots", "sitemap", "sitemapUrls", "llms"],
+      "properties": {
+        "origin": { "type": "string" },
+        "robots": { "type": "boolean" },
+        "sitemap": { "type": "boolean" },
+        "sitemapUrls": { "type": "number", "minimum": 0 },
+        "llms": { "type": "boolean" }
+      }
+    }
+  }
+}

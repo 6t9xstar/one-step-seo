@@ -2,6 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { parseRobots, looksLikeSitemap, countSitemapUrls, getSiteFiles } from "../lib/robots.mjs";
+import { parseRobotsGroups, robotsRuleMatches, isDisallowed, AI_BOTS } from "../lib/robots.mjs";
 
 test("parseRobots detects AI crawler blocks", () => {
   const r = parseRobots("User-agent: GPTBot\nDisallow: /\n");
@@ -99,4 +100,55 @@ test("getSiteFiles follows robots-declared sitemap when root is missing", async 
   assert.equal(sf.sitemap.url, `${base}/custom-sitemap.xml`);
   assert.equal(sf.sitemap.urlCount, 2);
   assert.equal(sf.llms.found, false);
+});
+
+test("getSiteFiles returns an empty shape for garbage URLs", async () => {
+  const sf = await getSiteFiles("not a url");
+  assert.equal(sf.origin, "");
+  assert.equal(sf.robots.found, false);
+  assert.equal(sf.robots.text, "");
+  assert.equal(sf.llms.text, "");
+});
+
+test("AI_BOTS is a non-empty lowercase token list", () => {
+  assert.ok(Array.isArray(AI_BOTS) && AI_BOTS.length >= 10);
+  for (const b of AI_BOTS) assert.equal(b, b.toLowerCase());
+  assert.ok(AI_BOTS.includes("gptbot") && AI_BOTS.includes("claudebot"));
+});
+
+test("parseRobotsGroups splits User-agent groups on rule lines", () => {
+  const groups = parseRobotsGroups("User-agent: a\nUser-agent: b\nDisallow: /x\nUser-agent: c\nAllow: /\n");
+  assert.equal(groups.length, 2);
+  assert.deepEqual(groups[0]?.agents, ["a", "b"]);
+  assert.deepEqual(groups[0]?.rules, [{ type: "disallow", path: "/x" }]);
+  assert.deepEqual(groups[1]?.agents, ["c"]);
+});
+
+test("robotsRuleMatches handles prefix, wildcard and end-anchor", () => {
+  assert.equal(robotsRuleMatches("/admin", "/admin/dashboard"), true);
+  assert.equal(robotsRuleMatches("/admin", "/public"), false);
+  assert.equal(robotsRuleMatches("/*.pdf", "/files/guide.pdf"), true);
+  assert.equal(robotsRuleMatches("/*.pdf", "/files/guide.pdf?v=2"), true);
+  assert.equal(robotsRuleMatches("/exact$", "/exact"), true);
+  assert.equal(robotsRuleMatches("/exact$", "/exact/more"), false);
+  assert.equal(robotsRuleMatches("/", "/anything"), true);
+});
+
+test("isDisallowed honors star groups, specific tokens and Allow ties", () => {
+  assert.equal(isDisallowed("User-agent: *\nDisallow: /\n", "one-step-seo", "/"), true);
+  assert.equal(isDisallowed("User-agent: *\nDisallow:\n", "one-step-seo", "/"), false);
+  assert.equal(isDisallowed("", "one-step-seo", "/"), false);
+  // Specific token group wins over star.
+  const mixed = "User-agent: *\nDisallow: /\n\nUser-agent: one-step-seo\nDisallow: /private\n";
+  assert.equal(isDisallowed(mixed, "one-step-seo", "/public"), false);
+  assert.equal(isDisallowed(mixed, "one-step-seo", "/private/x"), true);
+  assert.equal(isDisallowed(mixed, "other-bot", "/public"), true);
+  // Longest match wins; Allow wins ties.
+  const tie = "User-agent: *\nDisallow: /x\nAllow: /x\n";
+  assert.equal(isDisallowed(tie, "one-step-seo", "/x"), false);
+  const longer = "User-agent: *\nDisallow: /\nAllow: /public\n";
+  assert.equal(isDisallowed(longer, "one-step-seo", "/public/page"), false);
+  assert.equal(isDisallowed(longer, "one-step-seo", "/other"), true);
+  // Query strings are ignored for matching.
+  assert.equal(isDisallowed("User-agent: *\nDisallow: /search\n", "one-step-seo", "/search?q=x"), true);
 });

@@ -6,8 +6,69 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- **`one-step-seo quick <url>` — one-command beginner audit.** Sensible
+  defaults (5 pages unless `--pages` is given, all formats), a one-line
+  explainer, and the same reports + terminal summary as `audit`.
+- **Interactive mode:** running with no command on a TTY asks four quick
+  questions (URL with validation, pages, output folder, open report?) and
+  runs the audit; piped/CI usage without a command still exits 1 with usage.
+  `report.html` opens in the default browser on request (best-effort).
+- **Terminal summary upgrade:** `audit`/`page`/`quick` now print the top 3
+  urgent fixes with impact/effort/owner labels plus the exact re-run command.
+- **`one-step-seo llms <url>` — AI-visibility paperwork.** Prints `llms.txt`
+  status, a starter `llms.txt` draft (from live title/description + up to 20
+  sitemap URLs, placeholders explicit, facts never invented), and a
+  robots.txt snippet allowing the major AI crawlers. `--json` shape:
+  `{ tool, version, url, llmsFound, llmsBytes, starter, robotsSnippet }`.
+- **Plain-language finding metadata** (`lib/finding-meta.mjs`): every finding
+  ID maps to a beginner-friendly explanation, impact (low/medium/high),
+  effort (minutes/hours/days), owner (developer/content/SEO/agency), and —
+  where safe — a copy-paste snippet (title, meta, canonical, OG, favicon,
+  robots, llms.txt, JSON-LD skeletons). Unknown IDs degrade to a generic
+  fallback; a test enforces dedicated entries for every emitted failure ID.
+- **Richer reports:** executive summary + one-sentence verdict, “Fix this
+  first” top 3, findings grouped by category with doc links, “Make this page
+  more citable” checklist, “What passed”, “What to monitor”. `report.html`
+  adds a copy-executive-summary button, print stylesheet, skip link, labelled
+  sections, dark-mode-safe contrast, and responsive cards.
+- **New checks:** `G04-entity` (P3: `og:title` vs `<title>` drift — pass when
+  one contains the other; skipped without `og:title`/`<title>`), and
+  `G05-llms-quality` (P3: `llms.txt` without headings or links; skipped when
+  absent). Both are GEO-only (no Search-score effect), documented in
+  `docs/SCORING.md`.
+- **Crawler safety:** `robots.txt` is now enforced — `audit`/`page` refuse
+  disallowed start URLs (writing a `T05-robots-disallow` P1 report instead)
+  and skip disallowed discovered links; `--force` overrides (documented).
+  Sitemap seeds are same-origin filtered. New `--delay MS` politeness pause
+  (default 250 ms) and `--debug` diagnostics flag. `schema` warns (but
+  proceeds) on disallowed URLs. User-Agent now follows `package.json`
+  instead of a hardcoded version.
+- **`lib/schema-report.json`:** draft-07 JSON Schema for `report.json`;
+  example reports are conformance-tested against it.
+- **Fixtures + examples:** 8 defect fixtures (missing title/meta/schema,
+  broken canonical, thin content, duplicate H1, entity drift, llms quality)
+  and 5 realistic page-type fixtures (WordPress, Next.js, product, blog,
+  pricing) with `tests/fixtures.test.mjs` (18 tests: per-defect finding
+  assertions plus live-server robots-refusal/`--force`/slow-page/sitemap
+  tests); `examples/page-types.md` renders real scores + fixes per type.
+- **Docs:** `docs/ROADMAP.md`, `docs/FAQ.md`, `docs/TROUBLESHOOTING.md`;
+  README overhaul (who-it's-for, privacy, CI/agent usage, example output);
+  `docs/CI.md` gains a copy-paste workflow, PR-comment format, and the
+  machine-readable contract; `docs/USAGE.md` documents the new commands and
+  flags; `SECURITY.md` supported versions updated.
+- **Agent skills:** `SKILL.md` is now a full agent guide (audit → read
+  `report.json` → prioritize → remediation plan → safe fixes with approval →
+  client-ready summary, with the example prompt); sub-skills updated for the
+  new commands, report sections, and JSON shapes.
+
 ### Fixed
 
+- `G04-entity` no longer fires spuriously when `<title>` is empty (`O01`
+  already covers that) — the check is skipped instead of piling on.
+- `getSitemapUrls` could seed cross-host URLs from a malformed sitemap into
+  the crawl queue; seeds are now same-origin filtered (children included).
 - **`T06-sitemap` reported child-sitemap counts as URL counts.** For a
   `<sitemapindex>`, `countSitemapUrls` returns the number of _child sitemaps_, so
   a site with 2 children each holding tens of thousands of URLs was reported as

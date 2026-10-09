@@ -418,3 +418,75 @@ test("cli: fix directory mode walks html files, skips others", async () => {
   assert.ok(!existsSync(join(dir, "notes.txt.bak")), "non-html file must be untouched");
   assert.ok(existsSync(join(dir, "a.html.bak")) && existsSync(join(sub, "b.htm.bak")));
 });
+
+// ---------- quick: beginner defaults ----------
+
+test("cli: quick audits with beginner defaults and prints top fixes", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-quick-"));
+    const r = await runCli(["quick", `http://127.0.0.1:${port}/`, "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /Quick audit/);
+    assert.match(r.stdout, /Search SEO: \d+\/100/);
+    assert.match(r.stdout, /Top fixes:/);
+    assert.match(r.stdout, /Next:/);
+    assert.ok(existsSync(join(out, "report.json")), "quick must write report.json");
+    assert.ok(existsSync(join(out, "report.html")), "quick must write report.html");
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: quick respects an explicit --pages and rejects a bad URL", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-quickpages-"));
+    const r = await runCli(["quick", `http://127.0.0.1:${port}/`, "--pages", "1", "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /up to 1 page/);
+    assert.ok(!existsSync(join(out, "report-2.json")), "explicit --pages 1 must win over the quick default");
+    assert.equal((await runCli(["quick", "not a url"])).code, 1);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+// ---------- llms: starter draft + robots snippet ----------
+
+test("cli: llms prints a starter draft and robots snippet", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const r = await runCli(["llms", `http://127.0.0.1:${port}/`]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /llms\.txt: missing/);
+    assert.match(r.stdout, /starter llms\.txt/);
+    assert.match(r.stdout, /^# /m);
+    assert.match(r.stdout, /robots\.txt AI-crawler snippet/);
+    assert.match(r.stdout, /User-agent: GPTBot/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: llms --json has the documented shape", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const r = await runCli(["llms", `http://127.0.0.1:${port}/`, "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    const llms = JSON.parse(r.stdout);
+    for (const key of ["tool", "version", "url", "llmsFound", "llmsBytes", "starter", "robotsSnippet"]) {
+      assert.ok(key in llms, `missing ${key} in llms --json output`);
+    }
+    assert.equal(llms.tool, "one-step-seo");
+    assert.equal(llms.llmsFound, false);
+    assert.match(llms.starter, /^# /m);
+    assert.match(llms.robotsSnippet, /Allow: \//);
+  } finally {
+    await closeServer(server);
+  }
+});

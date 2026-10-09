@@ -152,3 +152,40 @@ test("clearSitemapUrlsCache forces a refetch", async () => {
   const second = await getSitemapUrls(`${base}/some-page`);
   assert.deepEqual(second, first);
 });
+
+test("getSitemapUrls drops cross-host seeds", async () => {
+  const srv = http.createServer((req, res) => {
+    const path = (req.url ?? "/").split("?")[0];
+    if (path === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("User-agent: *\nDisallow:\n");
+    } else if (path === "/sitemap.xml") {
+      const addr = srv.address();
+      const port = typeof addr === "object" && addr ? addr.port : 0;
+      const origin = `http://127.0.0.1:${port}`;
+      res.writeHead(200, { "content-type": "application/xml" });
+      res.end(
+        `<urlset><url><loc>${origin}/local</loc></url><url><loc>https://evil.example/stolen</loc></url></urlset>`,
+      );
+    } else if (path === "/llms.txt") {
+      res.writeHead(404);
+      res.end();
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+  await new Promise((resolve) => srv.listen(0, "127.0.0.1", () => resolve(undefined)));
+  try {
+    const addr = srv.address();
+    const port = typeof addr === "object" && addr ? addr.port : 0;
+    const urls = await getSitemapUrls(`http://127.0.0.1:${port}/x`);
+    assert.ok(urls.includes(`http://127.0.0.1:${port}/local`));
+    assert.ok(
+      !urls.some((u) => u.includes("evil.example")),
+      `cross-host seed leaked: ${JSON.stringify(urls)}`,
+    );
+  } finally {
+    await new Promise((resolve) => srv.close(() => resolve(undefined)));
+  }
+});

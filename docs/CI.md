@@ -14,6 +14,36 @@ Run headless, zero dependencies — same command locally and in CI.
     retention-days: 30
 ```
 
+A copy-paste workflow is kept in this repo — adapt the URL and thresholds:
+
+```yaml
+# .github/workflows/seo-audit.yml
+name: SEO audit
+on:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # weekly Monday 06:00 UTC
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npx one-step-seo audit https://example.com --pages 5 --out ./seo-report --fail-on P0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: seo-report
+          path: seo-report/
+          retention-days: 30
+```
+
+`if: always()` keeps the reports even when `--fail-on` trips — the
+artifact is the debugging evidence.
+
 ## Gate on P0 findings (built-in)
 
 ```yaml
@@ -32,5 +62,32 @@ node --input-type=module -e "import { readFileSync } from 'node:fs'; const r = J
 
 Note: this project is ESM (`"type": "module"`) — `require()` will fail.
 Exit `2` matches the CLI's runtime/gate exit code.
+
+## PR comment summary
+
+Paste the executive summary into a review comment so marketers can read
+the result without opening artifacts:
+
+```markdown
+## SEO audit — <url>
+
+- Search SEO: **87/100 (B)** · AI Visibility: **80/100 (B)**
+- Counts: P0=0 P1=1 P2=2 P3=0 pass=33
+- Fix this first:
+  1. [P1] Thin content (C01-thin) — expand with examples, steps, data.
+  2. [P2] llms.txt missing (G01-llms) — add /llms.txt for AI crawlers.
+- Full reports: workflow artifacts → `seo-report/` (`report.html` to share).
+```
+
+All three lines after the heading come straight from the terminal output
+and `report.md`'s Executive summary — no manual analysis needed.
+
+## Machine-readable contract
+
+`report.json` follows `lib/schema-report.json` (draft-07). Stable fields
+for agents and integrations: `tool`, `version`, `url`, `finalUrl`,
+`checkedAt`, `scores.{search,ai}.{score,band}`, `counts.{P0,P1,P2,P3,pass}`,
+`findings[].{id,category,severity,title,evidence,fix}`, `page.*`, `site.*`.
+Finding IDs match `^[A-Z]+[0-9]+-[a-z0-9-]+$` (`lib/schema-finding.json`).
 
 See `.github/workflows/seo-dogfood.yml` for a weekly scheduled example.

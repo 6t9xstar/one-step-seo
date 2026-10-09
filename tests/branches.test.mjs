@@ -125,12 +125,63 @@ test("bad page trips the remaining technical arms", () => {
 });
 
 test("every schema generator produces valid output", () => {
-  for (const kind of ["organization", "website", "breadcrumb", "article", "faq", "other"]) {
+  for (const kind of [
+    "organization",
+    "website",
+    "breadcrumb",
+    "article",
+    "faq",
+    "product",
+    "event",
+    "localbusiness",
+    "howto",
+    "other",
+  ]) {
     const node = generateSchema(kind, { name: "N", url: "https://example.com", description: "D" });
     assert.equal(node["@context"], "https://schema.org");
     assert.ok(typeof node["@type"] === "string");
     assert.ok(schemaSnippet(kind, { name: "N", url: "https://example.com" }).includes("application/ld+json"));
   }
+});
+
+test("checks: invalid URL, long-page H2s, payload size, hreflang arms", () => {
+  const sf = {
+    origin: "https://example.com",
+    robots: { found: true },
+    sitemap: { found: true },
+    llms: { found: false },
+  };
+  const ok = {
+    finalUrl: "https://example.com/x/",
+    status: 200,
+    statusChain: [{ url: "https://example.com/x/", status: 200 }],
+    contentType: "text/html",
+    ms: 1,
+  };
+  const empty = { items: [], types: [], issues: [], errors: [] };
+  // Unparseable final URL short-circuits to a T02 P0.
+  const badUrl = runChecks({}, sf, { finalUrl: "not a url", status: 0 }, empty);
+  assert.equal(badUrl.length, 1);
+  assert.equal(badUrl[0]?.id, "T02-status");
+  assert.equal(badUrl[0]?.severity, "P0");
+  // Long page without H2s, oversized HTML, hreflang present + broken.
+  const page = runChecks(
+    {
+      h2s: [],
+      wordCount: 700,
+      htmlBytes: 400_000,
+      hreflangs: [{ lang: "en", href: "https://example.com/en" }],
+    },
+    sf,
+    ok,
+    empty,
+  );
+  const byId = new Map(page.map((f) => [f.id, f.severity]));
+  assert.equal(byId.get("O05-h2"), "P2");
+  assert.equal(byId.get("P01-html-size"), "P2");
+  assert.equal(byId.get("W03-hreflang"), "pass");
+  const broken = runChecks({ hreflangs: [{ lang: "", href: "" }] }, sf, ok, empty);
+  assert.equal(new Map(broken.map((f) => [f.id, f.severity])).get("W03-hreflang"), "P3");
 });
 
 test("schema validator flags each structural problem", () => {
