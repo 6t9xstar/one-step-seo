@@ -86,7 +86,9 @@ length rewrites, image dimensions, server/redirect issues, and all
 ## Crawler behavior
 
 - Same-host only: link discovery follows same-host URLs; sitemap seeds from
-  other origins are dropped.
+  other origins are dropped. If the start URL redirects across hosts (apex
+  `<->` www), the first landing host is adopted, then the set locks — further
+  redirect landings outside it are skipped, never reported or harvested.
 - `robots.txt` is enforced: `audit`/`page` refuse disallowed start URLs
   (writing a `T05-robots-disallow` report instead) and skip disallowed
   discovered links, unless `--force` is given. `schema` warns but proceeds.

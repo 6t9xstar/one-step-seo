@@ -126,12 +126,95 @@ test("cli: audit --pages 2 writes report-2 + index.md", async () => {
   const port = server.address()?.port;
   try {
     const out = mkdtempSync(join(tmpdir(), "oss-audit-"));
-    const { code } = await runCli(["audit", `http://127.0.0.1:${port}/`, "--pages", "2", "--out", out]);
+    const { code, stdout } = await runCli([
+      "audit",
+      `http://127.0.0.1:${port}/`,
+      "--pages",
+      "2",
+      "--out",
+      out,
+    ]);
     assert.equal(code, 0);
     assert.ok(existsSync(join(out, "report.json")));
     assert.ok(existsSync(join(out, "report-2.json")), "expected report-2.json");
     assert.ok(existsSync(join(out, "report-2.html")), "expected report-2.html");
     assert.ok(existsSync(join(out, "index.md")), "expected index.md");
+    assert.match(stdout, /Top fixes across 2 pages/);
+    assert.match(stdout, /Audited all 2 discovered pages\./);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: multi-page audit writes a linked site dashboard", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-dash-"));
+    const r = await runCli(["audit", `http://127.0.0.1:${port}/`, "--pages", "2", "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(existsSync(join(out, "index.html")), "expected index.html dashboard");
+    const dashboard = readFileSync(join(out, "index.html"), "utf8");
+    assert.match(dashboard, /Site audit/);
+    assert.match(dashboard, /href="\.\/report\.html"/);
+    assert.match(dashboard, /href="\.\/report-2\.html"/);
+    assert.match(dashboard, /Top recurring issues/);
+    const index = readFileSync(join(out, "index.md"), "utf8");
+    assert.match(index, /site dashboard/);
+    const page = readFileSync(join(out, "report.html"), "utf8");
+    assert.match(page, /href="index\.html"/);
+    assert.match(page, /All 2 pages/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: no dashboard without html format", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-nohtml-"));
+    const r = await runCli([
+      "audit",
+      `http://127.0.0.1:${port}/`,
+      "--pages",
+      "2",
+      "--out",
+      out,
+      "--format",
+      "json",
+    ]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(!existsSync(join(out, "index.html")), "no dashboard without html format");
+    assert.ok(!existsSync(join(out, "report.html")), "no per-page html without html format");
+    const index = readFileSync(join(out, "index.md"), "utf8");
+    assert.ok(!index.includes("index.html"), "index.md must not link a dashboard that was not written");
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: index.md links only the formats that were written", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-fmtidx-"));
+    const r = await runCli([
+      "audit",
+      `http://127.0.0.1:${port}/`,
+      "--pages",
+      "2",
+      "--out",
+      out,
+      "--format",
+      "json",
+    ]);
+    assert.equal(r.code, 0, r.stderr);
+    const index = readFileSync(join(out, "index.md"), "utf8");
+    assert.match(index, /\[json\]\(\.\/report\.json\)/);
+    assert.ok(!index.includes("[md]("), `index.md must not link unwritten .md files:\n${index}`);
+    assert.ok(!index.includes("[html]("), `index.md must not link unwritten .html files:\n${index}`);
+    assert.ok(!existsSync(join(out, "report.md")), "md report must not be written");
   } finally {
     await closeServer(server);
   }
@@ -429,8 +512,9 @@ test("cli: quick audits with beginner defaults and prints top fixes", async () =
     const r = await runCli(["quick", `http://127.0.0.1:${port}/`, "--out", out]);
     assert.equal(r.code, 0, r.stderr);
     assert.match(r.stdout, /Quick audit/);
+    assert.match(r.stdout, /up to 5 page/);
     assert.match(r.stdout, /Search SEO: \d+\/100/);
-    assert.match(r.stdout, /Top fixes:/);
+    assert.match(r.stdout, /Top fixes/);
     assert.match(r.stdout, /Next:/);
     assert.ok(existsSync(join(out, "report.json")), "quick must write report.json");
     assert.ok(existsSync(join(out, "report.html")), "quick must write report.html");

@@ -14,6 +14,10 @@ import {
   buildReport,
   renderMarkdown,
   renderHtml,
+  renderSiteIndex,
+  siteBasename,
+  siteTopFindings,
+  coverageLine,
   verdictFor,
   topFixes,
   citableChecklist,
@@ -383,9 +387,45 @@ test("verdictFor hits every branch", () => {
   assert.match(verdictFor(mkReport([mkFinding({ id: "T01-https", severity: "P0" })])), /urgent attention/);
   assert.match(verdictFor(mkReport([mkFinding({ id: "x", severity: "P1" })], { search: 40 })), /Below par/);
   assert.match(verdictFor(mkReport([mkFinding({ id: "x", severity: "P1" })], { ai: 55 })), /Below par/);
+  assert.match(
+    verdictFor(mkReport([mkFinding({ id: "x", severity: "P1" })], { search: 40, ai: 40 })),
+    /both under 60/,
+  );
+  assert.match(
+    verdictFor(mkReport([mkFinding({ id: "a", severity: "P0" }), mkFinding({ id: "b", severity: "P0" })])),
+    /2 critical \(P0\) issues block/,
+  );
   assert.match(verdictFor(mkReport([mkFinding({ id: "x", severity: "P1" })])), /Solid foundation/);
   assert.match(verdictFor(mkReport([mkFinding({ id: "x", severity: "P2" })])), /good shape/);
   assert.match(verdictFor(mkReport([mkFinding({ id: "x", severity: "pass" })])), /Excellent/);
+});
+
+test("verdictFor reports a skipped crawl instead of a foundation", () => {
+  const refused = mkReport([mkFinding({ id: "T05-robots-disallow", severity: "P1" })]);
+  assert.match(verdictFor(refused), /Crawl skipped: robots\.txt disallows/);
+  const html = renderHtml(
+    buildReport({
+      url: "https://a.com/",
+      finalUrl: "https://a.com/",
+      scores: { search: { score: 90, band: "A" }, ai: { score: 5, band: "F" } },
+      findings: [
+        {
+          id: "T05-robots-disallow",
+          category: "technical",
+          severity: "P1",
+          title: "robots.txt disallows crawling this page",
+          evidence: "e",
+          fix: "f",
+        },
+      ],
+      parsed: {},
+      siteFiles: {},
+      meta: { version: "9" },
+      checkedAt: "2026-01-01T00:00:00.000Z",
+    }),
+  );
+  assert.match(html, /Crawl skipped: robots\.txt disallows/);
+  assert.match(html, /No pages were audited — robots\.txt disallows this path\./);
 });
 
 test("topFixes returns the first three actionable findings", () => {
@@ -516,4 +556,129 @@ test("renderHtml includes copy button, skip link and labelled sections", () => {
   assert.match(html, /Make this page more citable/);
   assert.match(html, /@media print/);
   assert.ok(!html.includes("undefined"));
+});
+
+// ---------- report.mjs: site dashboard ----------
+
+test("siteBasename follows the report/report-N convention", () => {
+  assert.equal(siteBasename(0), "report");
+  assert.equal(siteBasename(1), "report-2");
+  assert.equal(siteBasename(19), "report-20");
+});
+
+test("siteTopFindings orders by severity, then reach, then id", () => {
+  const p1 = mkReport([
+    mkFinding({ id: "b-P2", severity: "P2" }),
+    mkFinding({ id: "a-P0", severity: "P0" }),
+    mkFinding({ id: "c-P1", severity: "P1" }),
+  ]);
+  const p2 = mkReport([mkFinding({ id: "b-P2", severity: "P2" }), mkFinding({ id: "d-P2", severity: "P2" })]);
+  const top = siteTopFindings([p1, p2], 10);
+  assert.deepEqual(
+    top.map((t) => [t.finding.id, t.pages, t.total]),
+    [
+      ["a-P0", 1, 2],
+      ["c-P1", 1, 2],
+      ["b-P2", 2, 2],
+      ["d-P2", 1, 2],
+    ],
+  );
+});
+
+test("siteTopFindings dedupes per page and caps at n", () => {
+  const r = mkReport([
+    mkFinding({ id: "x", severity: "P1" }),
+    { ...mkFinding({ id: "x", severity: "P1" }), title: "t-x-again" },
+  ]);
+  assert.deepEqual(
+    siteTopFindings([r], 10).map((t) => [t.finding.id, t.pages]),
+    [["x", 1]],
+  );
+  assert.equal(siteTopFindings([r], 0).length, 0);
+  assert.deepEqual(siteTopFindings([], 5), []);
+  assert.deepEqual(siteTopFindings([mkReport([mkFinding({ id: "x", severity: "pass" })])], 5), []);
+});
+
+test("renderSiteIndex lists pages worst-first with dashboard links", () => {
+  const mid = mkReport([mkFinding({ id: "m", severity: "P2" })], { search: 70, ai: 70 });
+  mid.url = "https://a.com/mid/";
+  mid.finalUrl = "https://a.com/mid/";
+  const worst = mkReport([mkFinding({ id: "w", severity: "P0" })], { search: 30, ai: 40 });
+  worst.url = "https://a.com/worst/";
+  worst.finalUrl = "https://a.com/worst/";
+  const best = mkReport([mkFinding({ id: "ok", severity: "pass" })], { search: 100, ai: 100 });
+  best.url = "https://a.com/best/";
+  best.finalUrl = "https://a.com/best/";
+  // Deliberately unordered input: the dashboard must sort worst-first.
+  // (Row hrefs — not raw URLs — because the hero legitimately shows the
+  // first report's origin before the table.)
+  const html = renderSiteIndex([best, mid, worst]);
+  const iWorst = html.indexOf('href="./report-3.html"');
+  const iMid = html.indexOf('href="./report-2.html"');
+  const iBest = html.indexOf('href="./report.html"');
+  assert.ok(iWorst >= 0 && iMid >= 0 && iBest >= 0, "all three pages must be linked");
+  assert.ok(iWorst < iMid && iMid < iBest, "pages must be worst-first");
+  assert.ok(html.includes(">https://a.com/worst/</a>"));
+  assert.ok(html.includes(">https://a.com/best/</a>"));
+  assert.match(html, /Site audit/);
+  assert.match(html, /Top recurring issues/);
+  assert.match(html, /on 1\/3 pages/);
+  assert.match(html, /<table class="pages">/);
+  assert.ok(!html.includes("undefined"));
+});
+
+test("renderSiteIndex handles an empty report list", () => {
+  const html = renderSiteIndex([]);
+  assert.match(html, /0 pages/);
+  assert.match(html, /No recurring issues/);
+  assert.ok(!html.includes("undefined") && !html.includes("NaN"));
+});
+
+test("renderHtml renders the dashboard crumb and share tags on request", () => {
+  const r = buildReport({
+    url: "https://a.com/",
+    finalUrl: "https://a.com/",
+    scores: { search: { score: 80, band: "B" }, ai: { score: 70, band: "C" } },
+    findings: [
+      {
+        id: "T01-https",
+        category: "technical",
+        severity: "pass",
+        title: "HTTPS enabled",
+        evidence: "e",
+        fix: "",
+      },
+    ],
+    parsed: {},
+    siteFiles: {},
+    meta: { version: "9" },
+    checkedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const plain = renderHtml(r);
+  assert.ok(!plain.includes("index.html"), "no crumb without opts");
+  const withNav = renderHtml(r, { indexHref: "index.html", pageCount: 4 });
+  assert.match(withNav, /href="index\.html"/);
+  assert.match(withNav, /All 4 pages/);
+  assert.match(withNav, /<meta name="description" content="Search SEO 80\/100 \(B\)/);
+  assert.match(withNav, /<meta property="og:title" content="one-step-seo report/);
+  assert.match(withNav, /<meta property="og:type" content="website">/);
+  assert.ok(!withNav.includes("undefined"));
+});
+
+test("coverageLine reports cap, shortfall, clean, and single-page runs", () => {
+  assert.equal(coverageLine(1, 20, false, 200), null);
+  assert.equal(coverageLine(1, 1, true, 200), null);
+  assert.equal(
+    coverageLine(20, 20, true, 200),
+    "Stopped at the --pages 20 cap — the crawl saw more URLs. Re-run with a higher --pages (max 200) to cover the rest.",
+  );
+  assert.equal(
+    coverageLine(200, 200, true, 200),
+    "Stopped at the --pages 200 cap — the crawl saw more URLs.",
+  );
+  assert.equal(
+    coverageLine(78, 200, true, 200),
+    "Audited 78 discovered pages; more URLs were seen but not reached.",
+  );
+  assert.equal(coverageLine(2, 2, false, 200), "Audited all 2 discovered pages.");
 });

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>one-step-seo site report — https://example.com</title>
+<meta name="description" content="Site audit of 3 pages: avg Search 62/100, avg AI 55/100.">
+<style>
+:root{--bg:#f6f7f9;--fg:#111418;--muted:#5b6472;--card:#fff;--line:#e3e7ed;--accent:#2563eb;--accent-fg:#fff;--code:#eef1f6;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--muted:#98a4b1;--card:#161b22;--line:#2a323d;--accent:#3b82f6;--code:#1c222b}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:74px}
+body{margin:0;background:var(--bg);color:var(--fg);line-height:1.55;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 60px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:0;z-index:100;background:var(--accent);color:var(--accent-fg);padding:10px 18px;font-weight:650;border-radius:0 0 8px 0}
+.skip:focus{left:0;top:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;background:var(--code);padding:1.5px 5px;border-radius:5px}
+pre{background:var(--code);padding:12px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:8px 0 0;font-size:12.5px}
+pre code{background:none;padding:0}
+.empty{color:var(--muted);font-style:italic}
+
+.masthead{position:sticky;top:0;z-index:50;background:var(--card);border-bottom:1px solid var(--line)}
+@media (prefers-color-scheme:dark){.masthead{background:rgba(22,27,34,.94);backdrop-filter:blur(8px)}}
+.masthead-in{max-width:1180px;margin:0 auto;padding:9px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.brand{font-weight:750;font-size:14.5px;white-space:nowrap}
+.brand span{color:var(--muted);font-weight:500}
+.toolbar{display:flex;gap:8px;align-items:center;flex:1;flex-wrap:wrap;min-width:0}
+.search{flex:1;min-width:170px;position:relative}
+.search input{width:100%;font:inherit;font-size:13.5px;padding:7px 11px 7px 30px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.5}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{font:inherit;font-size:12px;font-weight:650;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.chip .n{opacity:.7;font-weight:500}
+.result-count{font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.hero{padding:30px 0 4px}
+h1{font-size:25px;margin:0 0 6px;letter-spacing:-.02em}
+.url{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);word-break:break-all;margin:0}
+.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px;margin:22px 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px 19px}
+.gauge-panel{display:flex;gap:15px;align-items:center}
+.gauge{position:relative;flex:none;color:var(--muted)}
+.gauge svg{display:block}
+.gauge-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.02}
+.gauge-score{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.gauge-band{font-size:10.5px;font-weight:750;letter-spacing:.04em;color:hsl(var(--hue) 65% 40%)}
+@media (prefers-color-scheme:dark){.gauge-band{color:hsl(var(--hue) 70% 70%)}}
+.axis{font-weight:700;font-size:14px}
+.axis-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.dist-title{font-weight:700;font-size:14px;margin-bottom:11px}
+.dist-row{display:grid;grid-template-columns:36px 1fr 30px;gap:9px;align-items:center;margin:5px 0;font-size:12px}
+.dist-label{font-weight:700;color:var(--muted)}
+.dist-track{height:7px;border-radius:999px;background:rgba(127,127,127,.18);overflow:hidden}
+.dist-fill{display:block;height:100%;border-radius:999px;background:hsl(var(--hue) 70% 45%)}
+.dist-count{text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
+
+.toc{display:flex;gap:5px;flex-wrap:wrap;margin:20px 0 4px;padding:0;list-style:none}
+.toc a{font-size:12.5px;font-weight:650;text-decoration:none;color:var(--muted);padding:5px 11px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+.toc a:hover{color:var(--fg);border-color:var(--accent)}
+
+section{margin:32px 0;scroll-margin-top:78px}
+h2{font-size:18px;margin:0 0 12px;letter-spacing:-.01em;padding-bottom:8px;border-bottom:1px solid var(--line);display:flex;gap:9px;align-items:baseline;justify-content:space-between}
+h2 .n{font-size:12.5px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.lede{color:var(--muted);margin:0 0 15px;font-size:14px}
+
+.topfix{list-style:none;margin:0;padding:0;display:grid;gap:9px;counter-reset:tf}
+.topfix li{counter-increment:tf;position:relative;background:var(--card);border:1px solid var(--line);border-left:4px solid hsl(var(--hue) 68% 45%);border-radius:10px;padding:13px 15px 13px 50px}
+.topfix li::before{content:counter(tf);position:absolute;left:15px;top:13px;width:21px;height:21px;border-radius:999px;background:var(--accent);color:var(--accent-fg);font-size:11.5px;font-weight:750;display:grid;place-items:center}
+
+.badge{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.05em;padding:2px 7px;border-radius:5px;color:hsl(var(--hue) 68% 27%);background:hsl(var(--hue) 70% 92%);vertical-align:1px;white-space:nowrap}
+@media (prefers-color-scheme:dark){.badge{color:hsl(var(--hue) 75% 78%);background:hsl(var(--hue) 45% 22%)}}
+
+.group h3{display:flex;align-items:center;gap:8px;font-size:14.5px;margin:22px 0 11px;color:var(--muted);font-weight:700}
+.group-count{font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:rgba(127,127,127,.16)}
+.cards{display:grid;gap:11px;grid-template-columns:repeat(auto-fill,minmax(335px,1fr))}
+.finding{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px 15px;display:flex;flex-direction:column;gap:9px;transition:border-color .12s,box-shadow .12s}
+.finding:hover{border-color:var(--accent);box-shadow:0 2px 9px rgba(0,0,0,.07)}
+.finding[hidden]{display:none}
+.finding-head{display:flex;gap:8px;align-items:flex-start}
+.finding-head h4{font-size:14px;margin:0;flex:1;line-height:1.35}
+.finding-plain{margin:0;font-size:12.5px;color:var(--muted)}
+.finding-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(76px,1fr));gap:5px 11px;margin:0;font-size:11.5px}
+.finding-meta dt{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:650}
+.finding-meta dd{margin:1px 0 0;font-weight:650}
+.finding-row{margin:0;font-size:12.5px}
+.finding-row strong{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.finding-foot{display:flex;align-items:center;gap:9px;margin-top:auto;padding-top:3px}
+button.copy-fix{font:inherit;font-size:12px;font-weight:650;padding:5px 12px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+button.copy-fix:hover{border-color:var(--accent);color:var(--accent)}
+.copied{font-size:11.5px;color:#16a34a;font-weight:650}
+details.snippet summary{cursor:pointer;font-size:12px;font-weight:650;color:var(--accent)}
+summary::marker{color:var(--muted)}
+.none-msg{grid-column:1/-1;color:var(--muted);font-style:italic;padding:16px;text-align:center}
+
+.checklist{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+.checklist li{display:flex;gap:9px;align-items:flex-start;font-size:13px;padding:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:9px}
+.checklist .box{font-weight:800;flex:none;width:1.2em;text-align:center}
+.checklist li[data-checked="yes"] .box{color:#16a34a}
+.checklist li[data-checked="no"]{border-style:dashed}
+.progress{height:7px;border-radius:999px;background:rgba(127,127,127,.18);overflow:hidden;margin:0 0 15px;max-width:400px}
+.progress i{display:block;height:100%;background:#16a34a;border-radius:999px}
+
+details.passed summary{cursor:pointer;font-weight:650;font-size:13.5px;padding:10px 13px;background:var(--card);border:1px solid var(--line);border-radius:9px}
+details.passed ul{margin:9px 0 0;padding-left:21px;font-size:12.5px;columns:2;column-gap:26px}
+details.passed li{break-inside:avoid;margin:2.5px 0}
+
+.warn{border:1px solid #d97706;background:rgba(217,119,6,.12);border-radius:9px;padding:10px 14px;font-size:13px}
+footer.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+
+@media (max-width:760px){
+  .cards{grid-template-columns:1fr}
+  details.passed ul{columns:1}
+  .wrap,.masthead-in{padding-left:14px;padding-right:14px}
+  .gauge-panel{flex-direction:column;text-align:center;gap:11px}
+}
+@media print{
+  .no-print,.toc,.masthead{display:none!important}
+  html{scroll-behavior:auto}
+  body{background:#fff;color:#000}
+  .wrap{max-width:none;padding:0}
+  .finding,.panel,details.passed summary,.checklist li,.topfix li{break-inside:avoid;border-color:#bbb}
+  .cards{grid-template-columns:1fr 1fr}
+  a{color:#000;text-decoration:none}
+}
+
+.crumbs{font-size:13px;margin:0 0 14px}
+.crumbs a{color:var(--accent);text-decoration:none;font-weight:650}
+.crumbs a:hover{text-decoration:underline}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .finding{transition:none}
+}
+
+.table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:var(--card)}
+table.pages{border-collapse:collapse;width:100%;font-size:13px;min-width:660px}
+table.pages th,table.pages td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+table.pages thead th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);white-space:nowrap}
+table.pages tbody tr:last-child td{border-bottom:none}
+table.pages tbody tr:hover{background:rgba(127,127,127,.07)}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+td.p-url{word-break:break-all}
+.reach{height:6px;border-radius:999px;background:rgba(127,127,127,.18);overflow:hidden;margin-top:6px;max-width:230px}
+.reach i{display:block;height:100%;background:var(--accent);border-radius:999px}
+@media print{table.pages tr{break-inside:avoid}}</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to site report</a>
+<div class="masthead no-print"><div class="masthead-in"><div class="brand">one-step-seo <span>site report</span></div></div></div>
+<div class="wrap"><main id="main">
+<header class="hero">
+<h1>Site audit</h1>
+<p class="url">https://example.com · 3 pages · Checked 2026-10-08T00:00:00.000Z · v0.4.0</p>
+<div class="scores">
+<div class="panel gauge-panel"><div class="gauge"><svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true" focusable="false">
+<circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" stroke-width="7" opacity=".14"/>
+<circle cx="40" cy="40" r="34" fill="none" stroke="hsl(25 68% 44%)" stroke-width="7"
+  stroke-linecap="round" stroke-dasharray="132.4 213.6"
+  transform="rotate(-90 40 40)"/></svg>
+<div class="gauge-text"><span class="gauge-score">62</span><span class="gauge-band" style="--hue:25">D</span></div></div>
+<p class="sr-only">Average Search SEO: 62 out of 100, band D.</p>
+<div><div class="axis">Avg Search SEO</div><div class="axis-sub">Average 62/100 · lowest 0</div></div></div>
+<div class="panel gauge-panel"><div class="gauge"><svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true" focusable="false">
+<circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" stroke-width="7" opacity=".14"/>
+<circle cx="40" cy="40" r="34" fill="none" stroke="hsl(0 68% 44%)" stroke-width="7"
+  stroke-linecap="round" stroke-dasharray="117.5 213.6"
+  transform="rotate(-90 40 40)"/></svg>
+<div class="gauge-text"><span class="gauge-score">55</span><span class="gauge-band" style="--hue:0">F</span></div></div>
+<p class="sr-only">Average AI Visibility: 55 out of 100, band F.</p>
+<div><div class="axis">Avg AI Visibility</div><div class="axis-sub">Average 55/100 · lowest 5</div></div></div>
+<div class="panel"><div class="dist-title">Findings across all pages</div><div class="dist-row"><span class="dist-label">P0</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:0;width:0.0%"></span></span>
+<span class="dist-count">0</span></div><div class="dist-row"><span class="dist-label">P1</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:25;width:12.2%"></span></span>
+<span class="dist-count">10</span></div><div class="dist-row"><span class="dist-label">P2</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:45;width:17.1%"></span></span>
+<span class="dist-count">14</span></div><div class="dist-row"><span class="dist-label">P3</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:210;width:1.2%"></span></span>
+<span class="dist-count">1</span></div><div class="dist-row"><span class="dist-label">pass</span>
+<span class="dist-track"><span class="dist-fill" style="--hue:150;width:100.0%"></span></span>
+<span class="dist-count">82</span></div></div>
+</div>
+<ul class="toc">
+<li><a href="#pages">Pages</a></li><li><a href="#top-site">Top issues</a></li>
+</ul>
+</header>
+
+<section id="pages" aria-labelledby="pages-h"><h2 id="pages-h"><span>Pages</span><span class="n">3</span></h2>
+<div class="table-scroll"><table class="pages"><caption>Worst Search score first</caption>
+<thead><tr><th scope="col">Page</th><th scope="col">Search</th><th scope="col">AI</th><th scope="col">P0</th><th scope="col">P1</th><th scope="col">P2</th><th scope="col">P3</th></tr></thead>
+<tbody>
+<tr><td class="p-url"><a href="./report-3.html">https://example.com/bad/</a></td><td class="num"><span class="badge" style="--hue:0">0 F</span></td><td class="num"><span class="badge" style="--hue:0">5 F</span></td><td class="num">0</td><td class="num">9</td><td class="num">11</td><td class="num">1</td></tr>
+<tr><td class="p-url"><a href="./report.html">https://example.com/good/</a></td><td class="num"><span class="badge" style="--hue:95">87 B</span></td><td class="num"><span class="badge" style="--hue:95">80 B</span></td><td class="num">0</td><td class="num">1</td><td class="num">2</td><td class="num">0</td></tr>
+<tr><td class="p-url"><a href="./report-2.html">https://example.com/shop/trailhead-40l/</a></td><td class="num"><span class="badge" style="--hue:145">100 A</span></td><td class="num"><span class="badge" style="--hue:95">80 B</span></td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">0</td></tr>
+</tbody></table></div></section>
+
+<section id="top-site" aria-labelledby="top-site-h"><h2 id="top-site-h"><span>Top recurring issues</span><span class="n">5</span></h2><ol class="topfix">
+<li style="--hue:25"><span class="badge">P1</span> <strong>Thin content</strong> <code>C01-thin</code> <small>on 2/3 pages</small><br><span class="finding-plain">Expand to fully answer the query; add examples, steps, data.</span><span class="reach" role="img" aria-label="2 of 3 pages affected"><i style="width:67%"></i></span></li>
+<li style="--hue:25"><span class="badge">P1</span> <strong>No answer-first block</strong> <code>C02-answer</code> <small>on 1/3 pages</small><br><span class="finding-plain">Start with a 40-60 word direct answer, then explanation + evidence.</span><span class="reach" role="img" aria-label="1 of 3 pages affected"><i style="width:33%"></i></span></li>
+<li style="--hue:25"><span class="badge">P1</span> <strong>Title too short</strong> <code>O01-title-short</code> <small>on 1/3 pages</small><br><span class="finding-plain">Expand to 30-60 chars: Primary Topic | Brand.</span><span class="reach" role="img" aria-label="1 of 3 pages affected"><i style="width:33%"></i></span></li>
+<li style="--hue:25"><span class="badge">P1</span> <strong>Meta description missing</strong> <code>O02-meta-missing</code> <small>on 1/3 pages</small><br><span class="finding-plain">Add a 120-155ch description with benefit + CTA. One per page.</span><span class="reach" role="img" aria-label="1 of 3 pages affected"><i style="width:33%"></i></span></li>
+<li style="--hue:25"><span class="badge">P1</span> <strong>Multiple H1s</strong> <code>O03-h1-multi</code> <small>on 1/3 pages</small><br><span class="finding-plain">Keep one H1; demote the rest to H2.</span><span class="reach" role="img" aria-label="1 of 3 pages affected"><i style="width:33%"></i></span></li>
+</ol></section>
+
+<footer class="foot"><span>Generated by one-step-seo v0.4.0 — two scores, never blended.</span><span>https://example.com</span></footer>
+</main></div>
+</body>
+</html>

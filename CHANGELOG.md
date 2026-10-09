@@ -8,6 +8,35 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- **Site-wide `index.html` dashboard for multi-page audits.** Hero totals
+  with average/minimum gauges, a worst-first pages table linking each
+  `report[-N].html`, and top recurring issues across pages with reach bars.
+  Reuses the report design system (one shared stylesheet, no new
+  dependencies); per-page reports link back with an “All N pages”
+  breadcrumb, and `index.md` points at the dashboard. Covered by
+  `examples/site-index.html` under `examples:check`.
+- **`report.html` share tags.** Every report now carries a meta description
+  plus Open Graph title/description/type so shared links preview the scores.
+- **Reduced-motion + breadcrumb styles** in the shared report stylesheet
+  (`prefers-reduced-motion` disables smooth scrolling and card transitions).
+- **Cap honesty without false alarms.** The “more URLs were seen” flag now
+  fires only for genuinely new dropped links (nav-menu repeats no longer cry
+  wolf), and the re-run-higher advice adapts at the `--pages` maximum via
+  the pure, unit-tested `coverageLine()` helper. Validated end to end: the
+  full 78-page apex site audits cleanly at `--pages 80` and `--pages 200`.
+- **Badge contrast hardened** (P2-light 4.85 → 5.69, all pairs ≥5.6) against
+  measured WCAG ratios.
+  pages now prints top fixes aggregated across all pages (worst severity
+  first, then most widespread, with per-page reach like “on 3/5 pages”),
+  a failure/skipped counter, and cap honesty: “Stopped at the --pages N
+  cap — the crawl saw more URLs” vs “Audited all N discovered pages”.
+  File lists over ~12 entries condense to a count + `index.md` pointer.
+- **Pragmatic same-host enforcement.** The crawl allows the start host plus
+  the first redirect landing host (covers apex `<->` www), then locks:
+  later cross-host redirect landings are skipped (warned, counted) with no
+  report, no discovery fetches, and no link harvesting; discovered links are
+  host-filtered as defense in depth. `analyzeOne` accepts an optional
+  `allowedHosts` gate for this (ungated callers unchanged).
 - **`one-step-seo quick <url>` — one-command beginner audit.** Sensible
   defaults (5 pages unless `--pages` is given, all formats), a one-line
   explainer, and the same reports + terminal summary as `audit`.
@@ -65,6 +94,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- **`index.md` linked reports that were never written.** The `[md]`/`[json]`
+  links were unconditional, so `--format json` produced an index of 404s.
+  All three format links are now conditional on `--format`.
+- **Robots-refused crawls claimed a “Solid foundation”.** `verdictFor` (and
+  the HTML executive summary) now report “Crawl skipped: robots.txt
+  disallows this page…” when `T05-robots-disallow` is the only finding.
 - `G04-entity` no longer fires spuriously when `<title>` is empty (`O01`
   already covers that) — the check is skipped instead of piling on.
 - `getSitemapUrls` could seed cross-host URLs from a malformed sitemap into

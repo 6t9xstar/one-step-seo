@@ -156,8 +156,9 @@ Priorities: **P0** critical (fix today) → **P1** high (this week) → **P2** m
 | `report.json` | Machines — scores, counts, every finding (schema: `lib/schema-report.json`)               |
 | `report.md`   | Humans — executive summary, fix-first top 3, grouped actions, snippets, citable checklist |
 | `report.html` | Sharing — single portable file, copy-summary button, print styles, mobile-friendly        |
+| `index.html`  | Multi-page runs — site dashboard: totals, worst-first pages, recurring issues             |
 
-Preview: [`examples/report-sample.md`](./examples/report-sample.md) · [`examples/report-sample.html`](./examples/report-sample.html) · [page-type examples](./examples/page-types.md)
+Preview: [`examples/report-sample.md`](./examples/report-sample.md) · [`examples/report-sample.html`](./examples/report-sample.html) · [page-type examples](./examples/page-types.md) · [`examples/site-index.html`](./examples/site-index.html)
 
 ## AI-agent usage
 

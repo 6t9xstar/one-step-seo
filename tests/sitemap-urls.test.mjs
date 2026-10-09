@@ -189,3 +189,45 @@ test("getSitemapUrls drops cross-host seeds", async () => {
     await new Promise((resolve) => srv.close(() => resolve(undefined)));
   }
 });
+
+test("getSitemapUrls drops cross-host index children and their pages", async () => {
+  const srv = http.createServer((req, res) => {
+    const path = (req.url ?? "/").split("?")[0];
+    const addr = srv.address();
+    const port = typeof addr === "object" && addr ? addr.port : 0;
+    const origin = `http://127.0.0.1:${port}`;
+    if (path === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("User-agent: *\nDisallow:\n");
+    } else if (path === "/sitemap.xml") {
+      res.writeHead(200, { "content-type": "application/xml" });
+      res.end(
+        `<sitemapindex><sitemap><loc>${origin}/child-local.xml</loc></sitemap><sitemap><loc>https://evil.example/child.xml</loc></sitemap></sitemapindex>`,
+      );
+    } else if (path === "/child-local.xml") {
+      res.writeHead(200, { "content-type": "application/xml" });
+      res.end(
+        `<urlset><url><loc>${origin}/local-a</loc></url><url><loc>https://evil.example/page</loc></url></urlset>`,
+      );
+    } else if (path === "/llms.txt") {
+      res.writeHead(404);
+      res.end();
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+  await new Promise((resolve) => srv.listen(0, "127.0.0.1", () => resolve(undefined)));
+  try {
+    const addr = srv.address();
+    const port = typeof addr === "object" && addr ? addr.port : 0;
+    const urls = await getSitemapUrls(`http://127.0.0.1:${port}/x`);
+    assert.ok(urls.includes(`http://127.0.0.1:${port}/local-a`));
+    assert.ok(
+      !urls.some((u) => u.includes("evil.example")),
+      `cross-host URL leaked: ${JSON.stringify(urls)}`,
+    );
+  } finally {
+    await new Promise((resolve) => srv.close(() => resolve(undefined)));
+  }
+});

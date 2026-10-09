@@ -384,3 +384,236 @@ test("cli: schema warns (but proceeds) on robots-disallowed URLs", async () => {
     await closeServer(server);
   }
 });
+
+const LINKS_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>A link hub fixture page title here</title>
+<meta name="description" content="A well-crafted meta description that runs to about one hundred and forty characters total for testing purposes here yes.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.ico">
+</head><body><h1>Hub</h1>
+<p>What is this hub? A direct answer of forty words or more written first for testing purposes and for machines to quote.</p>
+<p><a href="/a">a</a> <a href="/b">b</a> <a href="/c">c</a> <a href="/gone">gone</a></p>
+<p>${"word ".repeat(250)}</p></body></html>`;
+
+/**
+ * Four-page link hub: /a /b /c healthy, /gone 404s. Exercises the page cap,
+ * the failure counter, and the condensed file list.
+ */
+function startHub() {
+  return startRouter((pathname) => {
+    if (pathname === "/robots.txt")
+      return { status: 200, type: "text/plain", body: "User-agent: *\nDisallow:\n" };
+    if (pathname === "/") return { status: 200, type: "text/html", body: LINKS_PAGE };
+    if (pathname === "/a" || pathname === "/b" || pathname === "/c")
+      return { status: 200, type: "text/html", body: HEALTHY_PAGE };
+    if (pathname === "/gone") return { status: 404, type: "text/html", body: "nope" };
+    return null;
+  });
+}
+
+test("cli: reaching --pages with URLs left prints the cap note", async () => {
+  const server = await startHub();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-cap-"));
+    const r = await runCli(["audit", `http://127.0.0.1:${port}/`, "--pages", "2", "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /Stopped at the --pages 2 cap — the crawl saw more URLs\./);
+    assert.match(r.stdout, /max 200/);
+    assert.ok(existsSync(join(out, "report.json")));
+    assert.ok(existsSync(join(out, "report-2.json")));
+    assert.ok(!existsSync(join(out, "report-3.json")), "capped crawl must stop at 2 reports");
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: unseen links dropped by the per-page slice still flag the cap", async () => {
+  // /many links 12 distinct leaves: the crawler takes 10, drops 2 unseen
+  // ones, and must say so even though the queue never fills.
+  const leafLinks = Array.from({ length: 12 }, (_, i) => `<a href="/m${i}">m${i}</a>`).join(" ");
+  const server = await startRouter((pathname) => {
+    if (pathname === "/robots.txt")
+      return { status: 200, type: "text/plain", body: "User-agent: *\nDisallow:\n" };
+    if (pathname === "/many")
+      return {
+        status: 200,
+        type: "text/html",
+        body: HEALTHY_PAGE.replace("</body>", `<p>${leafLinks}</p></body>`),
+      };
+    if (/^\/m\d+$/.test(pathname)) return { status: 200, type: "text/html", body: HEALTHY_PAGE };
+    return null;
+  });
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-slice-"));
+    const r = await runCli(["audit", `http://127.0.0.1:${port}/many`, "--pages", "20", "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /more URLs were seen but not reached/);
+    assert.ok(existsSync(join(out, "report.json")));
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: failures are counted and long file lists are condensed", async () => {
+  const server = await startHub();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-failcount-"));
+    const r = await runCli(["audit", `http://127.0.0.1:${port}/`, "--pages", "5", "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /Pages audited: 4 \(1 failed or skipped/);
+    assert.match(r.stdout, /Audited all 4 discovered pages\./);
+    assert.ok(existsSync(join(out, "report-4.json")), "expected 4 reports (/gone 404s)");
+    assert.ok(!existsSync(join(out, "report-5.json")));
+    assert.match(r.stdout, /Wrote 14 files into .* — start at .*index\.html\./);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: robots-disallowed discovered links are skipped unless --force", async () => {
+  const server = await startRouter((pathname) => {
+    if (pathname === "/robots.txt")
+      return { status: 200, type: "text/plain", body: "User-agent: *\nDisallow: /private\n" };
+    if (pathname === "/")
+      return {
+        status: 200,
+        type: "text/html",
+        body: HEALTHY_PAGE.replace(
+          "</body>",
+          '<p><a href="/public">public</a> <a href="/private/x">private</a></p></body>',
+        ),
+      };
+    if (pathname === "/public" || pathname === "/private/x")
+      return { status: 200, type: "text/html", body: HEALTHY_PAGE };
+    return null;
+  });
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-disallowskip-"));
+    const r = await runCli(["audit", `http://127.0.0.1:${port}/`, "--pages", "3", "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(existsSync(join(out, "report-2.json")), "expected the allowed /public report");
+    assert.ok(!existsSync(join(out, "report-3.json")), "disallowed /private/x must never be crawled");
+    const forced = await runCli([
+      "audit",
+      `http://127.0.0.1:${port}/`,
+      "--pages",
+      "3",
+      "--out",
+      out,
+      "--force",
+    ]);
+    assert.equal(forced.code, 0, forced.stderr);
+    assert.ok(existsSync(join(out, "report-3.json")), "--force must crawl the disallowed URL too");
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: llms works when the page fetch fails", async () => {
+  const server = await startRouter((pathname) => {
+    if (pathname === "/robots.txt")
+      return { status: 200, type: "text/plain", body: "User-agent: *\nDisallow:\n" };
+    if (pathname === "/") return { status: 500, type: "text/html", body: "broken" };
+    return null;
+  });
+  const port = server.address()?.port;
+  try {
+    const r = await runCli(["llms", `http://127.0.0.1:${port}/`]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /starter llms\.txt/);
+    assert.match(r.stdout, /no sitemap URLs discovered/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: cross-origin redirect targets are adopted once, then locked", async () => {
+  // C counts contact by path: the redirect-following page fetch is
+  // unavoidable, but robots/sitemap/llms discovery must never touch C,
+  // and C's own links must never be harvested.
+  /** @type {Record<string, number>} */
+  const cHits = {};
+  const cPage = HEALTHY_PAGE.replace("</body>", '<p><a href="/deep">deep</a></p></body>');
+  const serverC = createServer((req, res) => {
+    const pathname = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
+    cHits[pathname] = (cHits[pathname] ?? 0) + 1;
+    if (pathname === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain", connection: "close" });
+      res.end("User-agent: *\nDisallow:\n");
+      return;
+    }
+    res.writeHead(200, { "content-type": "text/html", connection: "close" });
+    res.end(cPage);
+  });
+  await new Promise((resolve) => serverC.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const portC = serverC.address();
+  const originC = `http://127.0.0.1:${typeof portC === "object" && portC ? portC.port : 0}`;
+  // B hosts the adopted site; /jump bounces to the third origin C.
+  const serverB = createServer((req, res) => {
+    const pathname = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
+    if (pathname === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain", connection: "close" });
+      res.end("User-agent: *\nDisallow:\n");
+      return;
+    }
+    if (pathname === "/jump") {
+      res.writeHead(301, { location: `${originC}/`, connection: "close" });
+      res.end();
+      return;
+    }
+    const addrB = serverB.address();
+    const originB = `http://127.0.0.1:${typeof addrB === "object" && addrB ? addrB.port : 0}`;
+    const page =
+      pathname === "/"
+        ? HEALTHY_PAGE.replace(
+            "</body>",
+            `<p><a href="${originB}/ok">ok</a> <a href="${originB}/jump">jump</a></p></body>`,
+          )
+        : HEALTHY_PAGE;
+    res.writeHead(200, { "content-type": "text/html", connection: "close" });
+    res.end(page);
+  });
+  await new Promise((resolve) => serverB.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const portB = serverB.address();
+  const originB = `http://127.0.0.1:${typeof portB === "object" && portB ? portB.port : 0}`;
+  // A redirects everything to B and allows crawling.
+  const shim = createServer((req, res) => {
+    const pathname = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
+    if (pathname === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain", connection: "close" });
+      res.end("User-agent: *\nDisallow:\n");
+      return;
+    }
+    res.writeHead(301, { location: `${originB}/`, connection: "close" });
+    res.end();
+  });
+  await new Promise((resolve) => shim.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const portShim = shim.address();
+  const originShim = `http://127.0.0.1:${typeof portShim === "object" && portShim ? portShim.port : 0}`;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-origins-"));
+    const r = await runCli(["audit", `${originShim}/`, "--pages", "3", "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    const first = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+    assert.ok(first.finalUrl.startsWith(originB), `redirect target must be adopted, got ${first.finalUrl}`);
+    assert.ok(existsSync(join(out, "report-2.json")), "expected the /ok report");
+    assert.ok(!existsSync(join(out, "report-3.json")), "third-origin /jump must be skipped after the lock");
+    assert.match(r.stderr, /outside the allowed hosts/);
+    assert.equal(
+      cHits["/"] ?? 0,
+      1,
+      `expected exactly the redirect-following page hit on C, got ${JSON.stringify(cHits)}`,
+    );
+    assert.equal(cHits["/sitemap.xml"] ?? 0, 0, "discovery fetches must never touch the locked-out origin");
+    assert.equal(cHits["/llms.txt"] ?? 0, 0, "discovery fetches must never touch the locked-out origin");
+    assert.equal(cHits["/deep"] ?? 0, 0, "links from the locked-out origin must never be harvested");
+  } finally {
+    await closeServer(serverC);
+    await closeServer(serverB);
+    await closeServer(shim);
+  }
+});

@@ -13,7 +13,7 @@ import { parseHtml } from "../lib/html.mjs";
 import { runChecks } from "../lib/checks.mjs";
 import { extractJsonLd, validateSchema } from "../lib/schema.mjs";
 import { geoDetails, computeScores } from "../lib/score.mjs";
-import { buildReport, renderMarkdown, renderHtml } from "../lib/report.mjs";
+import { buildReport, renderMarkdown, renderHtml, renderSiteIndex } from "../lib/report.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const VERSION = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version;
@@ -65,6 +65,13 @@ function buildFor(fixture, url) {
 
 const good = buildFor("tests/fixtures/good.html", "https://example.com/good/");
 const bad = buildFor("tests/fixtures/bad.html", "https://example.com/bad/");
+
+// A three-page synthetic site for the multi-page dashboard example.
+const siteReports = [
+  buildFor("tests/fixtures/good.html", "https://example.com/good/"),
+  buildFor("tests/fixtures/product.html", "https://example.com/shop/trailhead-40l/"),
+  buildFor("tests/fixtures/bad.html", "https://example.com/bad/"),
+];
 
 /** Realistic page types, each rendered from its own fixture. @type {{ file: string, url: string, label: string, input: string }[]} */
 const pageTypes = [
@@ -146,6 +153,7 @@ const outputs = [
   ["examples/report-bad-sample.md", renderMarkdown(bad)],
   ["examples/report-bad-sample.html", renderHtml(bad)],
   ["examples/report-bad-sample.json", JSON.stringify(bad, null, 2) + "\n"],
+  ["examples/site-index.html", renderSiteIndex(siteReports)],
   ["examples/page-types.md", renderPageTypes()],
 ];
 

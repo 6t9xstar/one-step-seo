@@ -23,9 +23,17 @@ import { getSiteFiles, getSitemapUrls, isDisallowed } from "../lib/robots.mjs";
 import { runChecks } from "../lib/checks.mjs";
 import { extractJsonLd, validateSchema, schemaSnippet } from "../lib/schema.mjs";
 import { geoDetails, computeScores } from "../lib/score.mjs";
-import { buildReport, renderMarkdown, renderHtml } from "../lib/report.mjs";
+import {
+  buildReport,
+  renderMarkdown,
+  renderHtml,
+  renderSiteIndex,
+  siteBasename,
+  siteTopFindings,
+  coverageLine,
+} from "../lib/report.mjs";
 import { getFindingMeta } from "../lib/finding-meta.mjs";
-import { parseArgs, normalizeUrl, canonicalizeUrl, CliError } from "../lib/args.mjs";
+import { parseArgs, normalizeUrl, canonicalizeUrl, CliError, MAX_PAGES } from "../lib/args.mjs";
 import { planFixes, FIXER_NAMES } from "../lib/fix.mjs";
 import { unifiedDiff } from "../lib/diff.mjs";
 
@@ -66,6 +74,20 @@ function pathOf(link) {
 }
 
 /**
+ * Lowercase host of an absolute URL; "" on garbage. Compared host-only
+ * (not origin) so mixed http/https links on one host stay crawlable.
+ * @param {string} link
+ * @returns {string}
+ */
+function hostOf(link) {
+  try {
+    return new URL(link).host.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+/**
  * Print the top 3 urgent fixes with triage labels + the next command.
  * @param {import("../lib/report.mjs").Report} report
  * @param {string} rerun the exact command that reproduces this audit
@@ -80,6 +102,30 @@ function printTopFixes(report, rerun) {
       const meta = getFindingMeta(String(f.id ?? ""));
       const hint = String(f.fix || meta.plain).slice(0, 120);
       console.log(`  [${f.severity}] ${f.title} (${f.id}) — ${hint}`);
+      console.log(`    Impact: ${meta.impact} · Effort: ${meta.effort} · Owner: ${meta.owner}`);
+    }
+  }
+  console.log(`Next: fix the items above, then re-run \`${rerun}\`.`);
+}
+
+/**
+ * Top fixes across all audited pages: worst severity first, then most
+ * widespread. Each finding counts once per page it appears on.
+ * @param {import("../lib/report.mjs").Report[]} pageReports
+ * @param {string} rerun the exact command that reproduces this audit
+ */
+function printTopFixesSite(pageReports, rerun) {
+  const n = pageReports.length;
+  const top = siteTopFindings(pageReports, 3);
+  if (top.length === 0) {
+    console.log("Top fixes: none — all checks passed.");
+  } else {
+    console.log(`Top fixes across ${n} page${n === 1 ? "" : "s"}:`);
+    for (const { finding: f, pages } of top) {
+      const meta = getFindingMeta(String(f.id ?? ""));
+      const hint = String(f.fix || meta.plain).slice(0, 120);
+      const scope = pages > 1 ? ` — on ${pages}/${n} pages` : "";
+      console.log(`  [${f.severity}] ${f.title} (${f.id})${scope} — ${hint}`);
       console.log(`    Impact: ${meta.impact} · Effort: ${meta.effort} · Owner: ${meta.owner}`);
     }
   }
@@ -191,11 +237,16 @@ Notes:
 
 /**
  * Fetch + parse + check a single URL into report-ready parts.
+ * When `allowedHosts` is set, redirect landings outside the set return
+ * early with `skipped: true` — before any robots/sitemap/llms discovery
+ * fetches — so locked-out origins see only the single redirect-following
+ * page request, never a report and never link harvesting.
  * @param {string} url
  * @param {number} timeoutMs
  * @param {string} [userAgent]
+ * @param {Set<string> | null} [allowedHosts]
  */
-export async function analyzeOne(url, timeoutMs, userAgent) {
+export async function analyzeOne(url, timeoutMs, userAgent, allowedHosts = null) {
   const fetched = await fetchWithRedirects(url, { timeoutMs, ...(userAgent ? { userAgent } : {}) });
   if (!fetched.ok || !fetched.html) {
     return {
@@ -207,7 +258,29 @@ export async function analyzeOne(url, timeoutMs, userAgent) {
       geo: null,
       schemaInfo: null,
       truncated: false,
+      skipped: false,
     };
+  }
+  if (allowedHosts) {
+    let finalHost = "";
+    try {
+      finalHost = new URL(fetched.finalUrl).host.toLowerCase();
+    } catch {
+      // Keep "" — treated as outside the set below.
+    }
+    if (!finalHost || !allowedHosts.has(finalHost)) {
+      return {
+        fetched,
+        parsed: null,
+        siteFiles: null,
+        findings: [],
+        scores: null,
+        geo: null,
+        schemaInfo: null,
+        truncated: false,
+        skipped: true,
+      };
+    }
   }
   const parsed = parseHtml(fetched.html, fetched.finalUrl);
   const siteFiles = await getSiteFiles(fetched.finalUrl, { timeoutMs, ...(userAgent ? { userAgent } : {}) });
@@ -234,7 +307,17 @@ export async function analyzeOne(url, timeoutMs, userAgent) {
   }
   const geo = geoDetails(parsed, siteFiles);
   const scores = computeScores(findings, geo);
-  return { fetched, parsed, siteFiles, findings, scores, geo, schemaInfo, truncated: fetched.truncated };
+  return {
+    fetched,
+    parsed,
+    siteFiles,
+    findings,
+    scores,
+    geo,
+    schemaInfo,
+    truncated: fetched.truncated,
+    skipped: false,
+  };
 }
 
 /**
@@ -259,8 +342,9 @@ function toReport(r, url) {
  * @param {import("../lib/report.mjs").Report} report
  * @param {string[]} formats
  * @param {string} [basename]
+ * @param {{ indexHref?: string, pageCount?: number }} [htmlOpts] forwarded to renderHtml
  */
-function writeOutputs(outDir, report, formats, basename = "report") {
+function writeOutputs(outDir, report, formats, basename = "report", htmlOpts) {
   mkdirSync(outDir, { recursive: true });
   const written = [];
   if (formats.includes("json")) {
@@ -275,7 +359,7 @@ function writeOutputs(outDir, report, formats, basename = "report") {
   }
   if (formats.includes("html")) {
     const p = join(outDir, `${basename}.html`);
-    writeFileSync(p, renderHtml(report));
+    writeFileSync(p, renderHtml(report, htmlOpts));
     written.push(p);
   }
   return written;
@@ -339,6 +423,15 @@ async function cmdAudit(url, args) {
   const queue = [url];
   /** @type {import("../lib/report.mjs").Report[]} */
   const pageReports = [];
+  // Pragmatic same-host policy: the start host plus the first landing host
+  // (covers apex <-> www canonicalization), locked after that. Discovered
+  // links and redirect landings outside the set are skipped, never crawled.
+  const allowedHosts = new Set([hostOf(url)]);
+  let adoptedOnce = false;
+  let failed = 0;
+  // True when the crawl saw more URLs than the page cap could take
+  // (sitemap seeds cut, discovery queue full, or >10 links on a page).
+  let capped = false;
 
   const { blocked, robotsText } = await checkRobotsAllowed(url, args);
   if (blocked) {
@@ -365,7 +458,10 @@ async function cmdAudit(url, args) {
       dbg(`sitemap seeds: ${seeds.length}`);
       let added = 0;
       for (const seed of seeds) {
-        if (added >= Math.max(0, args.pages - 1)) break;
+        if (added >= Math.max(0, args.pages - 1)) {
+          capped = true;
+          break;
+        }
         const key = canonicalizeUrl(seed) || seed;
         if (seen.has(key)) continue;
         queue.push(seed);
@@ -396,7 +492,7 @@ async function cmdAudit(url, args) {
       batch.push(next);
     }
     if (batch.length === 0) break;
-    const results = await Promise.allSettled(batch.map((u) => analyzeOne(u, args.timeout, UA)));
+    const results = await Promise.allSettled(batch.map((u) => analyzeOne(u, args.timeout, UA, allowedHosts)));
     for (let i = 0; i < batch.length; i++) {
       const next = batch[i];
       const settled = results[i];
@@ -404,11 +500,29 @@ async function cmdAudit(url, args) {
       if (settled.status === "rejected") {
         const reason = settled.reason;
         console.error(`! ${next} -> ${reason instanceof Error ? reason.message : String(reason)}`);
+        failed++;
         continue;
       }
-      const r = settled.value;
+      let r = settled.value;
+      if (r.skipped) {
+        const skipHost = hostOf(r.fetched.finalUrl);
+        if (pageReports.length === 0 && !adoptedOnce && skipHost) {
+          // Pragmatic redirect policy: the start URL itself may canonicalize
+          // across hosts (apex <-> www). Adopt the first landing host, then
+          // lock the set: re-analyze without the gate for the full report.
+          dbg(`adopted redirect host ${skipHost}`);
+          allowedHosts.add(skipHost);
+          adoptedOnce = true;
+          r = await analyzeOne(next, args.timeout, UA);
+        } else {
+          console.error(`! ${next} landed outside the allowed hosts (${skipHost || "unknown"}) — skipped.`);
+          failed++;
+          continue;
+        }
+      }
       if (!r.parsed) {
         console.error(`! ${next} -> ${r.fetched.error || r.fetched.status}`);
+        failed++;
         continue;
       }
       // Guard against redirect-alias duplicates (http<->https, trailing slash).
@@ -420,15 +534,33 @@ async function cmdAudit(url, args) {
       pageReports.push(pageReport);
       dbg(`page ${next} -> search ${pageReport.scores.search.score} ai ${pageReport.scores.ai.score}`);
       if (pageReports.length < args.pages) {
+        // Slice-drops are only evidence of missed coverage when the dropped
+        // links are genuinely new — nav menus repeat seen URLs, which would
+        // cry wolf on every site.
+        const unseenDropped = r.parsed.internalLinks.slice(10).filter(
+          /** @param {string} link @returns {boolean} */ (link) => {
+            const lk = canonicalizeUrl(link) || link;
+            return !!lk && !seen.has(lk);
+          },
+        );
+        if (unseenDropped.length > 0) capped = true;
         for (const link of r.parsed.internalLinks.slice(0, 10)) {
           const lk = canonicalizeUrl(link) || link;
           if (!lk || seen.has(lk)) continue;
+          if (!allowedHosts.has(hostOf(link))) {
+            dbg(`skip outside allowed hosts ${link}`);
+            seen.add(lk);
+            continue;
+          }
           if (!args.force && robotsText && isDisallowed(robotsText, UA_TOKEN, pathOf(link))) {
             dbg(`skip robots-disallowed ${link}`);
             seen.add(lk);
             continue;
           }
-          if (pageReports.length + queue.length >= args.pages) break;
+          if (pageReports.length + queue.length >= args.pages) {
+            capped = true;
+            break;
+          }
           queue.push(link);
           seen.add(lk);
         }
@@ -445,25 +577,42 @@ async function cmdAudit(url, args) {
   }
 
   const outDir = resolve(args.out);
+  const withHtml = formats.includes("html");
+  const siteOpts =
+    pageReports.length > 1 && withHtml
+      ? { indexHref: "index.html", pageCount: pageReports.length }
+      : undefined;
   /** @type {string[]} */
   const written = [];
   pageReports.forEach((report, idx) => {
-    const basename = idx === 0 ? "report" : `report-${idx + 1}`;
-    written.push(...writeOutputs(outDir, report, formats, basename));
+    const basename = siteBasename(idx);
+    written.push(...writeOutputs(outDir, report, formats, basename, siteOpts));
   });
-  // Index linking all pages.
+  // Index linking all pages. Format links are conditional: with
+  // `--format json` no .md files exist, so unconditional links would 404.
   if (pageReports.length > 1) {
     const lines = [`# one-step-seo index`, ``, `Audited ${pageReports.length} pages.`, ``];
+    if (withHtml) lines.push(`Browse the [site dashboard](./index.html).`, ``);
     pageReports.forEach((r, idx) => {
-      const name = idx === 0 ? "report" : `report-${idx + 1}`;
+      const name = siteBasename(idx);
+      const links = [
+        ...(formats.includes("md") ? [`[md](./${name}.md)`] : []),
+        ...(formats.includes("json") ? [`[json](./${name}.json)`] : []),
+        ...(formats.includes("html") ? [`[html](./${name}.html)`] : []),
+      ];
       lines.push(
-        `- Page ${idx + 1}: ${r.finalUrl} — Search ${r.scores.search.score} (${r.scores.search.band}), AI ${r.scores.ai.score} (${r.scores.ai.band}) — [md](./${name}.md) [json](./${name}.json)${formats.includes("html") ? ` [html](./${name}.html)` : ""}`,
+        `- Page ${idx + 1}: ${r.finalUrl} — Search ${r.scores.search.score} (${r.scores.search.band}), AI ${r.scores.ai.score} (${r.scores.ai.band}) — ${links.join(" ")}`,
       );
     });
     lines.push(``);
     const indexPath = join(outDir, "index.md");
     writeFileSync(indexPath, lines.join("\n") + "\n");
     written.push(indexPath);
+    if (withHtml) {
+      const dashboardPath = join(outDir, "index.html");
+      writeFileSync(dashboardPath, renderSiteIndex(pageReports));
+      written.push(dashboardPath);
+    }
   }
 
   const primary = pageReports[0];
@@ -472,7 +621,9 @@ async function cmdAudit(url, args) {
   console.log(
     `\nSearch SEO: ${primary.scores.search.score}/100 (${primary.scores.search.band})  |  AI Visibility: ${primary.scores.ai.score}/100 (${primary.scores.ai.band})`,
   );
-  console.log(`Pages audited: ${pageReports.length}`);
+  console.log(
+    `Pages audited: ${pageReports.length}${failed > 0 ? ` (${failed} failed or skipped — see warnings above)` : ""}`,
+  );
   if (pageReports.length > 1) {
     console.log(
       `Aggregate: avg Search ${agg.avgSearch} / AI ${agg.avgAi} · min Search ${agg.minSearch} / AI ${agg.minAi}`,
@@ -480,12 +631,24 @@ async function cmdAudit(url, args) {
     console.log(
       `Totals: P0=${agg.totals.P0} P1=${agg.totals.P1} P2=${agg.totals.P2} P3=${agg.totals.P3} pass=${agg.totals.pass}`,
     );
+    const coverage = coverageLine(pageReports.length, args.pages, capped, MAX_PAGES);
+    if (coverage) console.log(coverage);
   }
   console.log(
     `Counts: P0=${primary.counts.P0} P1=${primary.counts.P1} P2=${primary.counts.P2} P3=${primary.counts.P3} pass=${primary.counts.pass}`,
   );
-  printTopFixes(primary, `one-step-seo audit ${url} --pages ${args.pages}`);
-  console.log(`Wrote:\n  ${written.join("\n  ")}`);
+  if (pageReports.length > 1) {
+    printTopFixesSite(pageReports, `one-step-seo audit ${url} --pages ${args.pages}`);
+  } else {
+    printTopFixes(primary, `one-step-seo audit ${url} --pages ${args.pages}`);
+  }
+  if (written.length > 12) {
+    const startHere =
+      pageReports.length > 1 && withHtml ? join(outDir, "index.html") : join(outDir, "index.md");
+    console.log(`Wrote ${written.length} files into ${outDir} — start at ${startHere}.`);
+  } else {
+    console.log(`Wrote:\n  ${written.join("\n  ")}`);
+  }
 
   if (args.failOn) {
     const breached = pageReports.some((r) => breachesFailOn(args.failOn, r.counts));

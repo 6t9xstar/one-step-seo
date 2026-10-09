@@ -132,7 +132,7 @@ non-HTML templates (`.astro`, `.jsx`).
 
 | Flag              | Default        | Meaning                                                                                                                                                                                                                                                                                  |
 | ----------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--pages N`       | `1`            | Pages to crawl for `audit` (integer 1–200, BFS over same-host links)                                                                                                                                                                                                                     |
+| `--pages N`       | `1`            | Pages to crawl for `audit` (integer 1–200, BFS over same-host links). The terminal reports whether all discovered pages were audited or the cap cut the crawl short (re-run higher, max 200)                                                                                             |
 | `--out DIR`       | `./seo-report` | Output directory (created with `mkdir -p`, existing files overwritten)                                                                                                                                                                                                                   |
 | `--format`        | `html,md,json` | Which reports to write (`html`, `md`, `json` only — anything else exits 1)                                                                                                                                                                                                               |
 | `--timeout MS`    | `15000`        | Per-request timeout in ms (integer 1000–120000; applies to pages + robots/sitemap/llms)                                                                                                                                                                                                  |
@@ -166,6 +166,9 @@ non-HTML templates (`.astro`, `.jsx`).
   button, print stylesheet, skip link, and labelled sections for screen
   readers. Fully responsive.
 - Multi-page runs add `report-2.json/.md/.html`, etc. plus `index.md` linking all pages
+- Multi-page runs with the `html` format also write `index.html` — a site-wide
+  dashboard (hero totals, worst-first pages table, top recurring issues).
+  Per-page reports link back to it with an “All N pages” breadcrumb.
 - `sitemap --json` shape: `{ origin, robotsFound, robotsSitemaps, sitemapFound, sitemapUrl, sitemapUrls, sitemapTruncated, llmsFound }`
 - `doctor --json` shape: `{ tool, version, node, nodeOk, fetch }`
 - `fix --json` shape: `{ tool, version, applied, files: [{ file, planned: [{ name, findingId, summary, partial }], skipped: [{ name, reason }], verified: [{ name, cleared }], changed, applied, error }] }`

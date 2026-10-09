@@ -22,7 +22,8 @@ description: Run a one-step-seo audit and turn findings into a prioritized actio
 3. Open `report.json`. Summarize:
    - Search SEO score + band, AI Visibility score + band
    - Top P0/P1 findings with evidence quotes
-   - Page-by-page notes for multi-page runs (see `index.md` for links)
+   - Page-by-page notes for multi-page runs (`index.html` dashboard first for
+     totals and worst pages, `index.md` for links)
 4. Output sections:
    - Executive summary (3 bullets — reuse the report's verdict)
    - Priority actions (Problem → Evidence → Action → Impact → Effort → Owner)
