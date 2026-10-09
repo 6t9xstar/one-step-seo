@@ -1,6 +1,6 @@
 {
   "name": "one-step-seo",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "One command to audit any website for SEO + GEO/AEO. Zero-config CLI + AI skill.",
   "type": "module",
   "license": "MIT",

@@ -18,6 +18,7 @@ import {
   siteBasename,
   siteTopFindings,
   coverageLine,
+  findDuplicateTitles,
   verdictFor,
   topFixes,
   citableChecklist,
@@ -681,4 +682,36 @@ test("coverageLine reports cap, shortfall, clean, and single-page runs", () => {
     "Audited 78 discovered pages; more URLs were seen but not reached.",
   );
   assert.equal(coverageLine(2, 2, false, 200), "Audited all 2 discovered pages.");
+});
+
+test("findDuplicateTitles groups case-insensitively and ignores empties", () => {
+  /** @param {string} title @param {string} meta */
+  const rep = (title, meta) => ({ ...mkReport([]), page: { title, metaDescription: meta } });
+  const dups = findDuplicateTitles([
+    rep("Acme Home", "Welcome to Acme"),
+    rep("ACME home", "Other desc"),
+    rep("Unique", "Welcome to Acme"),
+    rep("", ""),
+  ]);
+  assert.deepEqual(
+    dups.map((d) => [d.kind, d.pages]),
+    [
+      ["title", [0, 1]],
+      ["meta description", [0, 2]],
+    ],
+  );
+  assert.deepEqual(findDuplicateTitles([]), []);
+  assert.deepEqual(findDuplicateTitles([rep("Only", "Once")]), []);
+});
+
+test("renderSiteIndex lists duplicate titles with page links", () => {
+  /** @param {string} title */
+  const rep = (title) => ({ ...mkReport([]), page: { title, metaDescription: "" } });
+  const html = renderSiteIndex([rep("Dup Title"), rep("Other"), rep("dup title")]);
+  assert.match(html, /Duplicate titles/);
+  assert.match(html, /dup title/);
+  assert.match(html, /page 1.*page 3|page 3.*page 1/);
+  const clean = renderSiteIndex([rep("One"), rep("Two")]);
+  assert.match(clean, /No duplicate titles or meta descriptions/);
+  assert.ok(!clean.includes("undefined"));
 });

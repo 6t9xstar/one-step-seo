@@ -31,6 +31,7 @@ import {
   siteBasename,
   siteTopFindings,
   coverageLine,
+  findDuplicateTitles,
 } from "../lib/report.mjs";
 import { getFindingMeta } from "../lib/finding-meta.mjs";
 import { parseArgs, normalizeUrl, canonicalizeUrl, CliError, MAX_PAGES } from "../lib/args.mjs";
@@ -429,6 +430,10 @@ async function cmdAudit(url, args) {
   const allowedHosts = new Set([hostOf(url)]);
   let adoptedOnce = false;
   let failed = 0;
+  // Inlink counts per canonical URL (orphan detection). Seeds start at zero:
+  // sitemap-only pages with no crawled inlinks count as orphaned for equity.
+  /** @type {Map<string, number>} */
+  const inlinkCounts = new Map();
   // True when the crawl saw more URLs than the page cap could take
   // (sitemap seeds cut, discovery queue full, or >10 links on a page).
   let capped = false;
@@ -530,6 +535,12 @@ async function cmdAudit(url, args) {
       if (pageReports.some((pr) => (canonicalizeUrl(pr.finalUrl) || pr.finalUrl) === finalKey)) {
         continue;
       }
+      // A redirect moves its discovery credit to the landing URL so the
+      // orphan check below compares final URLs on both sides.
+      const requestedKey = canonicalizeUrl(next) || next;
+      if (finalKey !== requestedKey) {
+        inlinkCounts.set(finalKey, (inlinkCounts.get(finalKey) ?? 0) + (inlinkCounts.get(requestedKey) ?? 0));
+      }
       const pageReport = toReport(r, next);
       pageReports.push(pageReport);
       dbg(`page ${next} -> search ${pageReport.scores.search.score} ai ${pageReport.scores.ai.score}`);
@@ -544,6 +555,14 @@ async function cmdAudit(url, args) {
           },
         );
         if (unseenDropped.length > 0) capped = true;
+        // Inlink accounting scans every discovered link (orphan detection),
+        // while queueing stays capped at 10 per page for crawl breadth.
+        // Credit lands before the seen-skip below so sitemap seeds linked
+        // from crawled pages still count as linked.
+        for (const link of r.parsed.internalLinks) {
+          const lk = canonicalizeUrl(link) || link;
+          if (lk) inlinkCounts.set(lk, (inlinkCounts.get(lk) ?? 0) + 1);
+        }
         for (const link of r.parsed.internalLinks.slice(0, 10)) {
           const lk = canonicalizeUrl(link) || link;
           if (!lk || seen.has(lk)) continue;
@@ -578,6 +597,15 @@ async function cmdAudit(url, args) {
 
   const outDir = resolve(args.out);
   const withHtml = formats.includes("html");
+  // Possibly orphaned pages: crawled, but no crawled page links to them
+  // (the start page is exempt — the crawl begins there, not via a link).
+  const orphans = pageReports
+    .map((r, idx) => ({ r, idx }))
+    .filter(
+      /** @param {{ r: import("../lib/report.mjs").Report, idx: number }} o @returns {boolean} */ (o) =>
+        o.idx > 0 && (inlinkCounts.get(canonicalizeUrl(o.r.finalUrl) || o.r.finalUrl) ?? 0) === 0,
+    );
+  const dups = pageReports.length > 1 ? findDuplicateTitles(pageReports) : [];
   const siteOpts =
     pageReports.length > 1 && withHtml
       ? { indexHref: "index.html", pageCount: pageReports.length }
@@ -605,6 +633,27 @@ async function cmdAudit(url, args) {
       );
     });
     lines.push(``);
+    if (dups.length > 0) {
+      lines.push(`## Duplicate titles & descriptions`, ``);
+      for (const d of dups.slice(0, 10)) {
+        const refs = d.pages.map((i) => `page ${i + 1}`).join(", ");
+        lines.push(
+          `- Duplicate ${d.kind} on ${refs}: "${d.value.slice(0, 120)}" — give each page a unique ${d.kind}.`,
+        );
+      }
+      if (dups.length > 10) lines.push(`- …and ${dups.length - 10} more (see index.html).`);
+      lines.push(``);
+    }
+    if (orphans.length > 0) {
+      lines.push(`## Possibly orphaned pages`, ``);
+      for (const o of orphans.slice(0, 10)) {
+        lines.push(
+          `- ${o.r.finalUrl} — no crawled page links to it (sitemap-only counts too); add contextual internal links or confirm it is intentionally standalone.`,
+        );
+      }
+      if (orphans.length > 10) lines.push(`- …and ${orphans.length - 10} more (see index.html).`);
+      lines.push(``);
+    }
     const indexPath = join(outDir, "index.md");
     writeFileSync(indexPath, lines.join("\n") + "\n");
     written.push(indexPath);
@@ -633,6 +682,20 @@ async function cmdAudit(url, args) {
     );
     const coverage = coverageLine(pageReports.length, args.pages, capped, MAX_PAGES);
     if (coverage) console.log(coverage);
+    if (dups.length > 0) {
+      const dupTitles = dups.filter((d) => d.kind === "title").length;
+      const dupMetas = dups.length - dupTitles;
+      /** @type {string[]} */
+      const parts = [];
+      if (dupTitles > 0) parts.push(`${dupTitles} title${dupTitles === 1 ? "" : "s"}`);
+      if (dupMetas > 0) parts.push(`${dupMetas} description${dupMetas === 1 ? "" : "s"}`);
+      console.log(`Duplicates: shared ${parts.join(" + ")} across pages (see index.md).`);
+    }
+    if (orphans.length > 0) {
+      console.log(`Orphaned pages (no inlinks from crawled pages):`);
+      for (const o of orphans.slice(0, 5)) console.log(`  - ${o.r.finalUrl}`);
+      if (orphans.length > 5) console.log(`  …and ${orphans.length - 5} more (see index.md).`);
+    }
   }
   console.log(
     `Counts: P0=${primary.counts.P0} P1=${primary.counts.P1} P2=${primary.counts.P2} P3=${primary.counts.P3} pass=${primary.counts.pass}`,

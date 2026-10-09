@@ -188,6 +188,14 @@ test("fixture: structured llms.txt passes G05", () => {
   expectSev(byId, "G05-llms-quality", "pass");
 });
 
+test("fixture: insecure script trips T13-mixed P1", () => {
+  expectSev(
+    auditFixture("page-mixed-content.html", "https://example.com/page-mixed-content/"),
+    "T13-mixed",
+    "P1",
+  );
+});
+
 // ---------- example page types stay meaningful ----------
 
 test("fixture: wordpress-like trips image-dimensions P2 only (plus optional-file P1/P2s)", () => {
@@ -526,6 +534,80 @@ test("cli: llms works when the page fetch fails", async () => {
     assert.equal(r.code, 0, r.stderr);
     assert.match(r.stdout, /starter llms\.txt/);
     assert.match(r.stdout, /no sitemap URLs discovered/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: duplicate titles across pages land in index.md and the terminal", async () => {
+  const dup = /** @param {string} links @returns {string} */ (links) =>
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Same Site Title Here</title></head><body><h1>Same</h1><p>${links}</p></body></html>`;
+  const server = await startRouter((pathname) => {
+    if (pathname === "/robots.txt")
+      return { status: 200, type: "text/plain", body: "User-agent: *\nDisallow:\n" };
+    if (pathname === "/") return { status: 200, type: "text/html", body: dup('<a href="/b">b</a>') };
+    if (pathname === "/b") return { status: 200, type: "text/html", body: dup("") };
+    return null;
+  });
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-dups-"));
+    const r = await runCli(["audit", `http://127.0.0.1:${port}/`, "--pages", "2", "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /Duplicates: shared 1 title across pages/);
+    const index = readFileSync(join(out, "index.md"), "utf8");
+    assert.match(index, /Duplicate titles/);
+    assert.match(index, /Duplicate title on page 1, page 2/);
+    const dashboard = readFileSync(join(out, "index.html"), "utf8");
+    assert.match(dashboard, /Duplicate titles/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: sitemap-only pages are reported as possibly orphaned", async () => {
+  const server = await startRouter((pathname) => {
+    if (pathname === "/robots.txt")
+      return { status: 200, type: "text/plain", body: "User-agent: *\nDisallow:\n" };
+    if (pathname === "/sitemap.xml") {
+      const addr = server.address();
+      const port = typeof addr === "object" && addr ? addr.port : 0;
+      const origin = `http://127.0.0.1:${port}`;
+      return {
+        status: 200,
+        type: "application/xml",
+        body: `<urlset><url><loc>${origin}/</loc></url><url><loc>${origin}/linked</loc></url><url><loc>${origin}/lonely</loc></url></urlset>`,
+      };
+    }
+    if (pathname === "/")
+      return {
+        status: 200,
+        type: "text/html",
+        body: HEALTHY_PAGE.replace("</body>", '<p><a href="/linked">linked</a></p></body>'),
+      };
+    if (pathname === "/linked" || pathname === "/lonely")
+      return { status: 200, type: "text/html", body: HEALTHY_PAGE };
+    return null;
+  });
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-orphan-"));
+    const r = await runCli([
+      "audit",
+      `http://127.0.0.1:${port}/`,
+      "--pages",
+      "3",
+      "--crawl",
+      "sitemap",
+      "--out",
+      out,
+    ]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /Orphaned pages/);
+    assert.match(r.stdout, /lonely/);
+    const index = readFileSync(join(out, "index.md"), "utf8");
+    assert.match(index, /Possibly orphaned pages/);
+    assert.match(index, /lonely/);
   } finally {
     await closeServer(server);
   }

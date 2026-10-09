@@ -56,3 +56,10 @@ schema (`lib/schema-report.json`) for machine consumers.
 Open a bug report with the URL (or a minimal HTML fixture), the command,
 and expected vs. actual. Better: add the fixture + test + docs line and
 open a PR — see `CONTRIBUTING.md`.
+
+## How often should I re-audit?
+
+After every meaningful change (redesign, migration, template edit), plus a
+standing cadence for important pages: review strategic URLs roughly monthly,
+verify figures and dates, and bump `dateModified` when facts change. `report.json`
+is stable across versions, so diffing two runs shows exactly what moved.

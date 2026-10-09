@@ -8,6 +8,27 @@ test("parseRobots detects AI crawler blocks", () => {
   const r = parseRobots("User-agent: GPTBot\nDisallow: /\n");
   assert.equal(r.aiBlocked, true);
   assert.equal(r.disallows.length, 1);
+  assert.deepEqual(r.blockedBots, ["gptbot"]);
+});
+
+test("parseRobots covers the 2026 AI crawler landscape", () => {
+  for (const token of [
+    "Claude-SearchBot",
+    "Claude-User",
+    "Perplexity-User",
+    "GoogleOther",
+    "FacebookBot",
+    "meta-externalfetcher",
+    "Amzn-User",
+    "MistralAI-User",
+    "Applebot",
+    "ChatGPT-Agent",
+  ]) {
+    const r = parseRobots(`User-agent: ${token}\nDisallow: /\n`);
+    assert.equal(r.aiBlocked, true, `${token} should be a known AI token`);
+    assert.deepEqual(r.blockedBots, [token.toLowerCase()]);
+  }
+  assert.ok(AI_BOTS.length >= 20, `expected an expanded bot list, got ${AI_BOTS.length}`);
 });
 
 test("parseRobots ignores non-AI and partial blocks", () => {

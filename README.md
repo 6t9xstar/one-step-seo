@@ -33,9 +33,9 @@ npx one-step-seo quick https://your-site.com
 That one command checks technical SEO, on-page, content, schema, sitemap, performance hints, and GEO/AEO readiness — then writes `report.json` + `report.md` + `report.html` into `./seo-report/`, and prints the top 3 fixes in your terminal:
 
 ```text
-Search SEO: 87/100 (B)  |  AI Visibility: 80/100 (B)
+Search SEO: 86/100 (B)  |  AI Visibility: 80/100 (B)
 Pages audited: 5
-Counts: P0=0 P1=1 P2=2 P3=0 pass=33
+Counts: P0=0 P1=1 P2=2 P3=3 pass=39
 Top fixes:
   [P1] Thin content (C01-thin) — Expand to fully answer the query; add examples, steps, data.
     Impact: medium · Effort: days · Owner: content
@@ -125,11 +125,16 @@ One blended number would hide which half needs work — so the Search score
 deducts per finding while the AI score is a weighted readiness checklist,
 and they are reported side by side, never merged.
 
+Both scores are **our readiness signals, not Google's scores** — no tool
+can see Google's ranking systems. They measure how closely a page follows
+publicly documented best practices, so a clean report means “nothing
+controllable is blocking you”, never “you will rank”.
+
 Real output (from [`examples/`](./examples/report-sample.md)):
 
 ```text
-Search SEO: 87/100 (B)  |  AI Visibility: 80/100 (B)
-Counts: P0=0 P1=1 P2=2 P3=0 pass=33
+Search SEO: 86/100 (B)  |  AI Visibility: 80/100 (B)
+Counts: P0=0 P1=1 P2=2 P3=3 pass=39
 ```
 
 Priorities: **P0** critical (fix today) → **P1** high (this week) → **P2** medium (this month) → **P3** polish. Details: [`docs/SCORING.md`](./docs/SCORING.md). Full check list: [`docs/CHECKS.md`](./docs/CHECKS.md). More examples: [`examples/page-types.md`](./examples/page-types.md) (WordPress, Next.js, product, blog, pricing).

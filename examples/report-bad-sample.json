@@ -1,6 +1,6 @@
 {
   "tool": "one-step-seo",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "url": "https://example.com/bad/",
   "finalUrl": "https://example.com/bad/",
   "checkedAt": "2026-10-08T00:00:00.000Z",
@@ -19,8 +19,8 @@
     "P0": 0,
     "P1": 9,
     "P2": 11,
-    "P3": 1,
-    "pass": 14
+    "P3": 2,
+    "pass": 18
   },
   "findings": [
     {
@@ -224,6 +224,16 @@
       "geoImpact": "medium"
     },
     {
+      "id": "G06-freshness",
+      "category": "geo",
+      "severity": "P3",
+      "title": "No freshness signals",
+      "evidence": "No publication or review dates found",
+      "fix": "Where content is date-sensitive, show a review date and keep dateModified current.",
+      "seoImpact": "-",
+      "geoImpact": "low"
+    },
+    {
       "id": "W01-social",
       "category": "onpage",
       "severity": "P3",
@@ -314,6 +324,26 @@
       "geoImpact": "-"
     },
     {
+      "id": "T13-mixed",
+      "category": "technical",
+      "severity": "pass",
+      "title": "No mixed content",
+      "evidence": "all subresources use https",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "T14-third-party",
+      "category": "technical",
+      "severity": "pass",
+      "title": "Third-party scripts contained",
+      "evidence": "0 external script host(s)",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
       "id": "O05-h2",
       "category": "onpage",
       "severity": "pass",
@@ -324,11 +354,31 @@
       "geoImpact": "-"
     },
     {
+      "id": "O11-generic-anchors",
+      "category": "onpage",
+      "severity": "pass",
+      "title": "Anchor text descriptive",
+      "evidence": "1 links checked",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
       "id": "G02-ai-blocked",
       "category": "geo",
       "severity": "pass",
       "title": "AI crawlers not blanket-blocked",
       "evidence": "No full Disallow for AI bots",
+      "fix": "",
+      "seoImpact": "-",
+      "geoImpact": "-"
+    },
+    {
+      "id": "G09-snippet-controls",
+      "category": "geo",
+      "severity": "pass",
+      "title": "Snippet-eligible for AI answers",
+      "evidence": "No nosnippet/max-snippet:0",
       "fix": "",
       "seoImpact": "-",
       "geoImpact": "-"

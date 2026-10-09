@@ -23,6 +23,25 @@ node bin/cli.mjs audit https://example.com --out ./seo-report
 5. If you touched the generator inputs, run `npm run examples` so `examples/` stays fresh.
 6. Open a PR using the template. Keep diffs focused.
 
+## Finding quality bar
+
+Every finding must carry machine-checkable **evidence** (what was observed,
+with values) plus an actionable **fix** — never inference presented as fact.
+Label uncertainty in docs and fix text using the evidence tiers from
+`SKILL.md`: **verified fact** (measured data, official docs) vs **observed
+data** (visible on the page) vs **inference** (reasonable but unproven) vs
+**recommendation** (what to do about it). Never promote inference to fact,
+and never promise rankings, traffic, snippets, or AI citations.
+
+## Originality policy
+
+SEO ideas and publicly documented facts are free to implement; **text and
+code must be original**. Do not paste third-party prompts, docs, or snippets
+into this repo — rewrite every explanation, finding title, and fix in your
+own words. Thresholds follow industry practice and public guidance; where a
+value comes from an official source, link it rather than quoting it. If you
+adapt an approach you saw elsewhere, say so in the PR description.
+
 ## Commit style
 
 Conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `chore:`.

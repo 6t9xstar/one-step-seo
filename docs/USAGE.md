@@ -68,6 +68,17 @@ Running with no command at all starts interactive mode on a TTY (URL, pages,
 output folder, open-report prompt); piped/CI usage without a command prints
 usage and exits 1.
 
+## Schema guidance
+
+`schema --generate <kind>` prints starter JSON-LD built from the live page
+(title, URL, description — never invented facts). When hand-writing markup,
+prefer **one `<script type="application/ld+json">` block with a unified
+`@graph`** whose nodes link via `@id` (Organization → author Person →
+Article → FAQPage), over scattered fragments. Mark up only visible content,
+keep FAQ answers identical to the on-page copy, and bump `dateModified`
+(plus a visible revision note) when facts change — the `G06-freshness`
+check reads exactly those signals.
+
 ## The `llms` command
 
 `llms` helps with AI-visibility paperwork. It prints (never writes):

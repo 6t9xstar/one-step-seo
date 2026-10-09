@@ -8,6 +8,55 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- **Snippet eligibility for AI answers: `G09-snippet-controls` (P2).**
+  Google lifts passages only from snippet-eligible pages, so meta or
+  `X-Robots-Tag` `nosnippet` / `max-snippet: 0` silently blocks AI-Overviews
+  quoting. Follows the `G03` precedent (deducts Search like `G03`);
+  `data-nosnippet` sections are evidence only, and paywalled content is
+  explicitly excepted. Parser counts `data-nosnippet` elements.
+- **Resource hygiene:** `T14-third-party-hosts` (P2 over 5 distinct script
+  hosts) and `T15-security-headers` (P3 for missing CSP/HSTS/nosniff —
+  skipped, not fired, when no headers were captured). Parser collects
+  anchor texts (`linkTexts`) for the `O11` check.
+- **2026 AI-crawler roll call.** `AI_BOTS` grows from 15 to 25 tokens
+  (`claude-searchbot`, `claude-user`, `perplexity-user`, `googleother`,
+  `facebookbot`, `meta-externalfetcher`, `amzn-user`, `mistralai-user`,
+  `applebot`, `chatgpt-agent`), and `G02-ai-blocked` evidence now names the
+  blocked tokens instead of “a known AI bot”.
+- **Docs:** `docs/GSC.md` (every Search Console state → our finding +
+  action, plus the 2026 AI-Overviews eligibility rules), “readiness
+  signals, not Google scores” honesty lines, unified-`@graph` authoring
+  guidance, evidence-tier + originality policy in `CONTRIBUTING.md`,
+  re-audit cadence in FAQ, `docs/PSI-DESIGN.md` (opt-in PageSpeed spec —
+  env-key only, offline fallback; no implementation, no keys touched).
+- **Accuracy: `X-Robots-Tag` now fails `T07-noindex` (P0).** A header-level
+  `noindex`/`none` blocks indexing exactly like the meta tag (and wins
+  conflicts); previously such pages falsely passed. Token-matched, so
+  `noimageindex` does not false-positive.
+- **`T13-mixed-content` (P1 active / P2 passive).** http:// subresources on
+  https pages, split by tag kind — scripts browsers block vs. images they
+  degrade. New `subresources` parser collection (images, scripts, links).
+- **Site-level duplicate detection.** Shared titles/metas across crawled
+  pages surface in the terminal, `index.md`, and a new dashboard section
+  (pure over `report.json`, no crawl change).
+- **On-page precision:** `O11-generic-anchors` (P3, exact-match “click here”
+  list), `O03-h1-drift` (P3, stopword-filtered H1/title overlap),
+  `S03-faq-parity` (P3 both directions: markup-without-copy is a policy
+  risk, copy-without-markup a missed opportunity).
+- **GEO depth (all P3 + `GEO_ONLY_IDS`, zero Search-score effect):**
+  `G06-freshness` (schema dates, `<time>`, dated update notes),
+  `G07-question-headings` (question ratio over 3+ H2s),
+  `G08-stat-density` (quantified metrics with units on 300+ word pages —
+  presence, never density percentages), `C05-table-headers` (`<th>` in
+  comparison tables).
+- **Orphan detection.** CLI-side inlink map (sitemap-only counts as orphaned
+  for equity) with redirect-credit transfer → terminal list + `index.md`
+  section. Locked-out origins see exactly one request (pre-analysis gate).
+- **Docs:** `docs/GSC.md` (every Search Console state → our finding +
+  action), honesty lines (“readiness signals, not Google scores”), unified
+  `@graph` authoring guidance, evidence-tier + originality policy in
+  `CONTRIBUTING.md`, re-audit cadence in FAQ, `docs/PSI-DESIGN.md` (opt-in
+  PageSpeed design, no implementation).
 - **Site-wide `index.html` dashboard for multi-page audits.** Hero totals
   with average/minimum gauges, a worst-first pages table linking each
   `report[-N].html`, and top recurring issues across pages with reach bars.
