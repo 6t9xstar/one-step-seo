@@ -95,7 +95,7 @@ Structure every plan as:
 
 ## Report shape
 
-`report.json` fields: `scores {search {score,band}, ai {score,band}}`, `counts`, `findings[] {id, category, severity, title, evidence, fix}`, `page`, `site`.
+`report.json` fields: `scores {search {score,band}, ai {score,band}}`, `rulesVersion` (scoring ruleset — diff warns across versions), `counts`, `findings[] {id, category, severity, title, evidence, fix}`, `page`, `site`.
 Severity: P0 critical, P1 high, P2 medium, P3 low, pass healthy.
 
 ## Fix workflow

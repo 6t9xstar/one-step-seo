@@ -6,8 +6,10 @@ import {
   canonicalizeUrl,
   CliError,
   VALID_FORMATS,
+  VALID_PROFILES,
   MAX_PAGES,
 } from "../lib/args.mjs";
+import { PROFILES } from "../lib/checks.mjs";
 
 test("parseArgs defaults", () => {
   const a = parseArgs(["audit", "https://example.com"]);
@@ -46,6 +48,7 @@ test("parseArgs rejects bad formats and dedupes", () => {
   assert.throws(() => parseArgs(["audit", "x", "--format", "json,exe"]), CliError);
   assert.deepEqual(parseArgs(["audit", "x", "--format", "json,json"]).formats, ["json"]);
   assert.ok(VALID_FORMATS.includes("html"));
+  assert.deepEqual(parseArgs(["audit", "x", "--format", "json,sarif"]).formats, ["json", "sarif"]);
 });
 
 test("parseArgs rejects unknown flags and missing values", () => {
@@ -117,4 +120,21 @@ test("parseArgs rejects out-of-range --delay", () => {
   assert.throws(() => parseArgs(["audit", "x", "--delay", "-1"]), CliError);
   assert.throws(() => parseArgs(["audit", "x", "--delay", "10001"]), CliError);
   assert.throws(() => parseArgs(["audit", "x", "--delay", "abc"]), CliError);
+});
+
+test("parseArgs handles --check-links (default off)", () => {
+  assert.equal(parseArgs(["audit", "x"]).checkLinks, false);
+  assert.equal(parseArgs(["audit", "x", "--check-links"]).checkLinks, true);
+});
+
+test("parseArgs accepts known profiles, rejects unknown ones", () => {
+  assert.equal(parseArgs(["audit", "x"]).profile, "default");
+  assert.equal(parseArgs(["audit", "x", "--profile", "product"]).profile, "product");
+  assert.equal(parseArgs(["audit", "x", "--profile=docs"]).profile, "docs");
+  assert.throws(() => parseArgs(["audit", "x", "--profile", "enterprise"]), CliError);
+  assert.throws(() => parseArgs(["audit", "x", "--profile"]), CliError);
+});
+
+test("VALID_PROFILES matches the PROFILES registry keys", () => {
+  assert.deepEqual([...VALID_PROFILES].sort(), Object.keys(PROFILES).sort());
 });

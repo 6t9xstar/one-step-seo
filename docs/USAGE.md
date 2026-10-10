@@ -33,6 +33,9 @@ top 3 printed in the terminal.
 # Full audit (crawl up to N pages over internal links)
 one-step-seo audit https://example.com --pages 5 --out ./seo-report --format html,md,json
 
+# Calibrated for a page type (default|blog|product|docs|home)
+one-step-seo audit https://example.com/shop/widget --profile product
+
 # Beginner shortcut: audit with 5 pages and all formats
 one-step-seo quick https://example.com
 one-step-seo quick https://example.com --pages 3 --out ./quick-report
@@ -54,6 +57,9 @@ one-step-seo llms https://example.com --json
 # Safe auto-fixes for local HTML (dry-run diff by default)
 one-step-seo fix ./dist/index.html
 one-step-seo fix ./dist/index.html --apply --url https://example.com/ --lang en
+
+# Regression diff between two reports (base vs. head)
+one-step-seo diff base-report.json seo-report/report.json --fail-on P1
 
 # Environment check
 one-step-seo doctor
@@ -139,22 +145,33 @@ Hard exclusions (by design): alt text, `noindex` removal, title/description
 length rewrites, image dimensions, `robots.txt`/`llms.txt`/sitemap edits, and
 non-HTML templates (`.astro`, `.jsx`).
 
+What `fix` will never do, and why: it never rewrites prose to a target
+length (length is a judgment call about intent, not a mechanical edit); it
+never generates answer blocks, FAQs, or any new copy (the tool must not
+invent facts, statistics, or claims); it never touches non-HTML sources
+(framework components need their own codemods, not regex patches); it never
+removes content, changes URLs, or adds redirects (all destructive or
+high-risk). For those, use the report's fix text + snippets with human
+review — `fix` closes the mechanical loop, judgment stays with you.
+
 ## Flags
 
 | Flag              | Default        | Meaning                                                                                                                                                                                                                                                                                  |
 | ----------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--pages N`       | `1`            | Pages to crawl for `audit` (integer 1–200, BFS over same-host links). The terminal reports whether all discovered pages were audited or the cap cut the crawl short (re-run higher, max 200)                                                                                             |
 | `--out DIR`       | `./seo-report` | Output directory (created with `mkdir -p`, existing files overwritten)                                                                                                                                                                                                                   |
-| `--format`        | `html,md,json` | Which reports to write (`html`, `md`, `json` only — anything else exits 1)                                                                                                                                                                                                               |
+| `--format`        | `html,md,json` | Which reports to write (`html`, `md`, `json`, `sarif` only — anything else exits 1)                                                                                                                                                                                                      |
 | `--timeout MS`    | `15000`        | Per-request timeout in ms (integer 1000–120000; applies to pages + robots/sitemap/llms)                                                                                                                                                                                                  |
 | `--generate KIND` | —              | `organization\|website\|article\|faq\|breadcrumb\|product\|event\|localbusiness\|howto`                                                                                                                                                                                                  |
-| `--fail-on SEV`   | —              | `P0\|P1\|P2` — exit 2 when any audited page has that severity or higher (CI gating)                                                                                                                                                                                                      |
+| `--fail-on SEV`   | —              | `P0\|P1\|P2` — exit 2 when any audited page has that severity or higher (CI gating). For `diff`: exit 2 only on _new or escalated_ findings at the threshold                                                                                                                             |
+| `--profile NAME`  | `default`      | Page-type calibration: `default` (reference), `blog` (same calibration, explicit), `product` (thin threshold 120, skips answer-first), `docs` (FAQ + llms.txt bumped to P1), `home` (thin threshold 100, skips answer-first). The AI checklist is identical across profiles              |
 | `--crawl MODE`    | `links`        | `links` (BFS over internal links) or `sitemap` (seeds from `sitemap.xml`, or the `Sitemap:` URL declared in `robots.txt`; follows up to 5 child sitemaps of a `<sitemapindex>`, caps seeds at 500, drops cross-host seeds, and warns + falls back to `links` when no sitemap URLs exist) |
 | `--concurrency N` | `4`            | Parallel page fetches for `audit` (integer 1–8)                                                                                                                                                                                                                                          |
 | `--delay MS`      | `250`          | Politeness pause between crawl batches in ms (integer 0–10000)                                                                                                                                                                                                                           |
 | `--debug`         | —              | Verbose diagnostics: parsed audit parameters, `robots.txt` status, per-page timings (implies `--verbose` stacks)                                                                                                                                                                         |
 | `--force`         | —              | Crawl even when `robots.txt` disallows the URL — use only on sites you own or are allowed to test; the refusal is otherwise reported as `T05-robots-disallow`                                                                                                                            |
-| `--json`          | —              | JSON to stdout (`sitemap`, `doctor`, `fix`)                                                                                                                                                                                                                                              |
+| `--check-links`   | —              | Verify same-host link targets (P1 `T16-broken-links` for 4xx/5xx/failures; capped at 100 checks per run, off by default; skips already-audited and robots-disallowed targets)                                                                                                            |
+| `--json`          | —              | JSON to stdout (`sitemap`, `doctor`, `fix`, `diff`)                                                                                                                                                                                                                                      |
 | `--verbose`       | —              | Print error stacks on runtime failures (`VERBOSE=1` also works)                                                                                                                                                                                                                          |
 | `--apply`         | —              | `fix`: write fixes to disk (default is a dry-run diff; creates `<file>.bak` unless `--no-backup`)                                                                                                                                                                                        |
 | `--only NAMES`    | —              | `fix`: comma list restricting which fixers run (`charset,viewport,lang,title,description,canonical,og,og-url,twitter-card,favicon`)                                                                                                                                                      |
@@ -167,7 +184,8 @@ non-HTML templates (`.astro`, `.jsx`).
 
 ## Outputs
 
-- `report.json` — machine-readable (scores, counts, findings). Shape: `{ tool, version, url, finalUrl, checkedAt, truncated, scores: { search: { score, band }, ai: { score, band } }, counts: { P0, P1, P2, P3, pass }, findings: [{ id, category, severity, title, evidence, fix }], page: { title, metaDescription, canonical, wordCount, h1, images, internalLinks, externalLinks }, site: { origin, robots, sitemap, sitemapUrls, llms } }`. Formal JSON Schema: `lib/schema-report.json`.
+- `report.json` — machine-readable (scores, counts, findings). Shape: `{ tool, version, rulesVersion, url, finalUrl, checkedAt, truncated, scores: { search: { score, band }, ai: { score, band } }, counts: { P0, P1, P2, P3, pass }, findings: [{ id, category, severity, title, evidence, fix }], page: { title, metaDescription, canonical, wordCount, h1, images, internalLinks, externalLinks }, site: { origin, robots, sitemap, sitemapUrls, llms } }`. Formal JSON Schema: `lib/schema-report.json`. `rulesVersion` stamps the scoring/check ruleset — `diff` warns when two reports were built under different versions.
+- `report.sarif` — same findings in SARIF v2.1.0 for GitHub code scanning (`--format sarif`; P0/P1 → error, P2 → warning, P3 → note).
 - `report.md` — human-readable: executive summary + verdict, “Fix this first”
   (top 3 with impact/effort/owner), priority actions grouped by category with
   plain-language explanations and copy-paste snippets, “Make this page more

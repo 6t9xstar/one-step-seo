@@ -476,6 +476,40 @@ test("G06/G07/G08/C05 GEO and structure signals", () => {
   assert.ok(!noTables.has("C05-table-headers"), "tables-free pages skip C05");
 });
 
+test("profiles calibrate thresholds, skips, and severities", () => {
+  const schemaInfo = { items: [], types: [], issues: [], errors: [] };
+  /** @param {string} html @param {string} profile @param {any} [siteOver] */
+  const byId = (html, profile, siteOver = {}) => {
+    const findings = runChecks(
+      parseHtml(html, "https://example.com/x/"),
+      files(siteOver),
+      fetched({ finalUrl: "https://example.com/x/" }),
+      schemaInfo,
+      { profile },
+    );
+    return new Map(findings.map((f) => [f.id, f.severity]));
+  };
+  const head = `<meta charset="utf-8"><title>A sufficiently long page title here</title>`;
+  // 150 words: thin by default, fine for product/home hubs.
+  const thinish = `<!doctype html><html lang="en"><head>${head}</head><body><h1>H</h1><p>${"word ".repeat(150)}</p></body></html>`;
+  assert.equal(byId(thinish, "default").get("C01-thin"), "P1");
+  assert.equal(byId(thinish, "product").get("C01-length"), "pass");
+  assert.equal(byId(thinish, "home").get("C01-length"), "pass");
+  assert.equal(byId(thinish, "bogus").get("C01-thin"), "P1");
+  // No answer block: P1 by default, absent on product/home.
+  const noAnswer = `<!doctype html><html lang="en"><head>${head}</head><body><h1>H</h1><p>${"word ".repeat(250)}</p></body></html>`;
+  assert.equal(byId(noAnswer, "default").get("C02-answer"), "P1");
+  assert.ok(!byId(noAnswer, "product").has("C02-answer"), "product skips C02");
+  assert.ok(!byId(noAnswer, "home").has("C02-answer"), "home skips C02");
+  // No FAQ, no llms: P2 by default, P1 on docs.
+  const noLlms = { llms: { found: false, status: 404, bytes: 0 } };
+  const bare = `<!doctype html><html lang="en"><head>${head}</head><body><h1>H</h1><p>${"word ".repeat(250)}</p></body></html>`;
+  assert.equal(byId(bare, "default", noLlms).get("C04-faq"), "P2");
+  assert.equal(byId(bare, "docs", noLlms).get("C04-faq"), "P1");
+  assert.equal(byId(bare, "default", noLlms).get("G01-llms"), "P2");
+  assert.equal(byId(bare, "docs", noLlms).get("G01-llms"), "P1");
+});
+
 test("G02-ai-blocked names the blocked bot tokens", () => {
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>A sufficiently long page title here</title></head><body><h1>H</h1></body></html>`;
   const findings = runChecks(

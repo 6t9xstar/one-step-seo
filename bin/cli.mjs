@@ -9,6 +9,7 @@
  *   one-step-seo sitemap <url> [--json]
  *   one-step-seo llms <url> [--json]
  *   one-step-seo fix <path> [--apply] [--only a,b] [--url U] [--title T] [--description D] [--lang L] [--og-image U]
+ *   one-step-seo diff <old-report.json> <new-report.json> [--json] [--fail-on P0]
  *   one-step-seo doctor [--json]
  *   one-step-seo (no command → interactive prompts on a TTY)
  */
@@ -17,10 +18,10 @@ import { dirname, join, resolve, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync, execFile } from "node:child_process";
 import { createInterface } from "node:readline/promises";
-import { fetchWithRedirects } from "../lib/fetch.mjs";
+import { fetchWithRedirects, fetchText } from "../lib/fetch.mjs";
 import { parseHtml } from "../lib/html.mjs";
 import { getSiteFiles, getSitemapUrls, isDisallowed } from "../lib/robots.mjs";
-import { runChecks } from "../lib/checks.mjs";
+import { runChecks, MAX_LINK_CHECKS } from "../lib/checks.mjs";
 import { extractJsonLd, validateSchema, schemaSnippet } from "../lib/schema.mjs";
 import { geoDetails, computeScores } from "../lib/score.mjs";
 import {
@@ -28,6 +29,7 @@ import {
   renderMarkdown,
   renderHtml,
   renderSiteIndex,
+  renderSarif,
   siteBasename,
   siteTopFindings,
   coverageLine,
@@ -36,6 +38,7 @@ import {
 import { getFindingMeta } from "../lib/finding-meta.mjs";
 import { parseArgs, normalizeUrl, canonicalizeUrl, CliError, MAX_PAGES } from "../lib/args.mjs";
 import { planFixes, FIXER_NAMES } from "../lib/fix.mjs";
+import { diffReports, isReport } from "../lib/report-diff.mjs";
 import { unifiedDiff } from "../lib/diff.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -188,6 +191,69 @@ function blockedReport(url) {
   });
 }
 
+/**
+ * Verify a page's same-host link targets (`--check-links`). Appends one
+ * aggregated T16 finding for broken targets. Shared budget + checked-set
+ * bound total requests per run; already-audited (known-200) and
+ * robots-disallowed targets are skipped, never fetched.
+ * @param {any} r analyzeOne result (parsed non-null)
+ * @param {import("../lib/report.mjs").Report[]} pageReports reports so far (known-good finals)
+ * @param {import("../lib/args.mjs").ParsedArgs} args
+ * @param {{ budget: number, checked: Set<string> }} state shared across pages
+ * @param {string} robotsText robots.txt of the crawled origin ("" skips the policy check)
+ */
+async function checkPageLinks(r, pageReports, args, state, robotsText) {
+  const knownGood = new Set(pageReports.map((pr) => canonicalizeUrl(pr.finalUrl) || pr.finalUrl));
+  knownGood.add(canonicalizeUrl(r.fetched.finalUrl) || r.fetched.finalUrl);
+  /** @type {string[]} */
+  const targets = [];
+  for (const link of r.parsed.internalLinks ?? []) {
+    if (state.budget <= 0) break;
+    const lk = canonicalizeUrl(link) || link;
+    if (!lk || !/^https?:\/\//i.test(lk) || state.checked.has(lk) || knownGood.has(lk)) continue;
+    if (robotsText && isDisallowed(robotsText, UA_TOKEN, pathOf(link))) continue;
+    state.checked.add(lk);
+    state.budget--;
+    targets.push(lk);
+  }
+  if (targets.length === 0) return;
+  /** @type {{ url: string, status: string }[]} */
+  const broken = [];
+  for (let i = 0; i < targets.length; i += args.concurrency) {
+    const batch = targets.slice(i, i + args.concurrency);
+    const results = await Promise.allSettled(
+      batch.map((u) => fetchText(u, { timeoutMs: args.timeout, userAgent: UA })),
+    );
+    results.forEach((settled, k) => {
+      const u = batch[k] ?? "";
+      if (settled.status === "rejected") {
+        broken.push({ url: u, status: "fetch failed" });
+        return;
+      }
+      const res = settled.value;
+      if (!res.ok || res.status < 200 || res.status >= 400) {
+        broken.push({ url: u, status: res.error || `http status ${res.status}` });
+      }
+    });
+  }
+  if (broken.length > 0) {
+    const shown = broken
+      .slice(0, 5)
+      .map((b) => `GET ${b.url} -> ${b.status}`)
+      .join("; ");
+    r.findings.push({
+      id: "T16-broken-links",
+      category: "technical",
+      severity: "P1",
+      title: `${broken.length} broken internal link${broken.length === 1 ? "" : "s"}`,
+      evidence: broken.length > 5 ? `${shown}; +${broken.length - 5} more` : shown,
+      fix: "Fix or remove the broken links; update inlinks that point at moved pages.",
+      seoImpact: "medium",
+      geoImpact: "-",
+    });
+  }
+}
+
 function usage(code = 0) {
   console.log(`one-step-seo v${VERSION} — one command SEO + AI-visibility audit
 Usage:
@@ -198,13 +264,14 @@ Usage:
   one-step-seo sitemap <url> [--json]
   one-step-seo llms <url> [--json]
   one-step-seo fix <path> [--apply] [--only NAMES] [--url U] [--title T] [--description D] [--lang L] [--og-image U]
+  one-step-seo diff <old-report.json> <new-report.json> [--json] [--fail-on P0|P1|P2]
   one-step-seo doctor [--json]
   one-step-seo (no command: interactive prompts when attached to a TTY)
 
 Options:
   --pages N       pages to crawl for 'audit' (default 1, max 200; 'quick' defaults to 5)
   --out DIR       output directory (default ./seo-report)
-  --format        comma list among html,md,json (default html,md,json)
+  --format        comma list among html,md,json,sarif (default html,md,json)
   --timeout MS    per-request timeout in ms (default 15000, 1000-120000)
   --fail-on SEV   exit 2 when any page has P0 (or P1/P2) findings — for CI gating
   --crawl MODE    audit discovery: links (BFS over internal links) or sitemap (default links)
@@ -212,7 +279,10 @@ Options:
   --delay MS      politeness pause between crawl batches in ms (default 250, 0-10000)
   --debug         verbose diagnostics: parsed args, robots.txt status, per-page timings
   --force         crawl even when robots.txt disallows the URL (documented override)
-  --json          print JSON to stdout (sitemap / llms / doctor / fix)
+  --check-links   verify same-host link targets (capped at 100 checks/run, off by default)
+  --check-links   verify same-host link targets (capped at 100 checks/run, off by default)
+  --profile NAME  page-type calibration: default|blog|product|docs|home (default default)
+  --json          print JSON to stdout (sitemap / llms / doctor / fix / diff)
 
 Fix options (fix is a dry-run unless --apply is given):
   --apply         write the fixes to disk (creates <file>.bak backups)
@@ -230,6 +300,8 @@ Notes:
   - quick is audit with beginner defaults (5 pages, all formats).
   - audit/page skip robots.txt-disallowed URLs unless --force; a
     T05-robots-disallow report is written instead. schema warns only.
+  - diff compares two report.json files (base vs. head) for CI regression
+    gating; --fail-on trips on NEW or escalated findings only.
   - fix accepts local .html/.htm files or directories; additive fixes only.
   - Only audit sites you are allowed to crawl; respect robots.txt.
 `);
@@ -246,8 +318,9 @@ Notes:
  * @param {number} timeoutMs
  * @param {string} [userAgent]
  * @param {Set<string> | null} [allowedHosts]
+ * @param {string} [profile] page-type calibration (see PROFILES in lib/checks.mjs)
  */
-export async function analyzeOne(url, timeoutMs, userAgent, allowedHosts = null) {
+export async function analyzeOne(url, timeoutMs, userAgent, allowedHosts = null, profile = "default") {
   const fetched = await fetchWithRedirects(url, { timeoutMs, ...(userAgent ? { userAgent } : {}) });
   if (!fetched.ok || !fetched.html) {
     return {
@@ -293,7 +366,7 @@ export async function analyzeOne(url, timeoutMs, userAgent, allowedHosts = null)
     issues: validated.issues,
     errors: schemaRaw.errors,
   };
-  const findings = runChecks(parsed, siteFiles, fetched, schemaInfo);
+  const findings = runChecks(parsed, siteFiles, fetched, schemaInfo, { profile });
   if (fetched.truncated) {
     findings.push({
       id: "T00-truncated",
@@ -361,6 +434,11 @@ function writeOutputs(outDir, report, formats, basename = "report", htmlOpts) {
   if (formats.includes("html")) {
     const p = join(outDir, `${basename}.html`);
     writeFileSync(p, renderHtml(report, htmlOpts));
+    written.push(p);
+  }
+  if (formats.includes("sarif")) {
+    const p = join(outDir, `${basename}.sarif`);
+    writeFileSync(p, JSON.stringify(renderSarif(report), null, 2) + "\n");
     written.push(p);
   }
   return written;
@@ -437,6 +515,10 @@ async function cmdAudit(url, args) {
   // True when the crawl saw more URLs than the page cap could take
   // (sitemap seeds cut, discovery queue full, or >10 links on a page).
   let capped = false;
+  // Shared link-verification budget for --check-links (bounded total
+  // requests per run; targets already checked are never re-fetched).
+  /** @type {{ budget: number, checked: Set<string> }} */
+  const linkState = { budget: args.checkLinks ? MAX_LINK_CHECKS : 0, checked: new Set() };
 
   const { blocked, robotsText } = await checkRobotsAllowed(url, args);
   if (blocked) {
@@ -497,7 +579,9 @@ async function cmdAudit(url, args) {
       batch.push(next);
     }
     if (batch.length === 0) break;
-    const results = await Promise.allSettled(batch.map((u) => analyzeOne(u, args.timeout, UA, allowedHosts)));
+    const results = await Promise.allSettled(
+      batch.map((u) => analyzeOne(u, args.timeout, UA, allowedHosts, args.profile)),
+    );
     for (let i = 0; i < batch.length; i++) {
       const next = batch[i];
       const settled = results[i];
@@ -518,7 +602,7 @@ async function cmdAudit(url, args) {
           dbg(`adopted redirect host ${skipHost}`);
           allowedHosts.add(skipHost);
           adoptedOnce = true;
-          r = await analyzeOne(next, args.timeout, UA);
+          r = await analyzeOne(next, args.timeout, UA, null, args.profile);
         } else {
           console.error(`! ${next} landed outside the allowed hosts (${skipHost || "unknown"}) — skipped.`);
           failed++;
@@ -540,6 +624,9 @@ async function cmdAudit(url, args) {
       const requestedKey = canonicalizeUrl(next) || next;
       if (finalKey !== requestedKey) {
         inlinkCounts.set(finalKey, (inlinkCounts.get(finalKey) ?? 0) + (inlinkCounts.get(requestedKey) ?? 0));
+      }
+      if (args.checkLinks) {
+        await checkPageLinks(r, pageReports, args, linkState, robotsText);
       }
       const pageReport = toReport(r, next);
       pageReports.push(pageReport);
@@ -627,6 +714,7 @@ async function cmdAudit(url, args) {
         ...(formats.includes("md") ? [`[md](./${name}.md)`] : []),
         ...(formats.includes("json") ? [`[json](./${name}.json)`] : []),
         ...(formats.includes("html") ? [`[html](./${name}.html)`] : []),
+        ...(formats.includes("sarif") ? [`[sarif](./${name}.sarif)`] : []),
       ];
       lines.push(
         `- Page ${idx + 1}: ${r.finalUrl} — Search ${r.scores.search.score} (${r.scores.search.band}), AI ${r.scores.ai.score} (${r.scores.ai.band}) — ${links.join(" ")}`,
@@ -728,7 +816,7 @@ async function cmdAudit(url, args) {
  * @param {import("../lib/args.mjs").ParsedArgs} args
  */
 async function cmdPage(url, args) {
-  const { blocked } = await checkRobotsAllowed(url, args);
+  const { blocked, robotsText } = await checkRobotsAllowed(url, args);
   if (blocked) {
     console.error(
       `! robots.txt disallows auditing ${url} — crawl skipped (re-run with --force to override).`,
@@ -742,7 +830,7 @@ async function cmdPage(url, args) {
     console.log(`Wrote:\n  ${writtenBlocked.join("\n  ")}`);
     return;
   }
-  const r = await analyzeOne(url, args.timeout, UA);
+  const r = await analyzeOne(url, args.timeout, UA, null, args.profile);
   if (!r.parsed) {
     console.error(`Fetch failed: ${r.fetched.error || r.fetched.status}`);
     process.exitCode = 2;
@@ -750,6 +838,9 @@ async function cmdPage(url, args) {
   }
   if (args.debug)
     console.error(`debug: page ${url} fetched in ${r.fetched.ms}ms (${r.fetched.html.length} chars)`);
+  if (args.checkLinks) {
+    await checkPageLinks(r, [], args, { budget: MAX_LINK_CHECKS, checked: new Set() }, robotsText);
+  }
   const report = toReport(r, url);
   const written = writeOutputs(resolve(args.out), report, args.formats);
   console.log(
@@ -769,7 +860,7 @@ async function cmdPage(url, args) {
  * @param {import("../lib/args.mjs").ParsedArgs} args
  */
 async function cmdSchema(url, args) {
-  const r = await analyzeOne(url, args.timeout, UA);
+  const r = await analyzeOne(url, args.timeout, UA, null, args.profile);
   if (!r.parsed) {
     console.error(`Fetch failed: ${r.fetched.error || r.fetched.status}`);
     process.exitCode = 2;
@@ -1276,6 +1367,85 @@ async function cmdInteractive() {
   }
 }
 
+/**
+ * Regression diff between two report.json files (base vs. head).
+ * Exit 1 on unreadable/invalid inputs, 0 otherwise (2 on --fail-on breach).
+ * @param {string[]} files exactly [oldPath, newPath]
+ * @param {import("../lib/args.mjs").ParsedArgs} args
+ */
+async function cmdDiff(files, args) {
+  const [oldPath, newPath] = files;
+  if (!oldPath || !newPath) {
+    console.error("Provide two reports: one-step-seo diff old-report.json new-report.json");
+    process.exit(1);
+  }
+  /** @param {string} p @returns {any} */
+  const load = (p) => {
+    let raw = "";
+    try {
+      raw = readFileSync(p, "utf8");
+    } catch {
+      console.error(`Cannot read ${p}`);
+      process.exit(1);
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      console.error(`Invalid JSON in ${p}`);
+      process.exit(1);
+    }
+  };
+  const oldR = load(oldPath);
+  const newR = load(newPath);
+  for (const [label, r] of [
+    [oldPath, oldR],
+    [newPath, newR],
+  ]) {
+    if (!isReport(r)) {
+      console.error(`${label} is not a one-step-seo report.json (tool/scores/findings mismatch)`);
+      process.exit(1);
+    }
+  }
+  const d = diffReports(oldR, newR);
+  /** @param {number} n @returns {string} */
+  const signed = (n) => `${n > 0 ? "+" : ""}${n}`;
+  if (args.json) {
+    console.log(JSON.stringify({ tool: "one-step-seo", version: VERSION, ...d }, null, 2));
+  } else {
+    console.log(`Diff: ${oldPath} -> ${newPath}`);
+    console.log(`URL: ${d.url}`);
+    console.log(
+      `Search SEO: ${d.search.old} -> ${d.search.new} (${signed(d.search.delta)})  |  AI Visibility: ${d.ai.old} -> ${d.ai.new} (${signed(d.ai.delta)})`,
+    );
+    if (d.rulesVersionChanged) {
+      console.log(
+        `! rules version changed ${d.oldRulesVersion || "(none)"} -> ${d.newRulesVersion || "(none)"} — deltas may reflect rule changes, not site changes.`,
+      );
+    }
+    if (d.newFindings.length === 0 && d.resolvedFindings.length === 0 && d.escalated.length === 0) {
+      console.log("No finding changes.");
+    } else {
+      for (const f of d.newFindings) console.log(`  NEW [${f.severity}] ${f.title} (${f.id})`);
+      for (const f of d.resolvedFindings) console.log(`  RESOLVED [${f.severity}] ${f.title} (${f.id})`);
+      for (const e of d.escalated)
+        console.log(`  ESCALATED [${e.oldSeverity}->${e.newSeverity}] ${e.title} (${e.id})`);
+    }
+  }
+  if (args.failOn) {
+    /** @type {Record<string, number>} */
+    const rank = { P0: 0, P1: 1, P2: 2 };
+    const threshold = rank[args.failOn];
+    const breach =
+      threshold !== undefined &&
+      (d.newFindings.some((f) => (rank[f.severity] ?? 9) <= threshold) ||
+        d.escalated.some((e) => (rank[e.newSeverity] ?? 9) <= threshold));
+    if (breach) {
+      console.error(`Fail-on threshold breached: new or escalated ${args.failOn}+ findings.`);
+      process.exitCode = 2;
+    }
+  }
+}
+
 // `--verbose` is also honoured from the env so CI logs can be made verbose
 // without changing the command line.
 let verbose = process.env.VERBOSE === "1";
@@ -1302,6 +1472,8 @@ async function main() {
   if (cmd === "doctor") return cmdDoctor(args);
   // `fix` targets local file paths — must route before URL normalization.
   if (cmd === "fix") return cmdFix(rawUrl ?? "", args);
+  // `diff` compares local report.json files — also routes before URLs.
+  if (cmd === "diff") return cmdDiff(args._.slice(1), args);
   if (cmd === "quick") {
     const argv = process.argv.slice(2);
     const explicitPages = argv.some((a) => a === "--pages" || a.startsWith("--pages="));

@@ -1,6 +1,7 @@
 {
   "tool": "one-step-seo",
-  "version": "0.5.0",
+  "version": "0.6.0",
+  "rulesVersion": "2026.10",
   "url": "https://example.com/good/",
   "finalUrl": "https://example.com/good/",
   "checkedAt": "2026-10-08T00:00:00.000Z",

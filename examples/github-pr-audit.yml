@@ -1,0 +1,66 @@
+# Example: SEO regression check on pull requests.
+#
+# Copy to YOUR site repository as .github/workflows/seo-regression.yml
+# (it lives here under examples/ so it never runs on this repo).
+# Needs nothing but GITHUB_TOKEN (automatic) and a preview URL.
+#
+# Flow: audit the preview deployment -> gate on new critical findings ->
+# upload reports -> comment the score summary on the PR.
+# For base-vs-head deltas, see the "Compare against production" step.
+name: SEO regression check
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write # posting the summary comment only
+
+jobs:
+  seo-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 1. Audit the preview deployment (replace with your preview URL:
+      #    Vercel/Netlify preview, staging host, or production for schedule).
+      - name: Audit preview
+        id: audit
+        run: >
+          npx one-step-seo audit "${{ vars.PREVIEW_URL }}"
+          --pages 5 --out ./seo-report --fail-on P0
+        continue-on-error: true
+
+      # 2. Compare against production when a base report exists.
+      #    Produce base.json on a schedule (see docs/CI.md) and download it
+      #    here with dawidd6/action-download-artifact, then:
+      #      npx one-step-seo diff base-report.json seo-report/report.json --fail-on P1
+      #    New or escalated P1+ findings exit 2 and fail this step.
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-report
+          path: seo-report/
+          retention-days: 30
+
+      - name: Comment summary on PR
+        if: always() && hashFiles('seo-report/report.json') != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          node --input-type=module -e "import { readFileSync } from 'node:fs';
+          const r = JSON.parse(readFileSync('./seo-report/report.json','utf8'));
+          console.log(['## SEO audit', '',
+            '- Search SEO: **' + r.scores.search.score + '/100 (' + r.scores.search.band + ')**',
+            '- AI Visibility: **' + r.scores.ai.score + '/100 (' + r.scores.ai.band + ')**',
+            '- Counts: P0=' + r.counts.P0 + ' P1=' + r.counts.P1 + ' P2=' + r.counts.P2 + ' P3=' + r.counts.P3,
+            '- Full reports: workflow artifacts → seo-report/'].join('\n'));" > /tmp/seo-comment.md
+          && gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/seo-comment.md
+
+      - name: Fail on audit breach
+        if: steps.audit.outcome == 'failure'
+        run: exit 2

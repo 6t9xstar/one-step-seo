@@ -8,6 +8,36 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- **`audit --diff old.json new.json` — regression tracking.** Per-page
+  score deltas plus NEW / RESOLVED / ESCALATED findings (terminal table +
+  `--json`); `--fail-on` exits 2 only on new-or-escalated findings at the
+  threshold, so pre-existing issues never fail the build. Warns when the two
+  reports carry different `rulesVersion` stamps.
+- **Rule versioning + benchmark corpus.** Every report carries
+  `rulesVersion` (`lib/score.mjs`, currently `2026.10`; `schema-report.json`
+  updated); `tests/scores.test.mjs` pins exact scores/counts for four
+  fixtures so scoring-rule changes fail loudly instead of drifting.
+- **`--format sarif`.** Same findings as SARIF v2.1.0 for GitHub code
+  scanning (P0/P1 → error, P2 → warning, P3 → note; passes omitted);
+  conditional `[sarif]` links in `index.md`. (JUnit declined: SARIF covers
+  CI annotations; two formats would double the drift surface.)
+- **`--profile blog|product|docs|home`.** Documented calibrations:
+  product (thin threshold 120, skips answer-first), docs (FAQ + llms.txt
+  bumped to P1), home (thin threshold 100, skips answer-first);
+  blog/default byte-identical. Unknown names fall back to default. The AI
+  readiness checklist is identical across profiles.
+- **Reusable PR workflow** (`examples/github-pr-audit.yml`, kept out of
+  `.github/workflows/` so it never runs here): audit preview, `--fail-on`
+  gate, artifact upload, score-summary comment via `GITHUB_TOKEN` only;
+  `docs/CI.md` documents the base-vs-head `diff` variant.
+- **`--check-links` (bounded, off by default).** Verifies same-host link
+  targets (capped at 100 checks/run via `MAX_LINK_CHECKS`, concurrency
+  shared, known-200 and robots-disallowed targets skipped) → aggregated P1
+  `T16-broken-links` per page with findings folded into scores/counts
+  before reports are written.
+- **`docs/GSC-INTEGRATION-DESIGN.md`** (design-only, mirrors PSI-DESIGN):
+  read-only scopes, OAuth/service-account options, offline fallback,
+  secret-scan rules. No implementation.
 - **Snippet eligibility for AI answers: `G09-snippet-controls` (P2).**
   Google lifts passages only from snippet-eligible pages, so meta or
   `X-Robots-Tag` `nosnippet` / `max-snippet: 0` silently blocks AI-Overviews

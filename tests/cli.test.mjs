@@ -397,6 +397,140 @@ test("cli: unfetchable URL exits 2", async () => {
   assert.equal(r.code, 2, `expected exit 2, got ${r.code}`);
 });
 
+test("cli: --profile calibrates the audit, unknown profiles exit 1", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-profile-"));
+    const r = await runCli(["page", `http://127.0.0.1:${port}/`, "--out", out, "--profile", "product"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(existsSync(join(out, "report.json")), "expected report.json");
+    assert.equal((await runCli(["page", `http://127.0.0.1:${port}/`, "--profile", "enterprise"])).code, 1);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: --format sarif writes GitHub-compatible output", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-sarif-"));
+    const r = await runCli(["page", `http://127.0.0.1:${port}/`, "--out", out, "--format", "sarif,json"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(existsSync(join(out, "report.sarif")), "expected report.sarif");
+    const sarif = JSON.parse(readFileSync(join(out, "report.sarif"), "utf8"));
+    const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+    assert.equal(sarif.version, "2.1.0");
+    assert.equal(sarif.runs.length, 1);
+    assert.equal(sarif.runs[0].tool.driver.name, "one-step-seo");
+    const actionable = report.findings.filter(
+      /** @param {{ severity?: string }} f @returns {boolean} */ (f) => f.severity !== "pass",
+    );
+    assert.equal(sarif.runs[0].results.length, actionable.length);
+    const levels = new Set(
+      sarif.runs[0].results.map(/** @param {{ level?: string }} x @returns {string} */ (x) => x.level ?? ""),
+    );
+    for (const l of levels) assert.ok(["error", "warning", "note"].includes(l), `bad level ${l}`);
+    const ruleIds = new Set(
+      sarif.runs[0].tool.driver.rules.map(
+        /** @param {{ id?: string }} x @returns {string} */ (x) => x.id ?? "",
+      ),
+    );
+    for (const x of sarif.runs[0].results)
+      assert.ok(ruleIds.has(x.ruleId), `result without rule ${x.ruleId}`);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+// ---------- diff: report regression comparison ----------
+
+/**
+ * @param {string} dir
+ * @param {string} name
+ * @param {any} report
+ * @returns {string}
+ */
+function writeReport(dir, name, report) {
+  const file = join(dir, name);
+  writeFileSync(file, JSON.stringify(report));
+  return file;
+}
+
+/** @param {string} id @param {string} severity */
+function diffFinding(id, severity) {
+  return { id, severity, title: `t-${id}`, evidence: "e", fix: "x" };
+}
+
+/**
+ * @param {object} [over]
+ */
+function diffReport(over = {}) {
+  return {
+    tool: "one-step-seo",
+    version: "9",
+    url: "https://a.com/",
+    finalUrl: "https://a.com/",
+    checkedAt: "2026-01-01T00:00:00.000Z",
+    scores: { search: { score: 80, band: "B" }, ai: { score: 70, band: "C" } },
+    counts: { P0: 0, P1: 0, P2: 0, P3: 0, pass: 0 },
+    findings: [],
+    page: {},
+    site: {},
+    ...over,
+  };
+}
+
+test("cli: diff prints deltas, new, and resolved findings", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "oss-diff-"));
+  const oldFile = writeReport(
+    dir,
+    "old.json",
+    diffReport({ findings: [diffFinding("O02-meta-missing", "P1"), diffFinding("W01-social", "P3")] }),
+  );
+  const newFile = writeReport(
+    dir,
+    "new.json",
+    diffReport({
+      scores: { search: { score: 90, band: "A" }, ai: { score: 70, band: "C" } },
+      findings: [diffFinding("W01-social", "P3"), diffFinding("C02-answer", "P1")],
+    }),
+  );
+  const r = await runCli(["diff", oldFile, newFile]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.match(r.stdout, /Search SEO: 80 -> 90 \(\+10\)/);
+  assert.match(r.stdout, /NEW \[P1\] .* \(C02-answer\)/);
+  assert.match(r.stdout, /RESOLVED \[P1\] .* \(O02-meta-missing\)/);
+  const j = await runCli(["diff", oldFile, newFile, "--json"]);
+  assert.equal(j.code, 0, j.stderr);
+  const out = JSON.parse(j.stdout);
+  assert.equal(out.tool, "one-step-seo");
+  assert.deepEqual(out.search, { old: 80, new: 90, delta: 10 });
+  assert.equal(out.newFindings.length, 1);
+});
+
+test("cli: diff --fail-on trips on new findings, usage errors exit 1", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "oss-diffgate-"));
+  const oldFile = writeReport(dir, "old.json", diffReport({ findings: [] }));
+  const newFile = writeReport(dir, "new.json", diffReport({ findings: [diffFinding("T01-https", "P0")] }));
+  const gated = await runCli(["diff", oldFile, newFile, "--fail-on", "P0"]);
+  assert.equal(gated.code, 2, `expected exit 2, got ${gated.code}: ${gated.stderr.slice(0, 200)}`);
+  assert.match(gated.stderr, /Fail-on threshold breached/);
+  const mildFile = writeReport(dir, "mild.json", diffReport({ findings: [diffFinding("O06-og", "P2")] }));
+  const mildBreach = await runCli(["diff", oldFile, mildFile, "--fail-on", "P2"]);
+  assert.equal(mildBreach.code, 2, `expected exit 2, got ${mildBreach.code}`);
+  const calm = await runCli(["diff", oldFile, mildFile, "--fail-on", "P1"]);
+  assert.equal(calm.code, 0, calm.stderr);
+  assert.equal((await runCli(["diff"])).code, 1, "missing files");
+  assert.equal((await runCli(["diff", oldFile])).code, 1, "missing second file");
+  assert.equal((await runCli(["diff", oldFile, join(dir, "missing.json")])).code, 1, "missing file");
+  writeFileSync(join(dir, "bad.json"), "{nope");
+  assert.equal((await runCli(["diff", oldFile, join(dir, "bad.json")])).code, 1, "invalid JSON");
+  writeFileSync(join(dir, "other.json"), JSON.stringify({ tool: "nope" }));
+  assert.equal((await runCli(["diff", oldFile, join(dir, "other.json")])).code, 1, "not a report");
+});
+
 // ---------- fix: safe local auto-fixes ----------
 
 const FIX_HTML = `<!doctype html>

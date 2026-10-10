@@ -6,7 +6,14 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { geoDetails, computeScores, GEO_WEIGHTS, GEO_ONLY_IDS, SEARCH_WEIGHTS } from "../lib/score.mjs";
+import {
+  geoDetails,
+  computeScores,
+  GEO_WEIGHTS,
+  GEO_ONLY_IDS,
+  SEARCH_WEIGHTS,
+  RULES_VERSION,
+} from "../lib/score.mjs";
 import {
   esc,
   escTruncate,
@@ -25,6 +32,7 @@ import {
   groupByCategory,
   monitorItems,
 } from "../lib/report.mjs";
+import { diffReports, isReport } from "../lib/report-diff.mjs";
 
 // ---------- score.mjs: geoDetails ----------
 
@@ -369,6 +377,7 @@ function mkReport(findings, scores = {}) {
   return {
     tool: "one-step-seo",
     version: "9",
+    rulesVersion: RULES_VERSION,
     url: "https://a.com/",
     finalUrl: "https://a.com/",
     checkedAt: "2026-01-01T00:00:00.000Z",
@@ -714,4 +723,83 @@ test("renderSiteIndex lists duplicate titles with page links", () => {
   const clean = renderSiteIndex([rep("One"), rep("Two")]);
   assert.match(clean, /No duplicate titles or meta descriptions/);
   assert.ok(!clean.includes("undefined"));
+});
+
+// ---------- report-diff.mjs ----------
+
+test("isReport accepts report-shaped objects only", () => {
+  const good = {
+    tool: "one-step-seo",
+    scores: { search: { score: 80 }, ai: { score: 70 } },
+    findings: [],
+  };
+  assert.equal(isReport(good), true);
+  assert.equal(isReport(null), false);
+  assert.equal(isReport({}), false);
+  assert.equal(isReport({ tool: "one-step-seo" }), false);
+  assert.equal(isReport({ tool: "other", scores: good.scores, findings: [] }), false);
+  assert.equal(isReport({ tool: "one-step-seo", scores: { search: {} }, findings: [] }), false);
+});
+
+test("diffReports finds new, resolved, and escalated findings plus deltas", () => {
+  /** @param {string} id @param {string} severity */
+  const f = (id, severity) => ({ id, severity, title: `t-${id}`, evidence: "e", fix: "x" });
+  const oldR = {
+    tool: "one-step-seo",
+    url: "https://a.com/",
+    finalUrl: "https://a.com/",
+    rulesVersion: "2026.10",
+    scores: { search: { score: 80, band: "B" }, ai: { score: 70, band: "C" } },
+    findings: [f("T01-https", "P0"), f("O02-meta-missing", "P1"), f("W01-social", "P3")],
+  };
+  const newR = {
+    tool: "one-step-seo",
+    url: "https://a.com/",
+    finalUrl: "https://a.com/",
+    rulesVersion: "2026.10",
+    scores: { search: { score: 86, band: "B" }, ai: { score: 70, band: "C" } },
+    findings: [f("T01-https", "pass"), f("C02-answer", "P1"), f("W01-social", "P3")],
+  };
+  const d = diffReports(oldR, newR);
+  assert.deepEqual(d.search, { old: 80, new: 86, delta: 6 });
+  assert.deepEqual(d.ai, { old: 70, new: 70, delta: 0 });
+  assert.equal(d.rulesVersionChanged, false);
+  // O02 fixed (absent from new) → resolved; C02 appeared → new.
+  assert.deepEqual(
+    d.resolvedFindings.map((x) => x.id),
+    ["O02-meta-missing"],
+  );
+  assert.deepEqual(
+    d.newFindings.map((x) => x.id),
+    ["C02-answer"],
+  );
+  // T01 went P0 → pass: improved, neither new nor escalated.
+  assert.deepEqual(d.escalated, []);
+  assert.equal(d.url, "https://a.com/");
+});
+
+test("diffReports flags escalations and rules-version changes", () => {
+  /** @param {string} id @param {string} severity */
+  const f = (id, severity) => ({ id, severity, title: `t-${id}`, evidence: "e", fix: "x" });
+  const oldR = {
+    tool: "one-step-seo",
+    scores: { search: { score: 90, band: "A" }, ai: { score: 90, band: "A" } },
+    findings: [f("O06-og", "P2")],
+  };
+  const newR = {
+    tool: "one-step-seo",
+    rulesVersion: "2026.11",
+    scores: { search: { score: 65, band: "D" }, ai: { score: 90, band: "A" } },
+    findings: [f("O06-og", "P0")],
+  };
+  const d = diffReports(oldR, newR);
+  assert.equal(d.rulesVersionChanged, true);
+  assert.equal(d.oldRulesVersion, "");
+  assert.equal(d.newRulesVersion, "2026.11");
+  assert.deepEqual(
+    d.escalated.map((e) => [e.id, e.oldSeverity, e.newSeverity]),
+    [["O06-og", "P2", "P0"]],
+  );
+  assert.deepEqual(d.newFindings, []);
+  assert.deepEqual(d.resolvedFindings, []);
 });

@@ -3,27 +3,28 @@
 Deterministic, no guessing. Every finding carries evidence + fix.
 Thresholds live in `lib/checks.mjs` (`THRESHOLDS`).
 
-## Technical (T00–T15)
+## Technical (T00–T16)
 
-| ID                   | Severity   | What                                                                                       |
-| -------------------- | ---------- | ------------------------------------------------------------------------------------------ |
-| T00-truncated        | P2         | HTML over 5 MiB truncated; checks ran on head only                                         |
-| T01-https            | P0/pass    | Final URL uses https                                                                       |
-| T02-status           | P0/pass    | HTTP 200 (invalid final URL also P0)                                                       |
-| T03-redirects        | P1/pass    | Redirect chain ≤1                                                                          |
-| T04-content-type     | P2/pass    | Served as text/html                                                                        |
-| T05-robots           | P1/pass    | robots.txt found                                                                           |
-| T05-robots-disallow  | P1         | robots.txt disallows the audited path — crawl skipped (audit/page refuse unless `--force`) |
-| T06-sitemap          | P1/pass    | XML sitemap found (incl. `Sitemap:` URLs from robots.txt)                                  |
-| T07-noindex          | P0/pass    | No `noindex` in meta robots nor `X-Robots-Tag` header (header wins conflicts)              |
-| T08-canonical        | P1/P2/pass | Canonical self-references (missing = P2)                                                   |
-| T09-lang             | P2/pass    | `<html lang>` present                                                                      |
-| T10-charset          | P2/pass    | UTF-8 declared                                                                             |
-| T11-viewport         | P1/pass    | Responsive viewport                                                                        |
-| T12-url              | P2/pass    | Short-path query-string URLs flagged; app routes pass                                      |
-| T13-mixed            | P1/P2/pass | No http:// subresources on https pages (scripts = P1, images = P2)                         |
-| T14-third-party      | P2/pass    | At most 5 third-party script hosts                                                         |
-| T15-security-headers | P3/pass    | CSP + HSTS + X-Content-Type-Options present (skipped when headers unknown)                 |
+| ID                   | Severity   | What                                                                                            |
+| -------------------- | ---------- | ----------------------------------------------------------------------------------------------- |
+| T00-truncated        | P2         | HTML over 5 MiB truncated; checks ran on head only                                              |
+| T01-https            | P0/pass    | Final URL uses https                                                                            |
+| T02-status           | P0/pass    | HTTP 200 (invalid final URL also P0)                                                            |
+| T03-redirects        | P1/pass    | Redirect chain ≤1                                                                               |
+| T04-content-type     | P2/pass    | Served as text/html                                                                             |
+| T05-robots           | P1/pass    | robots.txt found                                                                                |
+| T05-robots-disallow  | P1         | robots.txt disallows the audited path — crawl skipped (audit/page refuse unless `--force`)      |
+| T06-sitemap          | P1/pass    | XML sitemap found (incl. `Sitemap:` URLs from robots.txt)                                       |
+| T07-noindex          | P0/pass    | No `noindex` in meta robots nor `X-Robots-Tag` header (header wins conflicts)                   |
+| T08-canonical        | P1/P2/pass | Canonical self-references (missing = P2)                                                        |
+| T09-lang             | P2/pass    | `<html lang>` present                                                                           |
+| T10-charset          | P2/pass    | UTF-8 declared                                                                                  |
+| T11-viewport         | P1/pass    | Responsive viewport                                                                             |
+| T12-url              | P2/pass    | Short-path query-string URLs flagged; app routes pass                                           |
+| T13-mixed            | P1/P2/pass | No http:// subresources on https pages (scripts = P1, images = P2)                              |
+| T14-third-party      | P2/pass    | At most 5 third-party script hosts                                                              |
+| T15-security-headers | P3/pass    | CSP + HSTS + X-Content-Type-Options present (skipped when headers unknown)                      |
+| T16-broken-links     | P1         | `--check-links` only: same-host link target returns 4xx/5xx or fails (capped at 100 checks/run) |
 
 Bodies over 5 MiB are truncated for safety and reported as `T00-truncated`
 (P2) — checks then cover the head portion only.

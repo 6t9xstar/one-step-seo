@@ -82,12 +82,33 @@ the result without opening artifacts:
 All three lines after the heading come straight from the terminal output
 and `report.md`'s Executive summary — no manual analysis needed.
 
+## PR regression checks (base vs. head)
+
+A copy-paste workflow lives at `examples/github-pr-audit.yml` (kept out of
+`.github/workflows/` so it never runs here): audit the preview deployment
+with `--fail-on P0`, upload artifacts, and comment the score summary — all
+with the automatic `GITHUB_TOKEN`, no extra secrets.
+
+For true regression gating across deploys, audit production on a schedule,
+keep its `report.json` as an artifact, then compare in PRs:
+
+```bash
+npx one-step-seo diff base-report.json seo-report/report.json --fail-on P1
+```
+
+`diff` prints score deltas plus NEW / RESOLVED / ESCALATED findings and
+exits 2 only on new-or-escalated findings at the threshold — pre-existing
+issues never fail the build. It also warns when the two reports were built
+under different rules versions (`rulesVersion`), so scoring-rule changes
+can't masquerade as site regressions.
+
 ## Machine-readable contract
 
 `report.json` follows `lib/schema-report.json` (draft-07). Stable fields
-for agents and integrations: `tool`, `version`, `url`, `finalUrl`,
-`checkedAt`, `scores.{search,ai}.{score,band}`, `counts.{P0,P1,P2,P3,pass}`,
-`findings[].{id,category,severity,title,evidence,fix}`, `page.*`, `site.*`.
+for agents and integrations: `tool`, `version`, `rulesVersion`, `url`,
+`finalUrl`, `checkedAt`, `scores.{search,ai}.{score,band}`,
+`counts.{P0,P1,P2,P3,pass}`, `findings[].{id,category,severity,title,evidence,fix}`,
+`page.*`, `site.*`.
 Finding IDs match `^[A-Z]+[0-9]+-[a-z0-9-]+$` (`lib/schema-finding.json`).
 
 See `.github/workflows/seo-dogfood.yml` for a weekly scheduled example.

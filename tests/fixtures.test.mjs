@@ -539,6 +539,84 @@ test("cli: llms works when the page fetch fails", async () => {
   }
 });
 
+test("cli: --check-links reports broken targets, off by default", async () => {
+  const server = await startRouter((pathname) => {
+    if (pathname === "/robots.txt")
+      return { status: 200, type: "text/plain", body: "User-agent: *\nDisallow:\n" };
+    if (pathname === "/")
+      return {
+        status: 200,
+        type: "text/html",
+        body: HEALTHY_PAGE.replace("</body>", '<p><a href="/ok">ok</a> <a href="/gone">gone</a></p></body>'),
+      };
+    if (pathname === "/ok") return { status: 200, type: "text/html", body: HEALTHY_PAGE };
+    if (pathname === "/gone") return { status: 404, type: "text/html", body: "nope" };
+    return null;
+  });
+  const port = server.address()?.port;
+  try {
+    const plain = mkdtempSync(join(tmpdir(), "oss-nolinkcheck-"));
+    const r0 = await runCli(["page", `http://127.0.0.1:${port}/`, "--out", plain]);
+    assert.equal(r0.code, 0, r0.stderr);
+    const plainReport = JSON.parse(readFileSync(join(plain, "report.json"), "utf8"));
+    assert.ok(
+      !plainReport.findings.some(
+        /** @param {{ id: string }} f @returns {boolean} */ (f) => f.id === "T16-broken-links",
+      ),
+      "T16 must not run without --check-links",
+    );
+    const out = mkdtempSync(join(tmpdir(), "oss-linkcheck-"));
+    const r = await runCli(["page", `http://127.0.0.1:${port}/`, "--out", out, "--check-links"]);
+    assert.equal(r.code, 0, r.stderr);
+    const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+    const t16 = report.findings.find(
+      /** @param {{ id: string }} f @returns {boolean} */ (f) => f.id === "T16-broken-links",
+    );
+    assert.ok(t16, "expected a T16-broken-links finding");
+    assert.equal(t16.severity, "P1");
+    assert.match(t16.evidence, /\/gone/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: --check-links honors the per-run budget", async () => {
+  let hits = 0;
+  const server = createServer((req, res) => {
+    const pathname = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
+    if (pathname === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain", connection: "close" });
+      res.end("User-agent: *\nDisallow:\n");
+      return;
+    }
+    if (pathname === "/") {
+      const links = Array.from({ length: 105 }, (_, i) => `<a href="/l${i}">l${i}</a>`).join(" ");
+      res.writeHead(200, { "content-type": "text/html", connection: "close" });
+      res.end(HEALTHY_PAGE.replace("</body>", `<p>${links}</p></body>`));
+      return;
+    }
+    if (/^\/l\d+$/.test(pathname)) {
+      hits++;
+      res.writeHead(404, { "content-type": "text/html", connection: "close" });
+      res.end("nope");
+      return;
+    }
+    res.writeHead(404, { "content-type": "text/plain", connection: "close" });
+    res.end("not found");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const addr = server.address();
+  const port = typeof addr === "object" && addr ? addr.port : 0;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-linkbudget-"));
+    const r = await runCli(["page", `http://127.0.0.1:${port}/`, "--out", out, "--check-links"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(hits, 100, `expected exactly the 100-check budget to be spent, got ${hits}`);
+  } finally {
+    await closeServer(server);
+  }
+});
+
 test("cli: duplicate titles across pages land in index.md and the terminal", async () => {
   const dup = /** @param {string} links @returns {string} */ (links) =>
     `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Same Site Title Here</title></head><body><h1>Same</h1><p>${links}</p></body></html>`;
