@@ -33,7 +33,7 @@ Activate `core-web-vitals` when the user wants to:
      - **CLS**: Good `<=0.10`, Needs Improvement `0.10–0.25` (`P2`), Poor `>0.25` (`P1`).
 3. **Diagnose root causes in HTML markup (`P01`, `P02`, `O09`, `T14`)**:
    - **CLS drivers**: Check `O09-img-dims` (`P2`) for `<img>` tags missing explicit `width` and `height` attributes.
-   - **LCP / payload drivers**: Check `P01-html-size` (>500 KB HTML) and `P02-img-count` (>20 images without `loading="lazy"`). Note: keep the hero/LCP image eager (`fetchpriority="high"`, no `loading="lazy"`) and lazy-load below-the-fold images.
+   - **LCP / payload drivers**: Check `P01-html-size` (>300 KB HTML) and `P02-img-count` (>20 images). Note: keep the hero/LCP image eager (`fetchpriority="high"`, no `loading="lazy"`) and lazy-load below-the-fold images.
    - **INP / TBT drivers**: Check `T14-third-party` (>5 distinct third-party `<script>` hosts) and recommend `defer` or removing non-essential trackers.
 
 ## 4. Tools & CLI Commands

@@ -57,9 +57,9 @@ npx one-step-seo llms https://example.com
 
 ## 5. Evidence Requirements
 
-- Report the **AI Visibility** score (`0–100`, band `A–F`) separately from Search SEO.
-- Cite every passing and failing signal from `scores.ai.details.signals` along with its exact point weight.
-- Cite specific finding IDs (`G01`–`G11`, `C02`–`C05`) and their evidence strings from `report.json`.
+- Report the **AI Visibility** score (`report.scores.ai.score` `0–100`, `report.scores.ai.band` `A–F`) separately from Search SEO (`report.scores.search.score`).
+- Cite the citability checklist from `report.md` (`## Make this page more citable`, built by `citableChecklist(report)`), the `signals` object from `one-step-seo ai <url> --json` (`signals.robotsAiBlocked`, `signals.blockedBots`, `signals.llmsFound`, `signals.llmsBytes`, `signals.schemaTypes`, `signals.hasAuthor`, `signals.hasLandmarks`, `signals.hasDirectAnswer`), and each signal's weight from `GEO_WEIGHTS` in `lib/score.mjs`.
+- Cite specific finding IDs (`G01`–`G11`, `C02`–`C05`) and their `evidence` strings from `report.findings`.
 
 ## 6. Expected Outputs
 

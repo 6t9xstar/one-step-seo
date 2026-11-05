@@ -54,7 +54,7 @@ npx one-step-seo page ./dist/index.html --skills schema-validation --offline --o
 
 ## 5. Evidence Requirements
 
-- Quote all detected `@type` values from `report.page.schemaTypes` (or `schema` command stdout).
+- Quote all detected `@type` values from the `S01-present` finding `evidence` in `report.findings`, `schema` command stdout, or `ai --json` (`signals.schemaTypes`).
 - Quote exact `S01-json-invalid`, `S02-*`, and `S03-faq-parity` evidence strings.
 - Confirm whether `@graph` blocks properly declare `"@context": "https://schema.org"` at the root or node level.
 
@@ -65,7 +65,7 @@ npx one-step-seo page ./dist/index.html --skills schema-validation --offline --o
 
 ## 7. Limitations & External Data
 
-- **Structural vocabulary check**: `lib/schema.mjs` validates JSON syntax, `@context` inheritance across `@graph` arrays, a 350+ type `KNOWN_TYPES` allowlist, and required properties for 17 core rich-result types.
+- **Structural vocabulary check**: `lib/schema.mjs` validates JSON syntax, `@context` inheritance across `@graph` arrays, a 350+ type `KNOWN_TYPES` allowlist, and required properties across 15 rich-result validator rules (covering 17 Schema.org types including `Article`/`NewsArticle`/`BlogPosting`).
 - **No fabricated identity data**: `generateSchema` refuses to emit placeholder `"Example"` identity data when `name` or `url` is missing.
 
 ## 8. Safety & Approval Rules

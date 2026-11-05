@@ -4,12 +4,36 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/).
 
+## [0.9.1] - 2026-11-05
+
+### Fixed
+
+- **Site Dashboard & Report Missing-Score Handling (`lib/report.mjs`).**
+  - Added `isValidScore()` (`typeof v === "number" && Number.isFinite(v)`) to distinguish valid numeric scores (including legitimate `0` scores) from `null`, `undefined`, `NaN`, and `Infinity`.
+  - Fixed `renderSiteIndex()` so missing scores render `<span class="badge">N/A</span>` with `data-s=""` / `data-a=""` instead of defaulting to `0 F` and `data-s="0"`.
+  - Fixed empty valid-score aggregation in `renderSiteIndex()` so `avgSearch` and `avgAi` resolve to `null` (rendering `N/A` in hero gauges and summary captions with `(0/N valid pages)`) when no pages have valid scores.
+  - Excluded pages without valid scores from `Lowest-Performing Page` and `Highest-Performing Page` ranking cards and placed missing-score rows after valid numeric rows during initial and client-side column sorting while preserving real `0` (`0 F`) scores.
+  - Updated `verdictFor()`, `renderMarkdown()`, and `renderHtml()` to guard missing scores with `isValidScore()` so unavailable scores never trigger false `< 60` verdicts or `null/100` labels.
+- **Agent Skill Contract Alignment (`skills/*/SKILL.md` & `lib/skills.mjs`).**
+  - Reconciled `skills/geo-optimization/SKILL.md` and `skills/seo-audit/SKILL.md` by replacing nonexistent `scores.ai.details.signals` references with `one-step-seo ai <url> --json` (`signals.*`), `report.md` (`## Make this page more citable`), and `citableChecklist(report)`.
+  - Replaced nonexistent `report.page.titleLength`, `report.page.metaDescriptionLength`, `report.page.schemaTypes`, `report.site.llmsTxt`, and `report.site.aiCrawlersBlocked` references across `skills/*/SKILL.md` with canonical `lib/schema-report.json` paths (`report.page.title` / `metaDescription`, `report.site.llms`, and finding `evidence` on `S01-present` / `G02-ai-blocked`).
+  - Aligned check thresholds in `skills/onpage-optimization/SKILL.md`, `skills/content-quality/SKILL.md`, `skills/core-web-vitals/SKILL.md`, `skills/internal-linking/SKILL.md`, `skills/technical-seo/SKILL.md`, and `skills/schema-validation/SKILL.md` with `THRESHOLDS` in `lib/checks.mjs` and `REQUIRED_PROPS` in `lib/schema.mjs`.
+  - Registered documented CLI skill aliases (`structured-data`, `cwv`, `a11y`, `international-seo`, `i18n`) and aligned check severity metadata in `lib/skills.mjs`.
+- **Documentation & Reporting Architecture Consistency (`README.md`, `SKILL.md`, `docs/USAGE.md`, `docs/SCORING.md`).**
+  - Added `csv` to `--format` documentation and documented `--skills`, `--exclude-skills`, `--offline`, and `report.csv` in `docs/USAGE.md`.
+  - Added `G10-author` and `G11-semantic-content` to `GEO_ONLY_IDS` in `docs/SCORING.md`.
+  - Clarified the separation between the 13 Agent Skill playbooks (`skills/*/SKILL.md`) across 7 domains and the 14 executable CLI skill groups (`lib/skills.mjs`) across 9 categories in `README.md` and `SKILL.md`.
+  - Corrected rule IDs, audit profile names (`product`, `docs`, `blog`, `home`), `--no-backup` flag syntax, and `one-step-seo diff` references in `README.md`.
+- **Security & Accessibility Hardening (`lib/report.mjs`).**
+  - Hardened `esc()` to escape single quotes (`'` -> `&#39;`) in addition to `&`, `<`, `>`, and `"`.
+  - Added keyboard accessibility (`tabindex="0"`, `role="button"`, `aria-sort`, `Enter`/`Space` sorting, `/` and `Escape` search shortcuts) and polite live status announcements (`role="status" aria-live="polite"`) to the multi-page site dashboard (`index.html`).
+
 ## [0.9.0] - 2026-11-05
 
 ### Added
 
 - **Structured 13-Skill Agent Library (`skills/*/SKILL.md` & `lib/skills.mjs`).**
-  - Expanded `skills/` from 2 sub-skills into 13 standardized, 9-section Agent Skill playbooks across 6 domains:
+  - Expanded `skills/` from 2 sub-skills into 13 standardized, 9-section Agent Skill playbooks across 7 domains:
     - Core Workflow: `seo-audit`, `seo-fix`
     - Technical SEO: `technical-seo`, `sitemap-robots`
     - On-Page & Content: `onpage-optimization`, `content-quality`, `duplicate-content`, `internal-linking`

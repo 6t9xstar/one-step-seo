@@ -26,7 +26,7 @@ Activate `technical-seo` when the user wants to:
    - Run `npx one-step-seo page <url> --skills technical-seo,security-hygiene --out ./seo-report` (or `audit <url> --pages 10 --skills technical-seo,security-hygiene`).
 2. **Inspect transport and status chain (`T01`, `T02`, `T03`, `T04`)**:
    - Verify the final URL resolves over `https:` with HTTP `200` and `content-type: text/html`.
-   - If `T03-redirects` fires (>2 hops), inspect the `statusChain` evidence in `report.json` and recommend collapsing intermediate hops to a single `301` redirect to the final canonical destination.
+   - If `T03-redirects` fires (>1 hop), inspect the redirect chain in `T03-redirects` `evidence` in `report.json` and recommend collapsing intermediate hops to a single `301` redirect to the final canonical destination.
 3. **Verify indexation gates (`T07-noindex`, `T05-robots-disallow`)**:
    - Check both `<meta name="robots">` and the `X-Robots-Tag` HTTP header (`T07-noindex` evaluates both and flags `noindex` or `none` as `P0`).
 4. **Validate canonical consistency (`T08-canonical`, `T17-canonical-http`)**:

@@ -51,7 +51,7 @@ npx one-step-seo page https://example.com --skills sitemap-robots --out ./seo-re
 
 ## 5. Evidence Requirements
 
-- Quote `site.robots`, `site.sitemap`, `site.sitemapUrls`, and `site.aiCrawlersBlocked` from `report.json` or `sitemap --json`.
+- Quote `report.site.robots`, `report.site.sitemap`, `report.site.sitemapUrls`, and `report.site.llms` from `report.json` (or `robotsFound`, `robotsSitemaps`, `sitemapFound`, `sitemapUrl`, `sitemapUrls`, `sitemapTruncated`, `llmsFound` from `sitemap --json`). For blocked AI crawlers, quote the `G02-ai-blocked` finding `evidence` from `report.findings` (or `signals.robotsAiBlocked` / `signals.blockedBots` from `ai --json`).
 - When `T06-sitemap` fails, specify whether the file was missing (HTTP 404) or returned 200 with zero valid `<loc>` entries.
 - When reporting orphan pages, cite the exact URLs listed under `Possibly orphaned pages` in `index.md`.
 

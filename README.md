@@ -259,6 +259,9 @@ flowchart TD
 | **Adapter · Code Scanning**  | `report.sarif` | GitHub Security Tab           | Official OASIS SARIF v2.1.0 schema compliance (`--format sarif`) for inline pull-request annotations.                                          |
 | **Adapter · Tabular Export** | `report.csv`   | Analysts, BI & Spreadsheets   | RFC 4180 CSV (`--format csv`) hardened against CWE-1236 spreadsheet formula injection.                                                         |
 
+> [!NOTE]
+> **Authoritative Runtime Source:** `lib/report.mjs` (`renderHtml()` and `renderSiteIndex()`) is the single authoritative runtime HTML generator so the CLI stays zero-dependency with no template loader. `templates/report.html` is maintained strictly as a design-system reference document.
+
 ---
 
 ## 📊 The Dual-Score Engine
@@ -307,7 +310,7 @@ flowchart TD
 | `schema <url>`           | Validate JSON-LD and print copy-paste schema snippets.        | `--generate (video\|job\|course\|review\|recipe\|...)`                                                           |
 | `sitemap <url>`          | Audit sitemap index, robots.txt, and link seeds.              | `--json`, `--block-private-ips`                                                                                  |
 | `llms <url>`             | Audit `/llms.txt` and generate AI crawler `robots.txt` rules. | `--json`, `--block-private-ips`                                                                                  |
-| `fix <file\|dir>`        | Safe, dry-run diff patcher for local HTML files.              | `--apply`, `--url`, `--backup`                                                                                   |
+| `fix <file\|dir>`        | Safe, dry-run diff patcher for local HTML files.              | `--apply`, `--url`, `--no-backup`                                                                                |
 | `diff <a.json> <b.json>` | Detect score drops and finding escalations between builds.    | `--fail-on (P0\|P1)`                                                                                             |
 | `doctor`                 | Verify environment, runtime config, and connectivity.         | `--json`, `--check-config`                                                                                       |
 
@@ -315,7 +318,7 @@ flowchart TD
 
 ## 🧠 Modular Skills Architecture & Agent Skill Library
 
-`one-step-seo` combines **14 programmatic CLI skill groups** (`lib/skills.mjs`) with **13 specialized Agent Skill playbooks** (`skills/*/SKILL.md`) across 6 core engineering and editorial domains:
+`one-step-seo` separates **14 programmatic CLI skill groups** (`lib/skills.mjs`, used by `--skills`, `--exclude-skills`, and `one-step-seo skills`) from **13 specialized Agent Skill playbooks** (`skills/*/SKILL.md`, markdown workflow specifications for AI coding agents) across 7 core engineering and editorial domains:
 
 ```bash
 # List all 14 CLI skills with categories, offline support, check counts, and agent playbooks
@@ -328,22 +331,22 @@ npx one-step-seo skills geo-optimization --json
 
 ### Skill Library Matrix
 
-| Category                   | Skill Name (`--skills`)                                     | Purpose                                                                                          | CLI Support                                       | External Data Requirements                            | Skill Documentation Link                                                                                                                                       |
-| :------------------------- | :---------------------------------------------------------- | :----------------------------------------------------------------------------------------------- | :------------------------------------------------ | :---------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Core Workflow**          | `seo-audit`                                                 | Full-spectrum audit execution, dual-score interpretation, and prioritized remediation            | `audit`, `page`, `quick`, `ai`                    | None (100% local/live HTML; optional `--psi` / GSC)   | [`skills/seo-audit/SKILL.md`](./skills/seo-audit/SKILL.md)                                                                                                     |
-| **Core Workflow**          | `seo-fix`                                                   | Conservative, dry-run-first automated HTML remediation with in-memory verification               | `fix [--apply]`                                   | None (100% local HTML files/directories)              | [`skills/seo-fix/SKILL.md`](./skills/seo-fix/SKILL.md)                                                                                                         |
-| **Technical SEO**          | `technical-seo`                                             | Crawlability, indexation (`noindex`), canonical URLs, redirect chains, HTTPS/status              | `audit/page --skills technical-seo`               | Live HTTP required for status, redirects, and headers | [`skills/technical-seo/SKILL.md`](./skills/technical-seo/SKILL.md)                                                                                             |
-| **Technical SEO**          | `sitemap-robots`                                            | `robots.txt` directives, XML sitemap discovery, `<sitemapindex>` validation                      | `sitemap`, `audit --skills sitemap-robots`        | Live origin or local build `robots.txt`/`sitemap.xml` | [`skills/sitemap-robots/SKILL.md`](./skills/sitemap-robots/SKILL.md)                                                                                           |
-| **On-Page & Content**      | `onpage-optimization` (`onpage-seo`)                        | `<title>`, meta description, H1–H6 hierarchy, Open Graph, Twitter Card, image alt/CLS            | `audit/page --skills onpage-optimization`         | None (100% offline + live HTML compatible)            | [`skills/onpage-optimization/SKILL.md`](./skills/onpage-optimization/SKILL.md)                                                                                 |
-| **On-Page & Content**      | `content-quality` (`content-architecture`)                  | Word count depth, answer-first lead blocks, comparison tables (`<th>`), FAQ structure            | `audit/page --skills content-quality`             | None (100% offline + live HTML compatible)            | [`skills/content-quality/SKILL.md`](./skills/content-quality/SKILL.md)                                                                                         |
-| **On-Page & Content**      | `duplicate-content`                                         | Cross-page duplicate `<title>` and meta descriptions, canonical consolidation                    | `audit --pages N --skills duplicate-content`      | Requires multi-page crawl (`--pages 2+`)              | [`skills/duplicate-content/SKILL.md`](./skills/duplicate-content/SKILL.md)                                                                                     |
-| **On-Page & Content**      | `internal-linking`                                          | Internal link density, orphan/dead-end page detection, generic anchor text, 4xx links            | `audit --skills internal-linking [--check-links]` | Live HTTP required for `--check-links` status probes  | [`skills/internal-linking/SKILL.md`](./skills/internal-linking/SKILL.md)                                                                                       |
-| **GEO / AEO / AI Search**  | `geo-optimization` (`geo-ai-search`)                        | AI crawler access (`GPTBot`, `ClaudeBot`, `PerplexityBot`), snippet gates, citability            | `ai`, `audit --skills geo-optimization`           | None (100% offline + live HTML compatible)            | [`skills/geo-optimization/SKILL.md`](./skills/geo-optimization/SKILL.md)                                                                                       |
-| **GEO / AEO / AI Search**  | `llms-txt`                                                  | `/llms.txt` discovery, structural quality (`G05`), starter generation & bot policies             | `llms`, `audit --skills llms-txt`                 | Live origin or local build `llms.txt`                 | [`skills/llms-txt/SKILL.md`](./skills/llms-txt/SKILL.md)                                                                                                       |
-| **Structured Data**        | `schema-validation` (`structured-data`)                     | JSON-LD syntax, `@graph` entity linking, 15 required-property validators, FAQ parity             | `schema`, `audit --skills schema-validation`      | None (100% offline + live HTML compatible)            | [`skills/schema-validation/SKILL.md`](./skills/schema-validation/SKILL.md)                                                                                     |
-| **Performance & Quality**  | `core-web-vitals` (`performance-cwv`)                       | HTML payload size, image count, Lighthouse lab metrics (LCP/CLS/TBT) & CrUX field INP            | `audit/page --psi --skills core-web-vitals`       | `PSI_API_KEY` env var for live `--psi` lab/CrUX data  | [`skills/core-web-vitals/SKILL.md`](./skills/core-web-vitals/SKILL.md)                                                                                         |
-| **Monitoring & Reporting** | `seo-regression`                                            | Baseline vs. candidate JSON diffing, score deltas, `rulesVersion` parity, CI gates               | `diff <base.json> <head.json> [--fail-on P0\|P1]` | Two `report.json` artifacts (zero network needed)     | [`skills/seo-regression/SKILL.md`](./skills/seo-regression/SKILL.md)                                                                                           |
-| **Additional CLI Skills**  | `security-hygiene`, `accessibility-ux`, `international-seo` | Mixed content (`T13`), security headers (`T15`), third-party scripts (`T14`), `hreflang` (`W03`) | `audit/page --skills security,a11y,i18n`          | Live HTTP required for `T15-security-headers`         | Covered in [`skills/technical-seo/SKILL.md`](./skills/technical-seo/SKILL.md) & [`skills/onpage-optimization/SKILL.md`](./skills/onpage-optimization/SKILL.md) |
+| Category                   | Skill Name (`--skills`)                                     | Purpose                                                                                                         | CLI Support                                       | External Data Requirements                            | Skill Documentation Link                                                                                                                                       |
+| :------------------------- | :---------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :------------------------------------------------ | :---------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core Workflow**          | `seo-audit`                                                 | Full-spectrum audit execution, dual-score interpretation, and prioritized remediation                           | `audit`, `page`, `quick`, `ai`                    | None (100% local/live HTML; optional `--psi` / GSC)   | [`skills/seo-audit/SKILL.md`](./skills/seo-audit/SKILL.md)                                                                                                     |
+| **Core Workflow**          | `seo-fix`                                                   | Conservative, dry-run-first automated HTML remediation with in-memory verification                              | `fix [--apply]`                                   | None (100% local HTML files/directories)              | [`skills/seo-fix/SKILL.md`](./skills/seo-fix/SKILL.md)                                                                                                         |
+| **Technical SEO**          | `technical-seo`                                             | Crawlability, indexation (`noindex`), canonical URLs, redirect chains, HTTPS/status                             | `audit/page --skills technical-seo`               | Live HTTP required for status, redirects, and headers | [`skills/technical-seo/SKILL.md`](./skills/technical-seo/SKILL.md)                                                                                             |
+| **Technical SEO**          | `sitemap-robots`                                            | `robots.txt` directives, XML sitemap discovery, `<sitemapindex>` validation                                     | `sitemap`, `audit --skills sitemap-robots`        | Live origin or local build `robots.txt`/`sitemap.xml` | [`skills/sitemap-robots/SKILL.md`](./skills/sitemap-robots/SKILL.md)                                                                                           |
+| **On-Page & Content**      | `onpage-optimization` (`onpage-seo`)                        | `<title>`, meta description, H1–H6 hierarchy, Open Graph, Twitter Card, image alt/CLS                           | `audit/page --skills onpage-optimization`         | None (100% offline + live HTML compatible)            | [`skills/onpage-optimization/SKILL.md`](./skills/onpage-optimization/SKILL.md)                                                                                 |
+| **On-Page & Content**      | `content-quality` (`content-architecture`)                  | Word count depth, answer-first lead blocks, comparison tables (`<th>`), FAQ structure                           | `audit/page --skills content-quality`             | None (100% offline + live HTML compatible)            | [`skills/content-quality/SKILL.md`](./skills/content-quality/SKILL.md)                                                                                         |
+| **On-Page & Content**      | `duplicate-content`                                         | Cross-page duplicate `<title>` and meta descriptions, canonical consolidation                                   | `audit --pages N --skills duplicate-content`      | Requires multi-page crawl (`--pages 2+`)              | [`skills/duplicate-content/SKILL.md`](./skills/duplicate-content/SKILL.md)                                                                                     |
+| **On-Page & Content**      | `internal-linking`                                          | Internal link density, orphan/dead-end page detection, generic anchor text, 4xx links                           | `audit --skills internal-linking [--check-links]` | Live HTTP required for `--check-links` status probes  | [`skills/internal-linking/SKILL.md`](./skills/internal-linking/SKILL.md)                                                                                       |
+| **GEO / AEO / AI Search**  | `geo-optimization` (`geo-ai-search`)                        | AI crawler access (`GPTBot`, `ClaudeBot`, `PerplexityBot`), snippet gates, citability                           | `ai`, `audit --skills geo-optimization`           | None (100% offline + live HTML compatible)            | [`skills/geo-optimization/SKILL.md`](./skills/geo-optimization/SKILL.md)                                                                                       |
+| **GEO / AEO / AI Search**  | `llms-txt`                                                  | `/llms.txt` discovery, structural quality (`G05`), starter generation & bot policies                            | `llms`, `audit --skills llms-txt`                 | Live origin or local build `llms.txt`                 | [`skills/llms-txt/SKILL.md`](./skills/llms-txt/SKILL.md)                                                                                                       |
+| **Structured Data**        | `schema-validation` (`structured-data`)                     | JSON-LD syntax, `@graph` entity linking, 15 required-property validator rules (17 Schema.org types), FAQ parity | `schema`, `audit --skills schema-validation`      | None (100% offline + live HTML compatible)            | [`skills/schema-validation/SKILL.md`](./skills/schema-validation/SKILL.md)                                                                                     |
+| **Performance & Quality**  | `core-web-vitals` (`performance-cwv`)                       | HTML payload size, image count, Lighthouse lab metrics (LCP/CLS/TBT) & CrUX field INP                           | `audit/page --psi --skills core-web-vitals`       | `PSI_API_KEY` env var for live `--psi` lab/CrUX data  | [`skills/core-web-vitals/SKILL.md`](./skills/core-web-vitals/SKILL.md)                                                                                         |
+| **Monitoring & Reporting** | `seo-regression`                                            | Baseline vs. candidate JSON diffing, score deltas, `rulesVersion` parity, CI gates                              | `diff <base.json> <head.json> [--fail-on P0\|P1]` | Two `report.json` artifacts (zero network needed)     | [`skills/seo-regression/SKILL.md`](./skills/seo-regression/SKILL.md)                                                                                           |
+| **Additional CLI Skills**  | `security-hygiene`, `accessibility-ux`, `international-seo` | Mixed content (`T13`), security headers (`T15`), third-party scripts (`T14`), `hreflang` (`W03`)                | `audit/page --skills security,a11y,i18n`          | Live HTTP required for `T15-security-headers`         | Covered in [`skills/technical-seo/SKILL.md`](./skills/technical-seo/SKILL.md) & [`skills/onpage-optimization/SKILL.md`](./skills/onpage-optimization/SKILL.md) |
 
 ### Selective Skill Execution (`--skills` & `--exclude-skills`)
 
@@ -407,66 +410,78 @@ npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy deskto
 ## 📑 Rule Catalogue (45+ Audited Signals)
 
 <details>
-<summary><b>Click to expand full audit rules breakdown (Technical, On-Page, Content, Schema, GEO)</b></summary>
+<summary><b>Click to expand full audit rules breakdown (Technical, On-Page, Content, Schema, GEO, Performance)</b></summary>
 <br>
 
-### 🌐 Technical SEO (`T01` – `T15`)
+### 🌐 Technical SEO (`T00` – `T17`)
 
-- `T01-https`: Enforces HTTPS protocol; flags insecure HTTP connections.
-- `T02-status`: Verifies HTTP 200 OK status; alerts on 4xx/5xx errors or broken redirects.
-- `T03-redirect`: Flags long redirect chains and loops.
-- `T04-canonical-missing`: Flags missing `<link rel="canonical">` tags.
-- `T05-canonical-mismatch`: Detects cross-domain or mismatched canonical targets.
-- `T06-canonical-relative`: Warns on relative canonical URLs prone to scraper confusion.
-- `T07-noindex`: Detects conflicting or accidental `noindex` directives in meta or headers.
-- `T08-robots-blocked`: Checks if `robots.txt` disallows Googlebot or general crawlers.
-- `T09-viewport`: Validates mobile-friendly `<meta name="viewport">` configuration.
-- `T10-response-time`: Measures Time to First Byte (TTFB) and flags slow servers (>800ms).
-- `T11-html-size`: Alerts on heavy uncompressed HTML documents (>1MB).
-- `T12-hreflang`: Validates alternate language annotations and missing return tags.
-- `T13-mixed`: Detects active mixed-content subresources loaded over insecure HTTP.
-- `T14-scripts`: Tracks excessive third-party blocking scripts.
-- `T15-security-headers`: Checks for recommended headers (`X-Content-Type-Options`, `HSTS`).
+- `T00-truncated`: Flags HTML payloads over 5 MiB that were truncated to head-only inspection.
+- `T01-https`: Enforces HTTPS protocol; flags insecure HTTP final URLs.
+- `T02-status`: Verifies HTTP 200 OK status; alerts on 4xx/5xx errors or invalid final URLs.
+- `T03-redirects`: Flags redirect chains (`>1` hop) and redirect loops.
+- `T04-content-type`: Verifies document is served as `text/html`.
+- `T05-robots` / `T05-robots-disallow`: Checks `robots.txt` availability and alerts if the audited path is disallowed.
+- `T06-sitemap`: Verifies XML sitemap availability (`sitemap.xml` or `Sitemap:` directives in `robots.txt`).
+- `T07-noindex`: Detects `noindex` directives in `<meta name="robots">` or `X-Robots-Tag` headers.
+- `T08-canonical`: Validates `<link rel="canonical">` presence (`P2` when missing) and self-reference (`P1` on mismatch).
+- `T09-lang`: Verifies `<html lang="...">` declaration.
+- `T10-charset`: Verifies UTF-8 character encoding declaration.
+- `T11-viewport`: Validates mobile-friendly `<meta name="viewport">` configuration.
+- `T12-url`: Flags parameterized query-string URLs on short content paths.
+- `T13-mixed`: Detects active (`P1`) or passive (`P2`) mixed-content `http://` subresources on `https://` pages.
+- `T14-third-party`: Tracks excessive third-party script origins (`>5` external script hosts).
+- `T15-security-headers`: Checks for recommended HTTP security headers (`Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options`).
+- `T16-broken-links`: Opt-in (`--check-links`) probe flagging same-host links that return 4xx/5xx or fail.
+- `T17-canonical-http`: Flags canonical tags specifying insecure `http://` on an `https://` page.
 
-### 📄 On-Page Signals (`O01` – `O11`)
+### 📄 On-Page & Polish Signals (`O01` – `O11`, `W01` – `W03`)
 
-- `O01-title-missing`: Flags missing or empty `<title>` tag.
-- `O02-title-length`: Validates optimal title length (30–60 characters).
-- `O03-h1-drift`: Detects severe semantic drift between `<title>` and `<h1>`.
-- `O04-meta-missing`: Flags missing `<meta name="description">`.
-- `O05-meta-length`: Validates description length (70–160 characters).
-- `O06-h1-missing`: Flags pages lacking a primary `<h1>` tag.
-- `O07-h1-multiple`: Warns on multiple conflicting `<h1>` headings.
-- `O08-heading-order`: Flags skipped heading levels (e.g., `<h1>` directly to `<h3>`).
-- `O09-img-alt`: Identifies informative images lacking descriptive `alt` attributes.
-- `O10-internal-links`: Warns on orphan pages with insufficient internal navigation.
-- `O11-generic-anchors`: Flags repetitive anchor text ("click here", "read more").
+- `O01-title`: Validates `<title>` presence (`P0` when missing) and optimal length (30–60 characters).
+- `O02-meta`: Validates `<meta name="description">` presence (`P1` when missing) and length (120–155 characters).
+- `O03-h1` / `O03-h1-drift`: Enforces a single descriptive `<h1>` (`P1`) and checks lexical alignment with `<title>` (`P3`).
+- `O04-headings` / `O04-heading-empty`: Flags skipped heading levels (`<h1>` → `<h3>`) and empty heading elements (`<h1>`–`<h6>`).
+- `O05-h2`: Verifies descriptive `<h2>` subheadings on articles over 600 words.
+- `O06-og`: Checks Open Graph metadata completeness (`og:title`, `og:description`, `og:image`).
+- `O07-favicon`: Verifies `<link rel="icon">` declaration.
+- `O08-img-alt`: Identifies images missing `alt` attributes (`P1` when all missing, `P2` when partial).
+- `O09-img-dims`: Flags `<img>` tags missing explicit `width`/`height` attributes (CLS prevention).
+- `O10-internal` / `O10-internal-many`: Flags dead-end pages with `0` internal links (`P1`) or excessive internal links (`>200`, `P2`).
+- `O11-generic-anchors`: Flags repetitive generic anchor text (`click here`, `read more`, `learn more`).
+- `W01-social` / `W02-og-url` / `W03-hreflang`: Validates `twitter:card`, `og:url` canonical parity, and `hreflang` self/x-default completeness (`P3`).
 
 ### ✍️ Content Quality (`C01` – `C05`)
 
-- `C01-thin`: Identifies thin content (<300 words) unlikely to rank or satisfy queries.
-- `C02-duplicate-title`: Identifies duplicate title tags across multiple crawled pages.
-- `C03-keyword-stuffing`: Detects abnormal keyword repetition rates.
-- `C04-reading-level`: Analyzes reading ease and overly complex sentence structures.
-- `C05-structure-depth`: Verifies balanced section lengths under subheadings.
+- `C01-thin`: Identifies thin content under profile word-count thresholds (`200` words default/blog/docs, `100` product, `80` home).
+- `C02-answer`: Verifies an answer-first summary or definition in the opening 150 words.
+- `C03-structures`: Checks for extractable `<ul>`/`<ol>` lists or `<table>` blocks on substantive pages.
+- `C04-faq`: Checks for visible FAQ question-and-answer coverage or `FAQPage` schema.
+- `C05-table-headers`: Flags `<table>` elements missing semantic `<th>` header cells (`P3`).
 
 ### 🧬 Structured Data & Schema (`S01` – `S03`)
 
-- `S01-schema`: Detects presence of valid JSON-LD or Microdata schema markup.
-- `S02-schema-invalid`: Flags malformed JSON syntax or schema.org structural errors.
-- `S03-faq-parity`: Verifies that FAQ schema entries match visible page text verbatim.
+- `S01-present` / `S01-jsonld-parse`: Verifies JSON-LD presence and valid JSON syntax (`P1` on parse error).
+- `S02-<type>` / `S02-unknown-type`: Enforces 15 required-property validator rules covering 17 Schema.org types (`Article`/`NewsArticle`/`BlogPosting`, `FAQPage`, `BreadcrumbList`, `Product`, `Event`, `VideoObject`, `Organization`, `LocalBusiness`, `WebSite`, `HowTo`, `JobPosting`, `Course`, `Recipe`, `Review`, `SoftwareApplication`).
+- `S03-faq-parity`: Verifies that `FAQPage` JSON-LD and visible FAQ headings stay synchronized (`P3`).
 
-### 🤖 Generative AI & Citability (`G01` – `G09`)
+### 🤖 Generative AI & Citability (`G01` – `G11`)
 
-- `G01-llms`: Detects presence and accessibility of `/llms.txt` and `/llms-full.txt`.
-- `G02-ai-blocked`: Checks if AI bots (`GPTBot`, `PerplexityBot`, `ClaudeBot`) are blocked.
-- `G03-facts`: Evaluates density of structured data tables, numerical statistics, and bulleted lists.
-- `G04-entity`: Inspects clear entity naming in opening paragraphs.
-- `G05-llms-quality`: Validates markdown link formats and summaries within `llms.txt`.
-- `G06-freshness`: Detects timestamp markers (`dateModified`, `datePublished`) for AI freshness.
-- `G07-question-headings`: Checks for question-formatted H2/H3 headings matching user prompts.
-- `G08-stat-density`: Evaluates presence of citable research figures and quantitative data.
-- `G09-snippet-controls`: Alerts on `nosnippet` or `max-snippet:0` that prevent AI citation generation.
+- `G01-llms`: Detects presence and accessibility of `/llms.txt`.
+- `G02-ai-blocked`: Checks if AI crawlers (`GPTBot`, `ClaudeBot`, `PerplexityBot`, `Google-Extended`, etc.) are blocked in `robots.txt`.
+- `G03-facts`: Evaluates extractable tables, lists, and FAQ structures for AI citation extraction.
+- `G04-entity`: Inspects entity consistency between `<title>` and `og:title` (`P3`).
+- `G05-llms-quality`: Validates markdown headings and links inside `/llms.txt` (`P3`).
+- `G06-freshness`: Detects timestamp markers (`dateModified`, `datePublished`, `<time datetime>`) for AI freshness (`P3`).
+- `G07-question-headings`: Checks for question-shaped `<h2>` headings matching natural-language prompts (`P3`).
+- `G08-stat-density`: Evaluates presence of quantified metrics with units on substantive pages (`P3`).
+- `G09-snippet-controls`: Alerts on `nosnippet` or restrictive `max-snippet` directives that block AI quoting (`P2`).
+- `G10-author`: Checks for author or publisher attribution on substantive 300+ word pages (`P3`).
+- `G11-semantic-content`: Checks for `<main>` or `<article>` landmarks on 600+ word pages (`P3`).
+
+### ⚡ Performance & Core Web Vitals (`P01` – `P05`)
+
+- `P01-html-size`: Flags HTML payloads exceeding 300 KB (`P2`).
+- `P02-img-count`: Flags pages with more than 20 `<img>` elements (`P2`).
+- `P03-psi-lab` / `P04-psi-field` / `P05-psi-error`: Opt-in (`--psi`) Google PageSpeed Insights lab metrics (LCP, CLS, TBT) and CrUX 75th-percentile field metrics (LCP, CLS, INP).
 
 </details>
 
@@ -474,17 +489,20 @@ npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy deskto
 
 ## 🎯 Audit Profiles
 
-Calibrate scoring thresholds and checks to suit your specific website architecture:
+Calibrate scoring thresholds and checks to suit your specific website architecture (`default`, `blog`, `product`, `docs`, `home`):
 
 ```bash
-# E-commerce: Stricter checks for product schema, price availability, and image alt text
-npx one-step-seo audit https://shop.example.com --profile ecommerce
+# Product / E-commerce: Adjusted word-count thresholds (100 words) for product and landing pages
+npx one-step-seo audit https://shop.example.com --profile product
 
-# Documentation: Emphasizes code blocks, H2/H3 hierarchies, and llms.txt integration
+# Documentation: Emphasizes technical reference structure, H2/H3 hierarchies, and llms.txt integration
 npx one-step-seo audit https://docs.example.com --profile docs
 
-# News / Media: Focuses on freshness, author attribution, and Article schema markup
-npx one-step-seo audit https://news.example.com --profile news
+# Editorial / Blog: Enforces full 200-word depth, answer-first lead blocks, and author/freshness signals
+npx one-step-seo audit https://blog.example.com --profile blog
+
+# Homepage: Calibrated for concise navigation-focused homepages (80-word threshold, skips H2/FAQ penalties)
+npx one-step-seo page https://example.com --profile home
 ```
 
 ---
@@ -581,7 +599,7 @@ How `one-step-seo` compares to legacy desktop crawlers, browser-based performanc
 | **`/llms.txt` Audit & Generator** |       ✅ **Built-in CLI command**       |           ❌ None           |           ❌ None           |               ❌ None               |     ⚠️ Manual prompt required     |
 | **AI Bot Governance Checks**      |     ✅ **GPTBot, ClaudeBot, etc.**      |           ❌ None           |   ⚠️ Raw robots.txt lines   |       ⚠️ Basic crawler rules        |              ❌ None              |
 | **Automated HTML Fixer**          |    ✅ **Dry-run diff & safe patch**     |     ❌ Read-only audit      |     ❌ Read-only export     |    ❌ Read-only recommendations     |   ⚠️ Hallucination-prone edits    |
-| **CI/CD Regression Tracking**     |   ✅ **`audit --diff` + `--fail-on`**   |    ⚠️ LHCI (heavy setup)    |      ❌ Manual diffing      |       ❌ Slow cloud crawling        |    ❌ Custom fragile glue code    |
+| **CI/CD Regression Tracking**     |       ✅ **`diff` + `--fail-on`**       |    ⚠️ LHCI (heavy setup)    |      ❌ Manual diffing      |       ❌ Slow cloud crawling        |    ❌ Custom fragile glue code    |
 | **GitHub Code Scanning**          |       ✅ **Native SARIF v2.1.0**        |     ❌ JSON / HTML only     |     ❌ CSV / Excel only     |     ❌ Third-party integrations     |      ❌ Custom parser needed      |
 | **Multi-Format Export**           | ✅ **HTML, Markdown, JSON, SARIF, CSV** |     ⚠️ HTML / JSON only     |     ⚠️ CSV / Excel only     |         ⚠️ PDF / CSV export         |        ❌ Raw output only         |
 | **SSRF & Metadata Protection**    |  ✅ **Cloud metadata & RFC1918 safe**   |    ⚠️ Generic HTTP agent    |  ⚠️ Standard network stack  |       ❌ Remote cloud crawler       |      ❌ Unvalidated request       |

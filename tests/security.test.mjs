@@ -7,6 +7,7 @@ import { geoDetails, computeScores } from "../lib/score.mjs";
 import {
   buildReport,
   renderHtml,
+  renderSiteIndex,
   renderMarkdown,
   renderCsv,
   esc,
@@ -84,7 +85,7 @@ test("hostile page content is escaped in HTML reports", () => {
 });
 
 test("esc handles all dangerous characters", () => {
-  assert.equal(esc(`<a href="x">&'`), "&lt;a href=&quot;x&quot;&gt;&amp;'");
+  assert.equal(esc(`<a href="x">&'`), "&lt;a href=&quot;x&quot;&gt;&amp;&#39;");
   assert.equal(esc(null), "");
   assert.equal(esc(undefined), "");
 });
@@ -555,9 +556,9 @@ test("hostile HTML in page details and site dashboard is strictly escaped", () =
       },
     ],
     parsed: {
-      title: '<script>alert("title")</script>',
+      title: `<script>alert("title")</script>'single-quote-attr'`,
       metaDescription: '<iframe src="javascript:alert(4)"></iframe>',
-      canonical: 'https://example.com/"><script>alert(5)</script>',
+      canonical: `https://example.com/'><script>alert(5)</script>`,
       h1s: [{ text: '<b onmouseover="alert(6)">H1</b>' }],
       wordCount: 350,
     },
@@ -567,15 +568,24 @@ test("hostile HTML in page details and site dashboard is strictly escaped", () =
       sitemap: { found: true, urlCount: 5 },
       llms: { found: false },
     },
-    meta: { version: "0.9.0" },
+    meta: { version: "0.9.1" },
     checkedAt: "2026-10-08T00:00:00.000Z",
   });
   const pageHtml = renderHtml(xssReport);
   assert.ok(!pageHtml.includes('<script>alert("title")</script>'));
+  assert.ok(pageHtml.includes("&#39;single-quote-attr&#39;"));
   assert.ok(!pageHtml.includes('<iframe src="javascript:alert(4)">'));
   assert.ok(!pageHtml.includes("<script>alert(5)</script>"));
   assert.ok(!pageHtml.includes('<b onmouseover="alert(6)">'));
   assert.ok(!pageHtml.includes("<script>alert(7)</script>"));
   assert.ok(!pageHtml.includes('<img src=x onerror="alert(2)">'));
   assert.ok(!pageHtml.includes('<svg onload="alert(3)">'));
+
+  const siteHtml = renderSiteIndex([xssReport]);
+  assert.ok(!siteHtml.includes("<script>alert(1)</script>"));
+  assert.ok(!siteHtml.includes('<script>alert("title")</script>'));
+  assert.ok(!siteHtml.includes("<script>alert(7)</script>"));
+  assert.ok(!siteHtml.includes('<img src=x onerror="alert(2)">'));
+  assert.ok(siteHtml.includes('tabindex="0" role="button" aria-sort="none"'));
+  assert.ok(siteHtml.includes('role="status" aria-live="polite"'));
 });

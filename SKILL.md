@@ -45,7 +45,9 @@ Run a full SEO + GEO/AEO audit in one step. Zero dependencies, Node 18+.
 3. Present the **two scores separately** — Search SEO 0-100 and AI Visibility 0-100, never blended.
 4. Fix in priority order P0 → P1 → P2. Each fix needs evidence from the report.
 
-## Specialized Agent Sub-Skills (`skills/*/SKILL.md`)
+## Specialized Agent Sub-Skills (`skills/*/SKILL.md`) vs Executable CLI Skill Groups
+
+`one-step-seo` separates **13 Agent Skill playbooks** (`skills/*/SKILL.md` across 7 domains — structured instructions for AI coding agents) from **14 executable CLI skill groups** (`lib/skills.mjs` across 9 categories — rule filters passed to `--skills` / `--exclude-skills` and inspected via `one-step-seo skills`).
 
 Delegate domain-specific engineering and editorial workflows to the 13 structured playbooks in `skills/`:
 
@@ -71,8 +73,8 @@ Stable, schema-documented shape (`lib/schema-report.json`):
 
 - `scores.search {score, band}` and `scores.ai {score, band}` — the two axes. Bands A–F.
 - `counts {P0, P1, P2, P3, pass}` — severity totals for gating and progress tracking.
-- `findings[] {id, category, severity, title, evidence, fix}` — priority-sorted, P0 first. Finding IDs match `^[A-Z]+[0-9]+-[a-z0-9-]+$`.
-- `page {title, metaDescription, canonical, wordCount, h1[], images, internalLinks, externalLinks}` — page facts without re-fetching.
+- `findings[] {id, category, severity, title, evidence, fix, seoImpact, geoImpact}` — priority-sorted, P0 first. Finding IDs match `^[A-Z]+[0-9]+-[a-z0-9-]+$`.
+- `page {title, metaDescription, canonical, wordCount, h1[], images, internalLinks, externalLinks, psi?}` — page facts without re-fetching.
 - `site {origin, robots, sitemap, sitemapUrls, llms}` — booleans + sitemap size.
 - Severity: P0 critical (today) → P1 high (this week) → P2 medium (this month) → P3 polish → pass healthy.
 - Categories: `technical`, `onpage`, `content`, `schema`, `geo`, `performance`.

@@ -171,7 +171,7 @@ test("esc handles null, undefined and non-strings", () => {
 
 test("esc escapes quotes so attributes cannot break out", () => {
   assert.equal(esc('a"b'), "a&quot;b");
-  assert.equal(esc("&<>\"'"), "&amp;&lt;&gt;&quot;'");
+  assert.equal(esc("&<>\"'"), "&amp;&lt;&gt;&quot;&#39;");
 });
 
 test("escTruncate slices before escaping, never mid-entity", () => {
@@ -906,4 +906,118 @@ test("renderSiteIndex excludes unavailable scores from aggregation and shows con
   assert.match(html, /id="linking"/);
   assert.match(html, /1 internal outlink/);
   assert.match(html, /role="region" aria-labelledby="pages-h"/);
+  // Missing-score page must render N/A badge with empty data-s/data-a and must NOT be ranked as Lowest-Performing Page
+  assert.match(html, /data-s="" data-a=""/);
+  assert.match(html, />N\/A<\/span>/);
+  assert.ok(!html.includes("0 F"), "missing scores must not render as 0 F");
+  assert.match(
+    html,
+    /Lowest-Performing Page<\/h3><dl class="kv-list">\s*<div class="kv-row"><dt>URL<\/dt><dd><a href="\.\/report\.html#main">https:\/\/example\.com\/a<\/a>/,
+  );
+  assert.match(
+    html,
+    /Highest-Performing Page<\/h3><dl class="kv-list">\s*<div class="kv-row"><dt>URL<\/dt><dd><a href="\.\/report\.html#main">https:\/\/example\.com\/a<\/a>/,
+  );
+});
+
+test("renderSiteIndex handles all-null and non-finite scores using N/A without false zero or F grades", () => {
+  const nullPage = /** @type {any} */ ({
+    ...mkReport([mkFinding({ id: "T05-robots-disallow", severity: "P1" }, "technical")]),
+    url: "https://example.com/null-page",
+    finalUrl: "https://example.com/null-page",
+    scores: { search: { score: null, band: "F" }, ai: { score: null, band: "F" } },
+  });
+  const nanPage = /** @type {any} */ ({
+    ...mkReport([]),
+    url: "https://example.com/nan-page",
+    finalUrl: "https://example.com/nan-page",
+    scores: { search: { score: Number.NaN, band: "F" }, ai: { score: Number.POSITIVE_INFINITY, band: "A" } },
+  });
+
+  const html = renderSiteIndex([nullPage, nanPage]);
+  assert.match(html, /Average N\/A · lowest N\/A · highest N\/A \(0\/2 valid pages\)/);
+  assert.match(html, /Search: 0\/2 &middot; AI: 0\/2/);
+  assert.match(html, /N\/A — no valid page scores available\./);
+  assert.ok(!html.includes("0/100"), "all-null site must not render 0/100");
+  assert.ok(!html.includes("0 F"), "all-null site must not render 0 F");
+  assert.ok(!html.includes("NaN"), "non-finite scores must not leak NaN");
+  assert.ok(!html.includes("Infinity"), "non-finite scores must not leak Infinity");
+});
+
+test("renderSiteIndex preserves legitimate zero scores (0 F) and separates Search SEO and AI Visibility valid counts", () => {
+  const realZeroPage = mkReport(
+    [
+      mkFinding({ id: "T01-https", severity: "P0" }, "technical"),
+      mkFinding({ id: "T02-status", severity: "P0" }, "technical"),
+      mkFinding({ id: "T07-noindex", severity: "P0" }, "technical"),
+      mkFinding({ id: "O01-title-missing", severity: "P0" }, "onpage"),
+    ],
+    { search: 0, ai: 0 },
+  );
+  realZeroPage.scores = { search: { score: 0, band: "F" }, ai: { score: 0, band: "F" } };
+  realZeroPage.url = "https://example.com/zero";
+  realZeroPage.finalUrl = "https://example.com/zero";
+
+  const partialPage = /** @type {any} */ ({
+    ...mkReport([]),
+    url: "https://example.com/partial",
+    finalUrl: "https://example.com/partial",
+    scores: { search: { score: 80, band: "B" }, ai: { score: null, band: "F" } },
+  });
+
+  const html = renderSiteIndex([realZeroPage, partialPage]);
+  // Search has 2 valid pages (0 and 80 -> avg 40), AI has 1 valid page (0 -> avg 0)
+  assert.match(html, /Average 40\/100 · lowest 0 · highest 80 \(2\/2 valid pages\)/);
+  assert.match(html, /Average 0\/100 · lowest 0 · highest 0 \(1\/2 valid pages\)/);
+  assert.match(html, /Search: 2\/2 &middot; AI: 1\/2/);
+  // Real zero page preserves 0 F badge and data-s="0" data-a="0"
+  assert.match(html, /data-s="0" data-a="0"/);
+  assert.match(html, />0 F<\/span><\/td><td class="num"><span class="badge" style="--hue:0">0 F<\/span>/);
+  // Partial page has valid Search (80 B) and N/A AI
+  assert.match(html, /data-s="80" data-a=""/);
+  assert.match(html, />80 B<\/span><\/td><td class="num"><span class="badge" style="--hue:215">N\/A<\/span>/);
+  // Lowest-performing is realZeroPage, Highest-performing is partialPage
+  assert.match(
+    html,
+    /Lowest-Performing Page<\/h3><dl class="kv-list">\s*<div class="kv-row"><dt>URL<\/dt><dd><a href="\.\/report\.html#main">https:\/\/example\.com\/zero<\/a>/,
+  );
+  assert.match(
+    html,
+    /Highest-Performing Page<\/h3><dl class="kv-list">\s*<div class="kv-row"><dt>URL<\/dt><dd><a href="\.\/report-2\.html#main">https:\/\/example\.com\/partial<\/a>/,
+  );
+});
+
+test("renderHtml and renderMarkdown handle missing scores, zero scores, no findings, and many findings", () => {
+  // Missing scores report
+  const missingReport = /** @type {any} */ ({
+    ...mkReport([]),
+    scores: { search: { score: null, band: "N/A" }, ai: { score: undefined, band: "N/A" } },
+  });
+  const missingHtml = renderHtml(missingReport);
+  const missingMd = renderMarkdown(missingReport);
+  assert.match(missingHtml, /Search SEO N\/A \| AI Visibility N\/A/);
+  assert.match(missingMd, /- Search SEO: \*\*N\/A\*\*\n- AI Visibility: \*\*N\/A\*\*/);
+  assert.ok(!missingHtml.includes("null/100") && !missingMd.includes("null/100"));
+
+  // Real zero score report
+  const zeroReport = mkReport([mkFinding({ id: "T01-https", severity: "P0" })], { search: 0, ai: 0 });
+  zeroReport.scores = { search: { score: 0, band: "F" }, ai: { score: 0, band: "F" } };
+  const zeroHtml = renderHtml(zeroReport);
+  assert.match(zeroHtml, /Search SEO 0\/100 \(F\) \| AI Visibility 0\/100 \(F\)/);
+
+  // Many findings report (30 findings across categories and severities)
+  const manyFindings = Array.from({ length: 30 }, (_, i) =>
+    mkFinding(
+      {
+        id: `T${String(i % 15).padStart(2, "0")}-item-${i}`,
+        severity: ["P0", "P1", "P2", "P3", "pass"][i % 5] ?? "P2",
+      },
+      ["technical", "onpage", "content", "schema", "geo", "performance"][i % 6],
+    ),
+  );
+  const manyReport = mkReport(manyFindings, { search: 55, ai: 60 });
+  const manyHtml = renderHtml(manyReport);
+  assert.match(manyHtml, /<span>All findings<\/span><span class="n">24<\/span>/);
+  assert.match(manyHtml, /@media print/);
+  assert.match(manyHtml, /prefers-color-scheme:dark/);
 });

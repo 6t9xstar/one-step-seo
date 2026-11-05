@@ -62,18 +62,18 @@ npx one-step-seo audit ./dist --pages 25 --offline --out ./seo-report
 
 ## 5. Evidence Requirements
 
-- Every claim in your summary **must** cite the finding `id` (e.g., `T08-canonical`), `severity` (`P1`), and exact `evidence` string from `report.json`.
-- Quote actual measured values from `report.page` (`titleLength`, `metaDescriptionLength`, `wordCount`, `h1`, `schemaTypes`) and `report.site` (`robots`, `sitemap`, `sitemapUrls`, `llmsTxt`, `aiCrawlersBlocked`).
+- Every claim in your summary **must** cite the finding `id` (e.g., `T08-canonical`), `severity` (`P1`), and exact `evidence` string from `report.findings` in `report.json`.
+- Quote actual measured values from `report.page` (`title` and `title.length`, `metaDescription` and `metaDescription.length`, `canonical`, `wordCount`, `h1`, `images`, `internalLinks`, `externalLinks`, and optional `psi`) and `report.site` (`origin`, `robots`, `sitemap`, `sitemapUrls`, `llms`). For detected schema types or blocked AI crawler tokens, quote the `evidence` of `S01-present` / `G02-ai-blocked` in `report.findings`.
 - Never invent unmeasured metrics, search volume, backlink counts, or ranking positions.
 
 ## 6. Expected Outputs
 
 Present a structured response containing:
 
-1. **Scorecard**: Search SEO (`score/100`, band) and AI Visibility (`score/100`, band) side by side, plus `P0 / P1 / P2 / P3 / pass` counts.
+1. **Scorecard**: Search SEO (`scores.search.score/100`, `scores.search.band`) and AI Visibility (`scores.ai.score/100`, `scores.ai.band`) side by side, plus `counts` (`P0 / P1 / P2 / P3 / pass`).
 2. **One-Sentence Verdict**: Plain-language health summary (matching `report.md` executive summary).
 3. **Top 3 Urgent Fixes**: Finding ID, severity, evidence, recommended fix, and `Impact / Effort / Owner`.
-4. **AI Visibility & Citability Checklist**: Passing (`[x]`) vs missing (`[ ]`) signals from `scores.ai.details.signals`.
+4. **AI Visibility & Citability Checklist**: Passing (`[x]`) vs missing (`[ ]`) signals from `report.md` (`## Make this page more citable`, derived from `report.findings` via `citableChecklist`) or `one-step-seo ai <url> --json` (`signals`).
 5. **Artifacts & Verification Command**: Paths to `report.html`, `index.html`, `report.md`, and `report.json`, plus the re-run CLI command.
 
 ## 7. Limitations & External Data

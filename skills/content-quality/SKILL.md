@@ -17,9 +17,9 @@ Activate `content-quality` when the user wants to:
 
 - **Target**: URL, local HTML file, or build directory.
 - **Profile calibrations (`--profile`)**:
-  - `default` / `blog`: Thin-content threshold `300` words; checks `C02-answer` (P2) and `C04-faq` (P3).
+  - `default` / `blog`: Thin-content threshold `200` words (`C01-thin` P1); checks `C02-answer` (P1) and `C04-faq` (P2). Note: the AI Visibility `substantive` signal (`GEO_WEIGHTS.substantive`, +15 pts) requires `>=300` words across all profiles.
   - `product`: Thin-content threshold `120` words; skips `C02-answer` (product specs and pricing tables carry the answer).
-  - `docs`: Thin-content threshold `300` words; elevates `C04-faq` and `G01-llms` to `P1`.
+  - `docs`: Thin-content threshold `200` words; elevates `C04-faq` and `G01-llms` to `P1`.
   - `home`: Thin-content threshold `100` words; skips `C02-answer`.
 
 ## 3. Step-by-Step Workflow

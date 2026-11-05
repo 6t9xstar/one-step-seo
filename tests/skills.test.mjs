@@ -18,6 +18,7 @@ import {
 } from "../lib/skills.mjs";
 import { FINDING_META } from "../lib/finding-meta.mjs";
 import { validateSchema } from "../lib/schema.mjs";
+import { VALID_FORMATS, VALID_GENERATE, VALID_FAIL_ON, VALID_CRAWL, VALID_PROFILES } from "../lib/args.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -184,5 +185,174 @@ test("validateSchema enforces required properties for LocalBusiness, WebSite, Ho
       res.issues.some((i) => i.issue === expectedIssue),
       `expected "${expectedIssue}", got ${JSON.stringify(res.issues)}`,
     );
+  }
+});
+
+test("Agent Skill contract validation: all 13 SKILL.md files reference canonical report.json fields and valid CLI commands/flags/skills", () => {
+  const schemaReport = JSON.parse(readFileSync(join(ROOT, "lib/schema-report.json"), "utf8"));
+  const topLevelProps = new Set(Object.keys(schemaReport.properties));
+  const pageProps = new Set(Object.keys(schemaReport.properties.page.properties));
+  const siteProps = new Set(Object.keys(schemaReport.properties.site.properties));
+  const scoresProps = new Set(Object.keys(schemaReport.properties.scores.properties));
+  const scoreAxisProps = new Set(Object.keys(schemaReport.properties.scores.properties.search.properties));
+
+  const validSubcommands = new Set([
+    "quick",
+    "audit",
+    "page",
+    "ai",
+    "skills",
+    "schema",
+    "sitemap",
+    "llms",
+    "fix",
+    "diff",
+    "doctor",
+  ]);
+  const validFlags = new Set([
+    "--pages",
+    "--out",
+    "--format",
+    "--timeout",
+    "--generate",
+    "--json",
+    "--fail-on",
+    "--crawl",
+    "--concurrency",
+    "--delay",
+    "--debug",
+    "--force",
+    "--profile",
+    "--check-links",
+    "--apply",
+    "--no-backup",
+    "--only",
+    "--url",
+    "--title",
+    "--description",
+    "--lang",
+    "--og-image",
+    "--psi",
+    "--psi-strategy",
+    "--skills",
+    "--exclude-skills",
+    "--verbose",
+    "--quiet",
+    "-q",
+    "--block-private-ips",
+    "--check-config",
+    "--offline",
+    "--help",
+    "-h",
+    "--version",
+    "-v",
+  ]);
+
+  const forbiddenFieldPatterns = [
+    "scores.ai.details",
+    "scores.search.details",
+    "page.titleLength",
+    "page.metaDescriptionLength",
+    "page.schemaTypes",
+    "site.llmsTxt",
+    "site.aiCrawlersBlocked",
+  ];
+
+  for (const entry of getAgentSkills()) {
+    const content = readFileSync(join(ROOT, entry.path), "utf8");
+
+    // 1. No fabricated or nonexistent report fields
+    for (const forbidden of forbiddenFieldPatterns) {
+      assert.ok(
+        !content.includes(forbidden),
+        `${entry.path} must not reference nonexistent report field "${forbidden}"`,
+      );
+    }
+
+    // 2. Validate explicit report.<prop>.<subprop> references against lib/schema-report.json
+    const reportPathMatches = content.matchAll(
+      /\breport\.([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?(?:\.([a-zA-Z0-9_]+))?/g,
+    );
+    for (const m of reportPathMatches) {
+      const p1 = m[1];
+      const p2 = m[2];
+      const p3 = m[3];
+      if (!p1 || ["json", "md", "html", "csv", "sarif"].includes(p1)) continue;
+      assert.ok(topLevelProps.has(p1), `${entry.path} references unknown top-level report.${p1}`);
+      if (p1 === "page" && p2) {
+        assert.ok(pageProps.has(p2), `${entry.path} references unknown report.page.${p2}`);
+      } else if (p1 === "site" && p2) {
+        assert.ok(siteProps.has(p2), `${entry.path} references unknown report.site.${p2}`);
+      } else if (p1 === "scores" && p2) {
+        assert.ok(scoresProps.has(p2), `${entry.path} references unknown report.scores.${p2}`);
+        if (p3) {
+          assert.ok(scoreAxisProps.has(p3), `${entry.path} references unknown report.scores.${p2}.${p3}`);
+        }
+      }
+    }
+
+    // 3. Validate CLI subcommands, flags, and --skills values in bash code blocks
+    const cliLines = content.matchAll(/npx\s+one-step-seo\s+([^\r\n`]+)/g);
+    for (const m of cliLines) {
+      const tokens = (m[1] ?? "").trim().split(/\s+/);
+      const sub = tokens[0];
+      assert.ok(
+        sub && validSubcommands.has(sub),
+        `${entry.path} invokes invalid CLI subcommand "${sub}" in "${m[0]}"`,
+      );
+      for (let i = 1; i < tokens.length; i++) {
+        const tok = tokens[i] ?? "";
+        if (tok.startsWith("-")) {
+          const flagName = tok.split("=")[0] ?? tok;
+          assert.ok(
+            validFlags.has(flagName),
+            `${entry.path} uses invalid CLI flag "${flagName}" in "${m[0]}"`,
+          );
+          const next = tokens[i + 1] ?? "";
+          if ((flagName === "--skills" || flagName === "--exclude-skills") && next && !next.startsWith("<")) {
+            const skillTokens = next.split(",").filter(Boolean);
+            for (const st of skillTokens) {
+              const matched = filterSkills({ include: [st] });
+              assert.ok(
+                matched.length > 0,
+                `${entry.path} uses unresolved skill filter "${st}" in "${m[0]}"`,
+              );
+            }
+          }
+          if (flagName === "--profile" && next && !next.startsWith("<") && !next.includes("|")) {
+            assert.ok(
+              VALID_PROFILES.includes(next),
+              `${entry.path} uses invalid --profile "${next}" in "${m[0]}"`,
+            );
+          }
+          if (flagName === "--crawl" && next && !next.startsWith("<") && !next.includes("|")) {
+            assert.ok(
+              VALID_CRAWL.includes(next),
+              `${entry.path} uses invalid --crawl "${next}" in "${m[0]}"`,
+            );
+          }
+          if (flagName === "--fail-on" && next && !next.startsWith("<") && !next.includes("|")) {
+            assert.ok(
+              VALID_FAIL_ON.includes(next),
+              `${entry.path} uses invalid --fail-on "${next}" in "${m[0]}"`,
+            );
+          }
+          if (flagName === "--generate" && next && !next.startsWith("<") && !next.includes("|")) {
+            assert.ok(
+              VALID_GENERATE.includes(next),
+              `${entry.path} uses invalid --generate "${next}" in "${m[0]}"`,
+            );
+          }
+          if (flagName === "--format" && next && !next.startsWith("<") && !next.includes("|")) {
+            for (const fmt of next.split(",")) {
+              assert.ok(
+                VALID_FORMATS.includes(fmt),
+                `${entry.path} uses invalid --format "${fmt}" in "${m[0]}"`,
+              );
+            }
+          }
+        }
+      }
+    }
   }
 });

@@ -49,7 +49,7 @@ npx one-step-seo page https://example.com --skills llms-txt --out ./seo-report
 
 ## 5. Evidence Requirements
 
-- Quote `llmsFound` and `llmsBytes` from `llms --json` or `report.site.llmsTxt`.
+- Quote `llmsFound` and `llmsBytes` from `llms --json` (or `report.site.llms` and the `G01-llms` finding `evidence` in `report.json`).
 - Quote the exact blocked bot tokens from `G02-ai-blocked` evidence when `/robots.txt` restricts AI crawlers.
 
 ## 6. Expected Outputs

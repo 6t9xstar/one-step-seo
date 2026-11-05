@@ -26,10 +26,10 @@ Activate `internal-linking` when the user wants to:
 2. **Fix broken internal links first (`T16-broken-links`, P1)**:
    - Inspect `T16-broken-links` evidence in each `report[-N].json` (e.g., `GET https://example.com/gone -> http status 404`) and update or remove dead hrefs.
 3. **Eliminate dead-end and orphaned pages (`O10-internal`, `Possibly orphaned pages`)**:
-   - Identify pages where `report.page.internalLinks < 2` (`O10-internal` P1) and add contextual outbound internal links to related hub or detail pages.
+   - Identify pages where `report.page.internalLinks === 0` (`O10-internal` P1) or `report.page.internalLinks < 2` (surfaced in the site dashboard's `Internal linking & dead-end risk` section) and add contextual outbound internal links to related hub or detail pages.
    - Inspect `index.md` / `index.html` for sitemap-only orphan pages and link to them from relevant category or pillar pages.
-4. **Balance excessive link density (`O10-internal-many`, P3)**:
-   - On pages with `>150` internal links (`O10-internal-many`), trim mega-menu or footer link bloat so primary contextual links carry clearer weight.
+4. **Balance excessive link density (`O10-internal-many`, P2)**:
+   - On pages with `>200` internal links (`O10-internal-many`), trim mega-menu or footer link bloat so primary contextual links carry clearer weight.
 5. **Upgrade generic anchor text (`O11-generic-anchors`, P3)**:
    - Replace repeated exact-match generic anchors (`click here`, `read more`, `learn more`, `here`, `link`, `more`) with descriptive 2–5 word phrases naming the destination topic.
 
