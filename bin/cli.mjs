@@ -30,6 +30,7 @@ import {
   renderHtml,
   renderSiteIndex,
   renderSarif,
+  renderCsv,
   siteBasename,
   siteTopFindings,
   coverageLine,
@@ -425,22 +426,27 @@ function writeOutputs(outDir, report, formats, basename = "report", htmlOpts) {
   const written = [];
   if (formats.includes("json")) {
     const p = join(outDir, `${basename}.json`);
-    writeFileSync(p, JSON.stringify(report, null, 2) + "\n");
+    writeFileSync(p, JSON.stringify(report, null, 2) + "\n", "utf8");
     written.push(p);
   }
   if (formats.includes("md")) {
     const p = join(outDir, `${basename}.md`);
-    writeFileSync(p, renderMarkdown(report));
+    writeFileSync(p, renderMarkdown(report), "utf8");
     written.push(p);
   }
   if (formats.includes("html")) {
     const p = join(outDir, `${basename}.html`);
-    writeFileSync(p, renderHtml(report, htmlOpts));
+    writeFileSync(p, renderHtml(report, htmlOpts), "utf8");
     written.push(p);
   }
   if (formats.includes("sarif")) {
     const p = join(outDir, `${basename}.sarif`);
-    writeFileSync(p, JSON.stringify(renderSarif(report), null, 2) + "\n");
+    writeFileSync(p, JSON.stringify(renderSarif(report), null, 2) + "\n", "utf8");
+    written.push(p);
+  }
+  if (formats.includes("csv")) {
+    const p = join(outDir, `${basename}.csv`);
+    writeFileSync(p, renderCsv(report), "utf8");
     written.push(p);
   }
   return written;
@@ -775,11 +781,11 @@ async function cmdAudit(url, args) {
       lines.push(``);
     }
     const indexPath = join(outDir, "index.md");
-    writeFileSync(indexPath, lines.join("\n") + "\n");
+    writeFileSync(indexPath, lines.join("\n") + "\n", "utf8");
     written.push(indexPath);
     if (withHtml) {
       const dashboardPath = join(outDir, "index.html");
-      writeFileSync(dashboardPath, renderSiteIndex(pageReports));
+      writeFileSync(dashboardPath, renderSiteIndex(pageReports), "utf8");
       written.push(dashboardPath);
     }
   }
@@ -1333,7 +1339,7 @@ function cmdFix(rawTarget, args) {
     if (!args.apply) continue;
     try {
       if (!args.noBackup) copyFileSync(file, `${file}.bak`);
-      writeFileSync(file, plan.newHtml);
+      writeFileSync(file, plan.newHtml, "utf8");
       entry.applied = true;
       appliedFixes += plan.planned.length;
       appliedFiles++;

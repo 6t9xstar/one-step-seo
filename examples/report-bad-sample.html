@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>one-step-seo report — https://example.com/bad/</title>
-<meta name="description" content="Search SEO 0/100 (F) · AI Visibility 5/100 (F) — P0=0 P1=9 P2=11 P3=2.">
-<meta property="og:title" content="one-step-seo report — https://example.com/bad/">
-<meta property="og:description" content="Search SEO 0/100 (F) · AI Visibility 5/100 (F) — P0=0 P1=9 P2=11 P3=2.">
+<title>one-step-seo report &mdash; https://example.com/bad/</title>
+<meta name="description" content="Search SEO 0/100 (F) | AI Visibility 5/100 (F) — P0=0 P1=9 P2=11 P3=2.">
+<meta property="og:title" content="one-step-seo report &mdash; https://example.com/bad/">
+<meta property="og:description" content="Search SEO 0/100 (F) | AI Visibility 5/100 (F) — P0=0 P1=9 P2=11 P3=2.">
 <meta property="og:type" content="website">
 <style>
 :root{
@@ -120,6 +120,8 @@ h1{font-size:26px;font-weight:850;margin:0 0 8px;letter-spacing:-.025em}
 .axis{font-weight:750;font-size:15px;letter-spacing:-.01em}
 .axis-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
 .dist-title{font-weight:750;font-size:14.5px;margin-bottom:12px;letter-spacing:-.01em}
+.dist-stacked{display:flex;height:8px;border-radius:var(--radius-full);overflow:hidden;background:var(--code);margin-bottom:12px;gap:2px}
+.dist-seg{display:block;height:100%;background:hsl(var(--hue) 70% 48%);border-radius:var(--radius-full);transition:width .3s ease}
 .dist-row{display:grid;grid-template-columns:36px 1fr 32px;gap:10px;align-items:center;margin:6px 0;font-size:12px}
 .dist-label{font-weight:750;color:var(--muted)}
 .dist-track{height:8px;border-radius:var(--radius-full);background:var(--code);overflow:hidden}
@@ -149,8 +151,9 @@ h2 .n{font-size:12.5px;color:var(--muted);font-weight:650;font-variant-numeric:t
 .finding{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-sm);transition:all .18s cubic-bezier(.16,1,.3,1)}
 .finding:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .finding[hidden]{display:none}
-.finding-head{display:flex;gap:10px;align-items:flex-start}
-.finding-head h4{font-size:14.5px;font-weight:750;margin:0;flex:1;line-height:1.4;letter-spacing:-.015em}
+.finding-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.finding-head h4{font-size:14.5px;font-weight:750;margin:0;flex:1;min-width:200px;line-height:1.4;letter-spacing:-.015em}
+.finding-cat{display:inline-flex;align-items:center;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:2px 7px;background:var(--code);border-radius:var(--radius-sm);border:1px solid var(--line-subtle)}
 .finding-plain{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
 .finding-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0;padding:10px 12px;background:var(--code);border:1px solid var(--line-subtle);border-radius:var(--radius-md);font-size:11.5px}
 .finding-meta dt{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:750}
@@ -242,7 +245,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <div class="wrap"><main id="main">
 <header class="hero">
 <h1>one-step-seo report</h1>
-<p class="url">https://example.com/bad/<br>Checked 2026-10-08T00:00:00.000Z · v0.6.0</p>
+<p class="url">https://example.com/bad/<br>Checked 2026-10-08T00:00:00.000Z &bull; v0.6.0</p>
 
 <div class="scores">
 <div class="panel gauge-panel search-engine"><div class="gauge gauge-search"><svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true" focusable="false">
@@ -261,7 +264,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <div class="gauge-text"><span class="gauge-score">5</span><span class="gauge-band" style="--hue:0">F</span></div></div>
 <p class="sr-only">AI Visibility: 5 out of 100, band F.</p>
 <div><div class="axis">AI Visibility</div><div class="axis-sub">Answer-first structure, extractable facts and AI-crawler access — what decides AI answers.</div></div></div>
-<div class="panel"><div class="dist-title">Findings by severity</div><div class="dist-row"><span class="dist-label">P0</span>
+<div class="panel"><div class="dist-title">Findings by severity</div><div class="dist-stacked" role="img" aria-label="Severity distribution bar"><span class="dist-seg" style="--hue:25;width:22.5%" title="P1: 9 (22.5%)"></span><span class="dist-seg" style="--hue:45;width:27.5%" title="P2: 11 (27.5%)"></span><span class="dist-seg" style="--hue:210;width:5.0%" title="P3: 2 (5.0%)"></span><span class="dist-seg" style="--hue:150;width:45.0%" title="pass: 18 (45.0%)"></span></div><div class="dist-row"><span class="dist-label">P0</span>
 <span class="dist-track"><span class="dist-fill" style="--hue:0;width:0.0%"></span></span>
 <span class="dist-count">0</span></div><div class="dist-row"><span class="dist-label">P1</span>
 <span class="dist-track"><span class="dist-fill" style="--hue:25;width:50.0%"></span></span>
@@ -297,6 +300,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <h3 id="h-technical">Technical SEO <span class="group-count">4</span></h3>
 <div class="cards"><article class="finding" data-sev="P1" data-search="viewport meta missing/odd t11-viewport (none) add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;. the mobile viewport tag is missing, so phones render a shrunken desktop layout. most search traffic is mobile. technical">
 <header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<span class="finding-cat">technical</span>
 <h4>Viewport meta missing/odd</h4></header>
 <p class="finding-plain">The mobile viewport tag is missing, so phones render a shrunken desktop layout. Most search traffic is mobile.</p>
 <dl class="finding-meta">
@@ -311,6 +315,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="canonical missing t08-canonical no rel=canonical found add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred url. the canonical tag — the page’s way of saying “this is my official url” — is missing or points somewhere unexpected. duplicates can then split ranking signal. technical">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">technical</span>
 <h4>Canonical missing</h4></header>
 <p class="finding-plain">The canonical tag — the page’s way of saying “this is my official URL” — is missing or points somewhere unexpected. Duplicates can then split ranking signal.</p>
 <dl class="finding-meta">
@@ -325,6 +330,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="missing html lang t09-lang no &lt;html lang&gt; add lang, e.g. &lt;html lang=&quot;en&quot;&gt;. the page never declares its language. screen readers then mispronounce text and search engines can misclassify the audience. technical">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">technical</span>
 <h4>Missing html lang</h4></header>
 <p class="finding-plain">The page never declares its language. Screen readers then mispronounce text and search engines can misclassify the audience.</p>
 <dl class="finding-meta">
@@ -339,6 +345,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="charset not utf-8 t10-charset not-found declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;. no utf-8 charset is declared, so special characters (accents, symbols, emoji) can render as mojibake. technical">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">technical</span>
 <h4>Charset not UTF-8</h4></header>
 <p class="finding-plain">No UTF-8 charset is declared, so special characters (accents, symbols, emoji) can render as mojibake.</p>
 <dl class="finding-meta">
@@ -355,6 +362,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <h3 id="h-onpage">On-page <span class="group-count">10</span></h3>
 <div class="cards"><article class="finding" data-sev="P1" data-search="title too short o01-title-short &quot;hi&quot; (2ch) expand to 30-60 chars: primary topic | brand. the title is too short to describe the page. short titles waste the most influential on-page ranking slot. onpage">
 <header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<span class="finding-cat">onpage</span>
 <h4>Title too short</h4></header>
 <p class="finding-plain">The title is too short to describe the page. Short titles waste the most influential on-page ranking slot.</p>
 <dl class="finding-meta">
@@ -369,6 +377,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P1" data-search="meta description missing o02-meta-missing (empty) add a 120-155ch description with benefit + cta. one per page. there is no meta description, so google invents the snippet text under your headline — usually badly. good descriptions lift click-through. onpage">
 <header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<span class="finding-cat">onpage</span>
 <h4>Meta description missing</h4></header>
 <p class="finding-plain">There is no meta description, so Google invents the snippet text under your headline — usually badly. Good descriptions lift click-through.</p>
 <dl class="finding-meta">
@@ -383,6 +392,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P1" data-search="multiple h1s o03-h1-multi 2 h1s keep one h1; demote the rest to h2. the page has several h1s, so nothing is clearly the main topic. keep one h1 and demote the rest to h2. onpage">
 <header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<span class="finding-cat">onpage</span>
 <h4>Multiple H1s</h4></header>
 <p class="finding-plain">The page has several H1s, so nothing is clearly the main topic. Keep one H1 and demote the rest to H2.</p>
 <dl class="finding-meta">
@@ -397,6 +407,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P1" data-search="2/2 images missing alt o08-alt empty/missing alt attributes write descriptive alt for informative images; alt=&quot;&quot; for decorative. some images have no alt text, so screen-reader users miss them and image search cannot understand them. onpage">
 <header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<span class="finding-cat">onpage</span>
 <h4>2/2 images missing alt</h4></header>
 <p class="finding-plain">Some images have no alt text, so screen-reader users miss them and image search cannot understand them.</p>
 <dl class="finding-meta">
@@ -411,6 +422,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P1" data-search="no internal links detected o10-internal 0 internal links add 3-10 contextual internal links to related pages. the page links to nothing else on the site. internal links spread ranking signal and guide readers deeper. onpage">
 <header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<span class="finding-cat">onpage</span>
 <h4>No internal links detected</h4></header>
 <p class="finding-plain">The page links to nothing else on the site. Internal links spread ranking signal and guide readers deeper.</p>
 <dl class="finding-meta">
@@ -425,6 +437,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="skipped heading level o04-headings e.g. h1 -&gt; h3 nest headings sequentially (h1&gt;h2&gt;h3). heading levels skip (e.g. h1 straight to h3). screen readers and ai parsers use heading order as the page outline. onpage">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">onpage</span>
 <h4>Skipped heading level</h4></header>
 <p class="finding-plain">Heading levels skip (e.g. H1 straight to H3). Screen readers and AI parsers use heading order as the page outline.</p>
 <dl class="finding-meta">
@@ -439,6 +452,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="open graph incomplete o06-og title:false desc:false img:false add og:title, og:description, og:image + twitter:card. open graph tags are incomplete, so shares on social and chat apps show a bare link instead of a rich preview card. onpage">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">onpage</span>
 <h4>Open Graph incomplete</h4></header>
 <p class="finding-plain">Open Graph tags are incomplete, so shares on social and chat apps show a bare link instead of a rich preview card.</p>
 <dl class="finding-meta">
@@ -457,6 +471,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="favicon not detected o07-favicon no rel=icon link add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + svg variant. no favicon was detected. tabs and bookmarks show a generic icon, which looks unfinished and hurts brand recognition. onpage">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">onpage</span>
 <h4>Favicon not detected</h4></header>
 <p class="finding-plain">No favicon was detected. Tabs and bookmarks show a generic icon, which looks unfinished and hurts brand recognition.</p>
 <dl class="finding-meta">
@@ -472,6 +487,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="images missing dimensions (cls risk) o09-img-dims 2/2 without width+height add width/height or aspect-ratio to avoid layout shift. most images lack width/height, so the page layout jumps while loading (cls). declare dimensions or an aspect ratio. onpage">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">onpage</span>
 <h4>Images missing dimensions (CLS risk)</h4></header>
 <p class="finding-plain">Most images lack width/height, so the page layout jumps while loading (CLS). Declare dimensions or an aspect ratio.</p>
 <dl class="finding-meta">
@@ -486,6 +502,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P3" data-search="twitter card missing w01-social no twitter:card meta add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;. no twitter/x card tag. link previews on x fall back to a plain card without it. onpage">
 <header class="finding-head"><span class="badge" style="--hue:210">P3</span>
+<span class="finding-cat">onpage</span>
 <h4>Twitter card missing</h4></header>
 <p class="finding-plain">No Twitter/X card tag. Link previews on X fall back to a plain card without it.</p>
 <dl class="finding-meta">
@@ -502,6 +519,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <h3 id="h-content">Content <span class="group-count">4</span></h3>
 <div class="cards"><article class="finding" data-sev="P1" data-search="thin content c01-thin 6 words expand to fully answer the query; add examples, steps, data. the page has very little text. thin pages rarely satisfy a query fully and give ai answers nothing to cite. content">
 <header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<span class="finding-cat">content</span>
 <h4>Thin content</h4></header>
 <p class="finding-plain">The page has very little text. Thin pages rarely satisfy a query fully and give AI answers nothing to cite.</p>
 <dl class="finding-meta">
@@ -516,6 +534,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P1" data-search="no answer-first block c02-answer no direct answer in first ~150 words start with a 40-60 word direct answer, then explanation + evidence. the page never answers its own question up front. ai overviews and featured snippets quote pages that lead with a direct 40–60 word answer. content">
 <header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<span class="finding-cat">content</span>
 <h4>No answer-first block</h4></header>
 <p class="finding-plain">The page never answers its own question up front. AI overviews and featured snippets quote pages that lead with a direct 40–60 word answer.</p>
 <dl class="finding-meta">
@@ -530,6 +549,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="no tables/lists (harder to cite) c03-extractable 0 tables/lists add a comparison table or steps list for key facts. no tables or lists were found. ai systems lift facts most easily from tables, steps, and bullet lists. content">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">content</span>
 <h4>No tables/lists (harder to cite)</h4></header>
 <p class="finding-plain">No tables or lists were found. AI systems lift facts most easily from tables, steps, and bullet lists.</p>
 <dl class="finding-meta">
@@ -544,6 +564,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="no faq coverage c04-faq no questions answered on page add 3-6 genuine user questions with concise answers where natural. no faq content was detected. a short set of genuine user questions with concise answers feeds both “people also ask” and ai answers. content">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">content</span>
 <h4>No FAQ coverage</h4></header>
 <p class="finding-plain">No FAQ content was detected. A short set of genuine user questions with concise answers feeds both “People also ask” and AI answers.</p>
 <dl class="finding-meta">
@@ -573,6 +594,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <h3 id="h-schema">Schema <span class="group-count">1</span></h3>
 <div class="cards"><article class="finding" data-sev="P1" data-search="no json-ld structured data s01-none 0 schema nodes add organization/website + page-type markup (article/faq/breadcrumb). only mark up visible content. no structured data was found. schema markup is how you tell google — in its own language — what this page is. schema">
 <header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<span class="finding-cat">schema</span>
 <h4>No JSON-LD structured data</h4></header>
 <p class="finding-plain">No structured data was found. Schema markup is how you tell Google — in its own language — what this page is.</p>
 <dl class="finding-meta">
@@ -596,6 +618,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <h3 id="h-geo">AI visibility <span class="group-count">3</span></h3>
 <div class="cards"><article class="finding" data-sev="P2" data-search="llms.txt missing g01-llms get /llms.txt not found optional: add /llms.txt summarizing key pages for ai crawlers. there is no llms.txt file — a small machine-readable summary that chatgpt, perplexity, and claude measurably use (it has no measured effect on google ai overviews). it is optional, but cheap to add. geo">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">geo</span>
 <h4>llms.txt missing</h4></header>
 <p class="finding-plain">There is no llms.txt file — a small machine-readable summary that ChatGPT, Perplexity, and Claude measurably use (it has no measured effect on Google AI Overviews). It is optional, but cheap to add.</p>
 <dl class="finding-meta">
@@ -621,6 +644,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="facts hard to extract g03-facts tables:0 lists:0 words:6 surface prices/specs/steps/dates in tables or bolded fact lines with sources. key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so ai systems struggle to extract and cite them. geo">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">geo</span>
 <h4>Facts hard to extract</h4></header>
 <p class="finding-plain">Key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so AI systems struggle to extract and cite them.</p>
 <dl class="finding-meta">
@@ -635,6 +659,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P3" data-search="no freshness signals g06-freshness no publication or review dates found where content is date-sensitive, show a review date and keep datemodified current. no publication or review dates were found. dated content signals maintenance to both readers and ai systems — show a review date where freshness matters and keep it current. geo">
 <header class="finding-head"><span class="badge" style="--hue:210">P3</span>
+<span class="finding-cat">geo</span>
 <h4>No freshness signals</h4></header>
 <p class="finding-plain">No publication or review dates were found. Dated content signals maintenance to both readers and AI systems — show a review date where freshness matters and keep it current.</p>
 <dl class="finding-meta">
@@ -688,7 +713,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <li><span class="badge" style="--hue:210">P3</span> Twitter card missing <code>W01-social</code> — Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;.</li>
 </ul></section>
 
-<footer class="foot"><span>Generated by one-step-seo v0.6.0 — two scores, never blended.</span><span>https://example.com/bad/</span></footer>
+<footer class="foot"><span>Generated by one-step-seo v0.6.0 &mdash; two scores, never blended.</span><span>https://example.com/bad/</span></footer>
 </main></div>
 
 <script>

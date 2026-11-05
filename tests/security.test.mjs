@@ -4,7 +4,8 @@ import { parseHtml } from "../lib/html.mjs";
 import { runChecks } from "../lib/checks.mjs";
 import { extractJsonLd } from "../lib/schema.mjs";
 import { geoDetails, computeScores } from "../lib/score.mjs";
-import { buildReport, renderHtml, renderMarkdown, esc } from "../lib/report.mjs";
+import { buildReport, renderHtml, renderMarkdown, renderCsv, esc } from "../lib/report.mjs";
+import { fetchWithRedirects, fetchText, isBlockedMetadataEndpoint } from "../lib/fetch.mjs";
 
 function siteFilesMock() {
   return {
@@ -142,4 +143,45 @@ test("perfect GEO signals score 100", () => {
     robots: { aiBlocked: false },
   });
   assert.equal(geo.score, 100);
+});
+
+test("isBlockedMetadataEndpoint blocks cloud metadata endpoints (SSRF)", () => {
+  assert.equal(isBlockedMetadataEndpoint("http://169.254.169.254/latest/meta-data"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://metadata.google.internal/computeMetadata/v1/"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://100.100.100.200/latest/meta-data/"), true);
+  assert.equal(isBlockedMetadataEndpoint("https://example.com/"), false);
+  assert.equal(isBlockedMetadataEndpoint("http://127.0.0.1:3000/"), false);
+});
+
+test("fetchWithRedirects rejects cloud metadata endpoints", async () => {
+  const r = await fetchWithRedirects("http://169.254.169.254/latest/meta-data");
+  assert.equal(r.ok, false);
+  assert.match(r.error, /cloud metadata endpoint \(SSRF protection\)/);
+});
+
+test("fetchText rejects cloud metadata endpoints", async () => {
+  const r = await fetchText("http://169.254.169.254/latest/meta-data");
+  assert.equal(r.ok, false);
+  assert.match(r.error ?? "", /cloud metadata endpoint \(SSRF protection\)/);
+});
+
+test("renderCsv produces valid RFC 4180 CSV with escaped fields", () => {
+  const r = {
+    findings: [
+      {
+        severity: "P1",
+        id: "T01-https",
+        category: "technical",
+        title: "Not on HTTPS, insecure",
+        evidence: 'Found "http://" link',
+        fix: "Switch to https://.",
+        seoImpact: "high",
+        geoImpact: "medium",
+      },
+    ],
+  };
+  const csv = renderCsv(r);
+  assert.ok(csv.includes("Severity,Check ID,Category,Title,Evidence,Fix,SEO Impact,GEO Impact"));
+  assert.ok(csv.includes('"Not on HTTPS, insecure"'));
+  assert.ok(csv.includes('"Found ""http://"" link"'));
 });

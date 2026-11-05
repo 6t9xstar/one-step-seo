@@ -425,6 +425,22 @@
         margin-bottom: 12px;
         letter-spacing: -0.01em;
       }
+      .dist-stacked {
+        display: flex;
+        height: 8px;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        background: var(--code);
+        margin-bottom: 12px;
+        gap: 2px;
+      }
+      .dist-seg {
+        display: block;
+        height: 100%;
+        background: hsl(var(--hue) 70% 48%);
+        border-radius: var(--radius-full);
+        transition: width 0.3s ease;
+      }
       .dist-row {
         display: grid;
         grid-template-columns: 36px 1fr 32px;
@@ -619,15 +635,30 @@
       .finding-head {
         display: flex;
         gap: 10px;
-        align-items: flex-start;
+        align-items: center;
+        flex-wrap: wrap;
       }
       .finding-head h4 {
         font-size: 14.5px;
         font-weight: 750;
         margin: 0;
         flex: 1;
+        min-width: 200px;
         line-height: 1.4;
         letter-spacing: -0.015em;
+      }
+      .finding-cat {
+        display: inline-flex;
+        align-items: center;
+        font-size: 10px;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        padding: 2px 7px;
+        background: var(--code);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--line-subtle);
       }
       .finding-plain {
         margin: 0;

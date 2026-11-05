@@ -117,6 +117,8 @@ h1{font-size:26px;font-weight:850;margin:0 0 8px;letter-spacing:-.025em}
 .axis{font-weight:750;font-size:15px;letter-spacing:-.01em}
 .axis-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
 .dist-title{font-weight:750;font-size:14.5px;margin-bottom:12px;letter-spacing:-.01em}
+.dist-stacked{display:flex;height:8px;border-radius:var(--radius-full);overflow:hidden;background:var(--code);margin-bottom:12px;gap:2px}
+.dist-seg{display:block;height:100%;background:hsl(var(--hue) 70% 48%);border-radius:var(--radius-full);transition:width .3s ease}
 .dist-row{display:grid;grid-template-columns:36px 1fr 32px;gap:10px;align-items:center;margin:6px 0;font-size:12px}
 .dist-label{font-weight:750;color:var(--muted)}
 .dist-track{height:8px;border-radius:var(--radius-full);background:var(--code);overflow:hidden}
@@ -146,8 +148,9 @@ h2 .n{font-size:12.5px;color:var(--muted);font-weight:650;font-variant-numeric:t
 .finding{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-sm);transition:all .18s cubic-bezier(.16,1,.3,1)}
 .finding:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .finding[hidden]{display:none}
-.finding-head{display:flex;gap:10px;align-items:flex-start}
-.finding-head h4{font-size:14.5px;font-weight:750;margin:0;flex:1;line-height:1.4;letter-spacing:-.015em}
+.finding-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.finding-head h4{font-size:14.5px;font-weight:750;margin:0;flex:1;min-width:200px;line-height:1.4;letter-spacing:-.015em}
+.finding-cat{display:inline-flex;align-items:center;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:2px 7px;background:var(--code);border-radius:var(--radius-sm);border:1px solid var(--line-subtle)}
 .finding-plain{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
 .finding-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0;padding:10px 12px;background:var(--code);border:1px solid var(--line-subtle);border-radius:var(--radius-md);font-size:11.5px}
 .finding-meta dt{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:750}
@@ -256,7 +259,7 @@ td.p-url a:hover{text-decoration:underline}
 <div class="gauge-text"><span class="gauge-score">55</span><span class="gauge-band" style="--hue:0">F</span></div></div>
 <p class="sr-only">Average AI Visibility: 55 out of 100, band F.</p>
 <div><div class="axis">Avg AI Visibility</div><div class="axis-sub">Average 55/100 · lowest 5</div></div></div>
-<div class="panel"><div class="dist-title">Findings across all pages</div><div class="dist-row"><span class="dist-label">P0</span>
+<div class="panel"><div class="dist-title">Findings across all pages</div><div class="dist-stacked" role="img" aria-label="Severity distribution bar"><span class="dist-seg" style="--hue:25;width:7.7%" title="P1: 10 (7.7%)"></span><span class="dist-seg" style="--hue:45;width:10.8%" title="P2: 14 (10.8%)"></span><span class="dist-seg" style="--hue:210;width:6.2%" title="P3: 8 (6.2%)"></span><span class="dist-seg" style="--hue:150;width:75.4%" title="pass: 98 (75.4%)"></span></div><div class="dist-row"><span class="dist-label">P0</span>
 <span class="dist-track"><span class="dist-fill" style="--hue:0;width:0.0%"></span></span>
 <span class="dist-count">0</span></div><div class="dist-row"><span class="dist-label">P1</span>
 <span class="dist-track"><span class="dist-fill" style="--hue:25;width:10.2%"></span></span>

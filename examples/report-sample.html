@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>one-step-seo report — https://example.com/good/</title>
-<meta name="description" content="Search SEO 86/100 (B) · AI Visibility 80/100 (B) — P0=0 P1=1 P2=2 P3=3.">
-<meta property="og:title" content="one-step-seo report — https://example.com/good/">
-<meta property="og:description" content="Search SEO 86/100 (B) · AI Visibility 80/100 (B) — P0=0 P1=1 P2=2 P3=3.">
+<title>one-step-seo report &mdash; https://example.com/good/</title>
+<meta name="description" content="Search SEO 86/100 (B) | AI Visibility 80/100 (B) — P0=0 P1=1 P2=2 P3=3.">
+<meta property="og:title" content="one-step-seo report &mdash; https://example.com/good/">
+<meta property="og:description" content="Search SEO 86/100 (B) | AI Visibility 80/100 (B) — P0=0 P1=1 P2=2 P3=3.">
 <meta property="og:type" content="website">
 <style>
 :root{
@@ -120,6 +120,8 @@ h1{font-size:26px;font-weight:850;margin:0 0 8px;letter-spacing:-.025em}
 .axis{font-weight:750;font-size:15px;letter-spacing:-.01em}
 .axis-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
 .dist-title{font-weight:750;font-size:14.5px;margin-bottom:12px;letter-spacing:-.01em}
+.dist-stacked{display:flex;height:8px;border-radius:var(--radius-full);overflow:hidden;background:var(--code);margin-bottom:12px;gap:2px}
+.dist-seg{display:block;height:100%;background:hsl(var(--hue) 70% 48%);border-radius:var(--radius-full);transition:width .3s ease}
 .dist-row{display:grid;grid-template-columns:36px 1fr 32px;gap:10px;align-items:center;margin:6px 0;font-size:12px}
 .dist-label{font-weight:750;color:var(--muted)}
 .dist-track{height:8px;border-radius:var(--radius-full);background:var(--code);overflow:hidden}
@@ -149,8 +151,9 @@ h2 .n{font-size:12.5px;color:var(--muted);font-weight:650;font-variant-numeric:t
 .finding{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-sm);transition:all .18s cubic-bezier(.16,1,.3,1)}
 .finding:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .finding[hidden]{display:none}
-.finding-head{display:flex;gap:10px;align-items:flex-start}
-.finding-head h4{font-size:14.5px;font-weight:750;margin:0;flex:1;line-height:1.4;letter-spacing:-.015em}
+.finding-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.finding-head h4{font-size:14.5px;font-weight:750;margin:0;flex:1;min-width:200px;line-height:1.4;letter-spacing:-.015em}
+.finding-cat{display:inline-flex;align-items:center;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:2px 7px;background:var(--code);border-radius:var(--radius-sm);border:1px solid var(--line-subtle)}
 .finding-plain{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
 .finding-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0;padding:10px 12px;background:var(--code);border:1px solid var(--line-subtle);border-radius:var(--radius-md);font-size:11.5px}
 .finding-meta dt{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:750}
@@ -242,7 +245,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <div class="wrap"><main id="main">
 <header class="hero">
 <h1>one-step-seo report</h1>
-<p class="url">https://example.com/good/<br>Checked 2026-10-08T00:00:00.000Z · v0.6.0</p>
+<p class="url">https://example.com/good/<br>Checked 2026-10-08T00:00:00.000Z &bull; v0.6.0</p>
 
 <div class="scores">
 <div class="panel gauge-panel search-engine"><div class="gauge gauge-search"><svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true" focusable="false">
@@ -261,7 +264,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <div class="gauge-text"><span class="gauge-score">80</span><span class="gauge-band" style="--hue:95">B</span></div></div>
 <p class="sr-only">AI Visibility: 80 out of 100, band B.</p>
 <div><div class="axis">AI Visibility</div><div class="axis-sub">Answer-first structure, extractable facts and AI-crawler access — what decides AI answers.</div></div></div>
-<div class="panel"><div class="dist-title">Findings by severity</div><div class="dist-row"><span class="dist-label">P0</span>
+<div class="panel"><div class="dist-title">Findings by severity</div><div class="dist-stacked" role="img" aria-label="Severity distribution bar"><span class="dist-seg" style="--hue:25;width:2.2%" title="P1: 1 (2.2%)"></span><span class="dist-seg" style="--hue:45;width:4.4%" title="P2: 2 (4.4%)"></span><span class="dist-seg" style="--hue:210;width:6.7%" title="P3: 3 (6.7%)"></span><span class="dist-seg" style="--hue:150;width:86.7%" title="pass: 39 (86.7%)"></span></div><div class="dist-row"><span class="dist-label">P0</span>
 <span class="dist-track"><span class="dist-fill" style="--hue:0;width:0.0%"></span></span>
 <span class="dist-count">0</span></div><div class="dist-row"><span class="dist-label">P1</span>
 <span class="dist-track"><span class="dist-fill" style="--hue:25;width:2.6%"></span></span>
@@ -297,6 +300,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <h3 id="h-content">Content <span class="group-count">1</span></h3>
 <div class="cards"><article class="finding" data-sev="P1" data-search="thin content c01-thin 130 words expand to fully answer the query; add examples, steps, data. the page has very little text. thin pages rarely satisfy a query fully and give ai answers nothing to cite. content">
 <header class="finding-head"><span class="badge" style="--hue:25">P1</span>
+<span class="finding-cat">content</span>
 <h4>Thin content</h4></header>
 <p class="finding-plain">The page has very little text. Thin pages rarely satisfy a query fully and give AI answers nothing to cite.</p>
 <dl class="finding-meta">
@@ -313,6 +317,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <h3 id="h-schema">Schema <span class="group-count">1</span></h3>
 <div class="cards"><article class="finding" data-sev="P3" data-search="visible faq without matching markup s03-faq-parity faq copy found, no faqpage block add a matching faqpage block (one-step-seo schema &lt;url&gt; --generate faq prints a starter) for rich-result eligibility. the faq markup and the visible questions disagree: either the page marks up questions it never shows (a policy risk), or it shows questions without matching markup (missed rich-result eligibility). schema">
 <header class="finding-head"><span class="badge" style="--hue:210">P3</span>
+<span class="finding-cat">schema</span>
 <h4>Visible FAQ without matching markup</h4></header>
 <p class="finding-plain">The FAQ markup and the visible questions disagree: either the page marks up questions it never shows (a policy risk), or it shows questions without matching markup (missed rich-result eligibility).</p>
 <dl class="finding-meta">
@@ -329,6 +334,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <h3 id="h-geo">AI visibility <span class="group-count">4</span></h3>
 <div class="cards"><article class="finding" data-sev="P2" data-search="llms.txt missing g01-llms get /llms.txt not found optional: add /llms.txt summarizing key pages for ai crawlers. there is no llms.txt file — a small machine-readable summary that chatgpt, perplexity, and claude measurably use (it has no measured effect on google ai overviews). it is optional, but cheap to add. geo">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">geo</span>
 <h4>llms.txt missing</h4></header>
 <p class="finding-plain">There is no llms.txt file — a small machine-readable summary that ChatGPT, Perplexity, and Claude measurably use (it has no measured effect on Google AI Overviews). It is optional, but cheap to add.</p>
 <dl class="finding-meta">
@@ -354,6 +360,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P2" data-search="facts hard to extract g03-facts tables:1 lists:1 words:130 surface prices/specs/steps/dates in tables or bolded fact lines with sources. key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so ai systems struggle to extract and cite them. geo">
 <header class="finding-head"><span class="badge" style="--hue:45">P2</span>
+<span class="finding-cat">geo</span>
 <h4>Facts hard to extract</h4></header>
 <p class="finding-plain">Key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so AI systems struggle to extract and cite them.</p>
 <dl class="finding-meta">
@@ -368,6 +375,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P3" data-search="no freshness signals g06-freshness no publication or review dates found where content is date-sensitive, show a review date and keep datemodified current. no publication or review dates were found. dated content signals maintenance to both readers and ai systems — show a review date where freshness matters and keep it current. geo">
 <header class="finding-head"><span class="badge" style="--hue:210">P3</span>
+<span class="finding-cat">geo</span>
 <h4>No freshness signals</h4></header>
 <p class="finding-plain">No publication or review dates were found. Dated content signals maintenance to both readers and AI systems — show a review date where freshness matters and keep it current.</p>
 <dl class="finding-meta">
@@ -382,6 +390,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 </article>
 <article class="finding" data-sev="P3" data-search="few question-shaped headings g07-question-headings 0/3 h2s are questions phrase section headings as the questions readers actually ask — it mirrors ai-answer structure. few section headings are phrased as questions. headings that mirror how people actually ask make sections directly quotable by ai answers. geo">
 <header class="finding-head"><span class="badge" style="--hue:210">P3</span>
+<span class="finding-cat">geo</span>
 <h4>Few question-shaped headings</h4></header>
 <p class="finding-plain">Few section headings are phrased as questions. Headings that mirror how people actually ask make sections directly quotable by AI answers.</p>
 <dl class="finding-meta">
@@ -458,7 +467,7 @@ footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);fo
 <li><span class="badge" style="--hue:210">P3</span> Few question-shaped headings <code>G07-question-headings</code> — Phrase section headings as the questions readers actually ask — it mirrors AI-answer structure.</li>
 </ul></section>
 
-<footer class="foot"><span>Generated by one-step-seo v0.6.0 — two scores, never blended.</span><span>https://example.com/good/</span></footer>
+<footer class="foot"><span>Generated by one-step-seo v0.6.0 &mdash; two scores, never blended.</span><span>https://example.com/good/</span></footer>
 </main></div>
 
 <script>
