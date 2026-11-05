@@ -4,7 +4,7 @@
   <img src="https://raw.githubusercontent.com/6t9xstar/one-step-seo/main/assets/logo.svg" width="130" alt="one-step-seo logo">
 </p>
 
-# ⚡ one-step-seo
+# ⚡ One-Step-Seo
 
 **Next-Generation Dual-Engine Auditor for Traditional Search SEO & Generative AI Visibility (GEO / AEO).**
 
