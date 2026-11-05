@@ -123,3 +123,49 @@ test("finding ids match schema pattern", async () => {
   const re = new RegExp(schema.properties.id.pattern);
   for (const f of findings) assert.match(f.id, re, `bad id ${f.id}`);
 });
+
+test("T17-canonical-http flags http canonical on https page", () => {
+  const html = `<!doctype html><html lang="en"><head><title>Title of page</title><link rel="canonical" href="http://example.com/page"></head><body><h1>Heading</h1><p>Content</p></body></html>`;
+  const p = parseHtml(html, "https://example.com/page");
+  const findings = runChecks(p, siteFilesMock(), fetchMock("https://example.com/page"), {
+    items: [],
+    types: [],
+    issues: [],
+    errors: [],
+  });
+  const t17 = findings.find((f) => f.id === "T17-canonical-http");
+  assert.ok(t17, "expected T17-canonical-http finding");
+  assert.equal(t17?.severity, "P1");
+});
+
+test("O04-heading-empty flags headings with no text", () => {
+  const html = `<!doctype html><html lang="en"><head><title>Title of page</title></head><body><h1>Heading</h1><h2>   </h2><p>Content</p></body></html>`;
+  const p = parseHtml(html, "https://example.com/page");
+  const findings = runChecks(p, siteFilesMock(), fetchMock("https://example.com/page"), {
+    items: [],
+    types: [],
+    issues: [],
+    errors: [],
+  });
+  const o04 = findings.find((f) => f.id === "O04-heading-empty");
+  assert.ok(o04, "expected O04-heading-empty finding");
+  assert.equal(o04?.severity, "P2");
+});
+
+test("G10-author and G11-semantic-content flag substantive pages missing author and main landmark", () => {
+  const longText = "word ".repeat(650);
+  const html = `<!doctype html><html lang="en"><head><title>Long article title here</title></head><body><h1>Article</h1><p>${longText}</p></body></html>`;
+  const p = parseHtml(html, "https://example.com/article");
+  const findings = runChecks(p, siteFilesMock(), fetchMock("https://example.com/article"), {
+    items: [],
+    types: [],
+    issues: [],
+    errors: [],
+  });
+  const g10 = findings.find((f) => f.id === "G10-author");
+  const g11 = findings.find((f) => f.id === "G11-semantic-content");
+  assert.ok(g10, "expected G10-author finding on long page without author");
+  assert.equal(g10?.severity, "P3");
+  assert.ok(g11, "expected G11-semantic-content finding on 600+ word page without main/article");
+  assert.equal(g11?.severity, "P3");
+});

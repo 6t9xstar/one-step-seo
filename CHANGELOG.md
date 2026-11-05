@@ -4,6 +4,55 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/).
 
+## [0.8.0] - 2026-11-05
+
+### Added
+
+- **Centralized SSRF Protection & DNS Rebinding Defense (`lib/fetch.mjs`).**
+  - Replaced ad-hoc host checks with comprehensive RFC-reserved address range classification: IPv4 (`0.0.0.0/8`, `10.0.0.0/8`, `100.64.0.0/10` CGNAT, `127.0.0.0/8`, `169.254.0.0/16`, `172.16.0.0/12`, `192.0.0.0/24`, `192.0.2.0/24`, `192.88.99.0/24`, `192.168.0.0/16`, `198.18.0.0/15`, `198.51.100.0/24`, `203.0.113.0/24`, `224.0.0.0/4`, `240.0.0.0/4`, `255.255.255.255`) and IPv6 (`::1`, `::`, `fc00::/7` ULA, `fe80::/10` link-local, `ff00::/8` multicast, `::ffff:0:0/96` IPv4-mapped, `64:ff9b::/96`, `100::/64`, `2001:db8::/32`).
+  - Added pre-connection DNS resolution checks (`dns.lookup`) to defend against DNS rebinding attacks when `--block-private-ips` is enabled or when public pages redirect.
+  - Strict URL scheme validation restricting network requests to `http:` and `https:`, blocking `file:`, `ftp:`, `javascript:`, and other unexpected protocols.
+  - Upgraded `fetchText()` from native follow to manual redirect inspection (up to 5 hops), enforcing identical SSRF checks on every hop for discovery files (`robots.txt`, `sitemap.xml`, `llms.txt`) and link checks.
+- **Network Timeout Correctness & Resource Cleanup.**
+  - Pass `controller.signal` to `readCappedText` in `fetchText()` and `fetchWithRedirects()`, ensuring response body reading cannot hang execution on slow-drip or stalled servers.
+  - Hardened `fetchPsi()` timeouts to cover both HTTP headers and JSON response streaming.
+  - Guaranteed `reader.releaseLock()` and stream body cancellation (`res.body?.cancel()`) across all success, error, timeout, and redirect paths.
+- **PageSpeed Insights Metric Validation & INP Thresholds (`lib/psi.mjs`).**
+  - Distinguishes missing metrics from real zero values (`null` vs `0`), preventing missing audits from emitting false passes (e.g. LCP 0.00s).
+  - Emits `P03-psi-lab` (P3) when lab metrics are missing or incomplete rather than falsely passing.
+  - Added full evaluation of CrUX INP (Interaction to Next Paint): >200ms triggers P2, >500ms triggers P1.
+  - Resilient error handling for malformed JSON, partial API responses, and rate limits (429).
+- **Report Security, Formula Injection Defense & Accessibility (`lib/report.mjs`).**
+  - Added spreadsheet formula-injection protection (CWE-1236) in `escCsv`: values starting with `=`, `+`, `-`, `@`, `\t`, or `\r` are prefixed with single quotes (`'`).
+  - Standardized SARIF v2.1.0 output: artifact locations use RFC 3986 parseable URIs (`safeSarifUri`) with robust fallbacks for local Windows and POSIX paths.
+  - Verified and enhanced report accessibility: document language (`<html lang="en">`), skip-to-content links, heading hierarchies (`<h1>` -> `<h2>`), `aria-labelledby` landmark sections, and polite live status regions.
+- **Audit Accuracy & Heuristic Realism.**
+  - Removed speculative language around "guaranteed rankings" or "deciding Google rankings / AI answers", reframing findings around technical foundation, crawlability, indexability, and structural extractability.
+- **Modular Skills Architecture (`lib/skills.mjs`) & `skills` Command.** First-class programmatic auditing skills registry organizing rules into 9 core capability domains (Technical SEO, On-Page SEO, Structured Data, Generative Engine Optimization, Performance & CWV, Security & Hygiene, Accessibility & UX, International & Local, and Content & Architecture).
+  - Added `one-step-seo skills` to print an ANSI-formatted skills overview table with offline readiness and check counts.
+  - Added `one-step-seo skills <skill-id>` to inspect detailed capabilities, mapped rules, remediation guides, and limitations.
+  - Added `--json` output format for machine-readable skill catalog consumption.
+- **Offline-First Auditing Engine for Local HTML Files & Directories.**
+  - Direct local file auditing (`one-step-seo page ./dist/index.html` or `file:///...`) without running a web server.
+  - Recursive local directory crawling (`one-step-seo audit ./dist --pages 10`) producing multi-page reports and linked dashboards.
+  - Automatic discovery of local `robots.txt`, `sitemap.xml`, and `llms.txt` on disk with safe offline fallbacks.
+  - Pure offline mode flag (`--offline`) ensuring zero external network calls.
+- **Selective Skill Auditing (`--skills` & `--exclude-skills`).**
+  - Added `--skills <list>` to run audits targeted to specific skill categories or IDs (e.g. `--skills onpage,schema`).
+  - Added `--exclude-skills <list>` to skip specific auditing domains (e.g. `--exclude-skills performance-cwv`).
+- **Dedicated AI Visibility Command (`one-step-seo ai <url>`).** First-class CLI command focusing on Generative Engine Optimization (GEO) and AI citability signals. Audits AI crawler access in `robots.txt`, `llms.txt`, JSON-LD entity structures, author attribution, semantic landmarks, and direct answer blocks with human checklist output and `--json` support.
+- **Terminal UX & ANSI Styling Engine (`lib/colors.mjs`).**
+  - Native, zero-dependency ANSI formatting engine respecting `process.stdout.isTTY`, the `NO_COLOR` standard, and `TERM=dumb`.
+  - Color-coded severity badges (`[P0]` red, `[P1]` yellow, `[P2]` cyan, `[P3]` gray, `pass` green) and dual-score badges with grade band colors.
+- **New Technical & Quality Audit Rules:**
+  - `T17-canonical-http` (P1): Flags canonical tags specifying insecure `http://` on secure `https://` pages.
+  - `O04-heading-empty` (P2): Detects empty heading elements (`<h1>`–`<h6>` with no visible text) that degrade accessibility and dilute search context.
+  - `G10-author` (P3): Validates author or publisher attribution on substantive articles (≥300 words).
+  - `G11-semantic-content` (P3): Validates semantic document landmarks (`<main>` and `<article>`) on long-form content (≥600 words) for AI document extraction.
+- **CLI Workflow Enhancements:**
+  - Added `--quiet` / `-q` flag to silence informational chatter in automated scripts and CI pipelines.
+  - Added `doctor --check-config` to inspect and validate CLI options, defaults, and environment health.
+
 ## [0.7.0] - 2026-11-05
 
 ### Added

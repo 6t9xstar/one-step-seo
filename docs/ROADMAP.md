@@ -3,37 +3,50 @@
 Where one-step-seo is heading. Items are ordered roughly by priority;
 nothing here is promised on a date — issues and PRs decide the pace.
 
-## Next (0.4.x)
+## Completed Milestones
 
-- [x] `quick` command + interactive mode for beginners
-- [x] Executive summary, verdict, and “Fix this first” in reports
-- [x] Impact / effort / owner triage labels + copy-paste snippets
-- [x] `robots.txt` enforcement with `--force` override
-- [x] `llms` command (starter `llms.txt` + AI-crawler `robots.txt` snippet)
-- [x] Entity-consistency (`G04`) and `llms.txt`-quality (`G05`) checks
-- [x] `report.json` JSON Schema (`lib/schema-report.json`)
-- [x] Page-type fixtures + example reports (WordPress, Next.js, product, blog, pricing)
+### 0.8.0 (Current)
 
-## Later (0.5.x candidates)
+- [x] Modular skills architecture (`lib/skills.mjs`) & `skills` catalog command
+- [x] Pure offline auditing for local HTML files & build directories (`page <file>`, `audit <dir>`, `--offline`)
+- [x] Domain-focused audit filtering (`--skills`, `--exclude-skills`)
+- [x] Dedicated AI Visibility command (`one-step-seo ai <url>`)
+- [x] Centralized SSRF protection, full RFC-reserved range blocking & pre-connection DNS rebinding defense
+- [x] Network timeout correctness & stream cancellation across HTML, discovery files, and PSI
+- [x] PageSpeed Insights metric validation, missing vs zero classification & CrUX INP thresholds
+- [x] CSV spreadsheet formula injection defense (CWE-1236) & SARIF 2.1.0 URI validation
+- [x] Native zero-dependency ANSI terminal design system with TTY & `NO_COLOR` support
+- [x] New audit rules: `T17-canonical-http`, `O04-heading-empty`, `G10-author`, `G11-semantic-content`
+- [x] Automation flags: `--quiet` / `-q` and `doctor --check-config`
 
-- Response-time signal: flag slow Time-to-First-Byte as a P2 performance hint
-  (cheap header timing, no browser needed).
-- Broken-link check: HEAD-request internal links found during the crawl and
-  report 404s as P1 findings (opt-in `--check-links`, off by default for speed).
-- Duplicate-content signal: near-identical `<title>`/H1 across crawled pages
-  reported as a P1 site-level finding in `index.md`.
-- `audit --diff` mode: compare two `report.json` files and print score deltas
-  per page (regression tracking without new infrastructure).
-- SARIF output (`--format sarif`) for GitHub code-scanning integration.
-- More schema generators (VideoObject, JobPosting) and richer FAQ/HowTo
-  question extraction from page copy.
-- i18n: accept `--lang` hints for non-English answer-first detection.
+### 0.7.0
+
+- [x] Responsive HTML dashboard & UI Pro Max design system
+- [x] Cloud metadata SSRF blocking (AWS IMDSv2, GCP, Alibaba, Oracle)
+- [x] RFC 4180 CSV export (`--format csv`)
+- [x] Google PageSpeed Insights & Core Web Vitals lab + field metrics (`--psi`)
+- [x] Extended Schema generators: `video`, `job`, `course`, `review`, `recipe`
+
+### 0.5.0 – 0.6.0
+
+- [x] Broken-link checking (`--check-links` opt-in)
+- [x] Cross-page duplicate title and description detection
+- [x] CI regression diff (`diff old.json new.json`) with `--fail-on`
+- [x] SARIF export (`--format sarif`) for GitHub Code Scanning
+- [x] Page-type calibrations (`--profile blog|product|docs|home`)
+
+## Next Candidates (0.9.x / 1.0)
+
+- [ ] Multi-lingual and i18n heading pattern matching for non-English answer extraction
+- [ ] Orphan page visualization graph in HTML site dashboard
+- [ ] Standalone offline schema validator tool (`schema --validate file.json`)
+- [ ] Optional sitemap XML generation from audited crawl paths
 
 ## Non-goals (staying small on purpose)
 
-- No browser automation, no Lighthouse scores, no lab performance data.
-- No rank tracking, no keyword research, no competitor backlink data.
-- No hosted service, no accounts, no telemetry — ever.
-- No runtime dependencies. Ever.
+- No browser automation dependencies (Puppeteer/Playwright).
+- No speculative rank tracking, keyword stuffing, or opaque citation scores.
+- No mandatory accounts, hosted services, or telemetry — 100% local-first and private.
+- Zero runtime dependencies (`dependencies: {}`). Ever.
 
 Have a use case that fits? Open a feature request — see `CONTRIBUTING.md`.

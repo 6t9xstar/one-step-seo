@@ -4,6 +4,7 @@ import {
   parseArgs,
   normalizeUrl,
   canonicalizeUrl,
+  isLocalPath,
   CliError,
   VALID_FORMATS,
   VALID_PROFILES,
@@ -109,10 +110,13 @@ test("canonicalizeUrl returns empty for unparseable input", () => {
 });
 
 test("parseArgs accepts politeness and safety flags", () => {
-  const a = parseArgs(["audit", "x", "--delay", "0", "--debug", "--force"]);
+  const a = parseArgs(["audit", "x", "--delay", "0", "--debug", "--force", "--quiet", "--block-private-ips"]);
   assert.equal(a.delay, 0);
   assert.equal(a.debug, true);
   assert.equal(a.force, true);
+  assert.equal(a.quiet, true);
+  assert.equal(a.blockPrivateIps, true);
+  assert.equal(parseArgs(["audit", "x", "-q"]).quiet, true);
   assert.equal(parseArgs(["audit", "x", "--delay=500"]).delay, 500);
 });
 
@@ -148,4 +152,31 @@ test("parseArgs handles --psi and --psi-strategy", () => {
   assert.equal(parseArgs(["audit", "x", "--psi-strategy=mobile"]).psiStrategy, "mobile");
   assert.throws(() => parseArgs(["audit", "x", "--psi-strategy", "tablet"]), CliError);
   assert.throws(() => parseArgs(["audit", "x", "--psi-strategy"]), CliError);
+});
+
+test("parseArgs handles --skills, --exclude-skills, and --offline", () => {
+  const a = parseArgs([
+    "audit",
+    "x",
+    "--offline",
+    "--skills",
+    "technical,onpage",
+    "--exclude-skills",
+    "performance",
+  ]);
+  assert.equal(a.offline, true);
+  assert.equal(a.skills, "technical,onpage");
+  assert.equal(a.excludeSkills, "performance");
+});
+
+test("isLocalPath correctly identifies local file paths and file URIs", () => {
+  assert.equal(isLocalPath("./index.html"), true);
+  assert.equal(isLocalPath("../site/page.htm"), true);
+  assert.equal(isLocalPath("/var/www/index.html"), true);
+  assert.equal(isLocalPath("C:\\Users\\dev\\index.html"), true);
+  assert.equal(isLocalPath("file:///path/to/page.html"), true);
+  assert.equal(isLocalPath("index.html"), true);
+  assert.equal(isLocalPath("https://example.com"), false);
+  assert.equal(isLocalPath("http://127.0.0.1:3000/"), false);
+  assert.equal(isLocalPath("example.com"), false);
 });

@@ -31,6 +31,16 @@ Run a full SEO + GEO/AEO audit in one step. Zero dependencies, Node 18+.
    ```bash
    npx one-step-seo audit https://example.com --pages 5 --out ./seo-report --fail-on P0
    ```
+   Offline local builds (Astro, Next.js static, Vite, HTML):
+   ```bash
+   npx one-step-seo audit ./dist --pages 10 --out ./seo-report
+   npx one-step-seo page ./dist/index.html --out ./seo-report
+   ```
+   Inspect auditing skills & filter by skill domain:
+   ```bash
+   npx one-step-seo skills
+   npx one-step-seo audit https://example.com --skills onpage,schema
+   ```
 2. Read `./seo-report/report.json` (machine) or `report.md` (human). Multi-page runs also write `report-N.*`, `index.md`, and a site-wide `index.html` dashboard (totals, worst-first pages, recurring issues) — start there for the big picture.
 3. Present the **two scores separately** — Search SEO 0-100 and AI Visibility 0-100, never blended.
 4. Fix in priority order P0 → P1 → P2. Each fix needs evidence from the report.

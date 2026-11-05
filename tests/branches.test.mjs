@@ -4,6 +4,8 @@ import { parseHtml } from "../lib/html.mjs";
 import { runChecks } from "../lib/checks.mjs";
 import { generateSchema, schemaSnippet, validateSchema } from "../lib/schema.mjs";
 import { fetchWithRedirects } from "../lib/fetch.mjs";
+import { createColorHelper } from "../lib/colors.mjs";
+import { isLocalPath } from "../lib/args.mjs";
 
 function files(over = {}) {
   return {
@@ -537,4 +539,42 @@ test("G02-ai-blocked names the blocked bot tokens", () => {
   assert.ok(f, "expected a G02-ai-blocked finding");
   assert.equal(f.severity, "P1");
   assert.match(f.evidence, /gptbot, claudebot/);
+});
+
+test("colors: all helper methods and badge branches", () => {
+  const clr = createColorHelper({ isTTY: true }, { NO_COLOR: "", TERM: "xterm-256color" });
+  assert.equal(clr.green("ok"), "\x1b[32mok\x1b[0m");
+  assert.equal(clr.yellow("warn"), "\x1b[33mwarn\x1b[0m");
+  assert.equal(clr.red("err"), "\x1b[31merr\x1b[0m");
+  assert.equal(clr.cyan("info"), "\x1b[36minfo\x1b[0m");
+  assert.equal(clr.gray("dim"), "\x1b[90mdim\x1b[0m");
+  assert.equal(clr.severityBadge("P0"), "\x1b[1;31m[P0]\x1b[0m");
+  assert.equal(clr.severityBadge("P1"), "\x1b[1;33m[P1]\x1b[0m");
+  assert.equal(clr.severityBadge("P2"), "\x1b[36m[P2]\x1b[0m");
+  assert.equal(clr.severityBadge("P3"), "\x1b[90m[P3]\x1b[0m");
+  assert.equal(clr.severityBadge("pass"), "\x1b[32m[pass]\x1b[0m");
+  assert.equal(clr.severityBadge("unknown"), "[unknown]");
+  assert.equal(clr.scoreBadge(95, "good"), "\x1b[1;32m95/100 (good)\x1b[0m");
+  assert.equal(clr.scoreBadge(70, "needs-work"), "\x1b[1;33m70/100 (needs-work)\x1b[0m");
+  assert.equal(clr.scoreBadge(60, "fair"), "\x1b[1;33m60/100 (fair)\x1b[0m");
+  assert.equal(clr.scoreBadge(40, "poor"), "\x1b[1;31m40/100 (poor)\x1b[0m");
+
+  const disabled = createColorHelper({ isTTY: false }, {});
+  assert.equal(disabled.green("ok"), "ok");
+  assert.equal(disabled.yellow("warn"), "warn");
+  assert.equal(disabled.red("err"), "err");
+  assert.equal(disabled.cyan("info"), "info");
+  assert.equal(disabled.gray("dim"), "dim");
+  assert.equal(disabled.severityBadge("P1"), "[P1]");
+  assert.equal(disabled.scoreBadge(70, "needs-work"), "70/100 (needs-work)");
+});
+
+test("isLocalPath: handles windows backslashes, relative paths, file URIs", () => {
+  assert.equal(isLocalPath(".\\dist\\index.html"), true);
+  assert.equal(isLocalPath("..\\site\\page.htm"), true);
+  assert.equal(isLocalPath(""), false);
+  // @ts-ignore
+  assert.equal(isLocalPath(null), false);
+  // @ts-ignore
+  assert.equal(isLocalPath(123), false);
 });

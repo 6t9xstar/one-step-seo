@@ -137,3 +137,102 @@ test("fetchText fetches small files best-effort", async () => {
   const bad = await fetchText(`${base}/nope.txt`);
   assert.equal(bad.ok, false);
 });
+
+test("fetchWithRedirects times out on slow headers", async () => {
+  const slowHdr = http.createServer((_req, _res) => {
+    // Deliberately delay sending response headers
+  });
+  await new Promise((resolve) => slowHdr.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (slowHdr.address())?.port;
+  try {
+    const started = Date.now();
+    const r = await fetchWithRedirects(`http://127.0.0.1:${port}/`, { timeoutMs: 500 });
+    const elapsed = Date.now() - started;
+    assert.equal(r.ok, false);
+    assert.match(r.error, /timeout/);
+    assert.ok(elapsed < 4000, `expected timeout near 500ms, took ${elapsed}ms`);
+  } finally {
+    slowHdr.closeAllConnections?.();
+    await new Promise((r) => slowHdr.close(r));
+  }
+});
+
+test("fetchText times out a server that stalls mid-body", async () => {
+  const drip = http.createServer((_req, res) => {
+    res.writeHead(200, { "content-type": "text/plain" });
+    res.write("User-agent: *\n");
+    // deliberately never end()s
+  });
+  await new Promise((resolve) => drip.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (drip.address())?.port;
+  try {
+    const started = Date.now();
+    const r = await fetchText(`http://127.0.0.1:${port}/robots.txt`, { timeoutMs: 500 });
+    const elapsed = Date.now() - started;
+    assert.equal(r.ok, false);
+    assert.match(r.error ?? "", /timeout/);
+    assert.ok(elapsed < 4000, `expected timeout near 500ms, took ${elapsed}ms`);
+  } finally {
+    drip.closeAllConnections?.();
+    await new Promise((r) => drip.close(r));
+  }
+});
+
+test("fetchText times out on slow headers", async () => {
+  const slowHdr = http.createServer((_req, _res) => {
+    // Deliberately delay headers
+  });
+  await new Promise((resolve) => slowHdr.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (slowHdr.address())?.port;
+  try {
+    const started = Date.now();
+    const r = await fetchText(`http://127.0.0.1:${port}/robots.txt`, { timeoutMs: 500 });
+    const elapsed = Date.now() - started;
+    assert.equal(r.ok, false);
+    assert.match(r.error ?? "", /timeout/);
+    assert.ok(elapsed < 4000, `expected timeout near 500ms, took ${elapsed}ms`);
+  } finally {
+    slowHdr.closeAllConnections?.();
+    await new Promise((r) => slowHdr.close(r));
+  }
+});
+
+test("fetchWithRedirects and fetchText reject non-http/https protocols", async () => {
+  const r1 = await fetchWithRedirects("file:///etc/passwd");
+  assert.equal(r1.ok, false);
+  assert.match(r1.error, /blocked protocol/);
+
+  const r2 = await fetchText("ftp://example.com/robots.txt");
+  assert.equal(r2.ok, false);
+  assert.match(r2.error ?? "", /blocked protocol/);
+});
+
+test("fetchText handles redirects and enforces SSRF boundaries on redirect hops", async () => {
+  const redirectServer = http.createServer((req, res) => {
+    if (req.url === "/r1") {
+      res.writeHead(302, { location: "/r2" });
+      res.end();
+    } else if (req.url === "/r2") {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("User-agent: *\nAllow: /");
+    } else if (req.url === "/evil-redirect") {
+      res.writeHead(302, { location: "http://169.254.169.254/latest/meta-data" });
+      res.end();
+    }
+  });
+  await new Promise((resolve) => redirectServer.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (redirectServer.address())?.port;
+  try {
+    const ok = await fetchText(`http://127.0.0.1:${port}/r1`);
+    assert.equal(ok.ok, true);
+    assert.ok(ok.text.includes("Allow: /"));
+    assert.equal(ok.finalUrl, `http://127.0.0.1:${port}/r2`);
+
+    const evil = await fetchText(`http://127.0.0.1:${port}/evil-redirect`);
+    assert.equal(evil.ok, false);
+    assert.match(evil.error ?? "", /cloud metadata/);
+  } finally {
+    redirectServer.closeAllConnections?.();
+    await new Promise((r) => redirectServer.close(r));
+  }
+});

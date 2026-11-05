@@ -4,8 +4,25 @@ import { parseHtml } from "../lib/html.mjs";
 import { runChecks } from "../lib/checks.mjs";
 import { extractJsonLd } from "../lib/schema.mjs";
 import { geoDetails, computeScores } from "../lib/score.mjs";
-import { buildReport, renderHtml, renderMarkdown, renderCsv, esc } from "../lib/report.mjs";
-import { fetchWithRedirects, fetchText, isBlockedMetadataEndpoint } from "../lib/fetch.mjs";
+import {
+  buildReport,
+  renderHtml,
+  renderMarkdown,
+  renderCsv,
+  esc,
+  escCsv,
+  safeSarifUri,
+} from "../lib/report.mjs";
+import {
+  fetchWithRedirects,
+  fetchText,
+  isBlockedMetadataEndpoint,
+  isPrivateOrLoopbackHost,
+  isPrivateOrReservedIpv4,
+  ipv4ToUint32,
+  assertSafeDns,
+  validateTargetUrl,
+} from "../lib/fetch.mjs";
 
 function siteFilesMock() {
   return {
@@ -148,9 +165,50 @@ test("perfect GEO signals score 100", () => {
 test("isBlockedMetadataEndpoint blocks cloud metadata endpoints (SSRF)", () => {
   assert.equal(isBlockedMetadataEndpoint("http://169.254.169.254/latest/meta-data"), true);
   assert.equal(isBlockedMetadataEndpoint("http://metadata.google.internal/computeMetadata/v1/"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://metadata.internal/"), true);
   assert.equal(isBlockedMetadataEndpoint("http://100.100.100.200/latest/meta-data/"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://192.0.0.192/latest/meta-data/"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://instance-data/"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://[fd00:ec2::254]/latest/meta-data"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://[::ffff:169.254.169.254]/latest/"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://[::ffff:a9fe:a9fe]/latest/"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://[::ffff:192.0.0.192]/latest/"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://[::ffff:100.100.100.200]/latest/"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://[fe80::1]/"), true);
   assert.equal(isBlockedMetadataEndpoint("https://example.com/"), false);
   assert.equal(isBlockedMetadataEndpoint("http://127.0.0.1:3000/"), false);
+});
+
+test("isPrivateOrLoopbackHost correctly classifies private/internal and public hosts", () => {
+  assert.equal(isPrivateOrLoopbackHost("localhost"), true);
+  assert.equal(isPrivateOrLoopbackHost("sub.localhost"), true);
+  assert.equal(isPrivateOrLoopbackHost("127.0.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("127.1.2.3"), true);
+  assert.equal(isPrivateOrLoopbackHost("10.0.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("172.16.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("172.31.255.255"), true);
+  assert.equal(isPrivateOrLoopbackHost("192.168.1.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("169.254.1.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("0.0.0.0"), true);
+  assert.equal(isPrivateOrLoopbackHost("[::1]"), true);
+  assert.equal(isPrivateOrLoopbackHost("[fe80::1]"), true);
+  assert.equal(isPrivateOrLoopbackHost("[fc00::1]"), true);
+  assert.equal(isPrivateOrLoopbackHost("[fd00::1]"), true);
+  assert.equal(isPrivateOrLoopbackHost("[::ffff:7f00:1]"), true);
+  assert.equal(isPrivateOrLoopbackHost("example.com"), false);
+  assert.equal(isPrivateOrLoopbackHost("8.8.8.8"), false);
+});
+
+test("fetchWithRedirects rejects private/loopback when blockPrivateIps is set", async () => {
+  const r = await fetchWithRedirects("http://127.0.0.1:3000/test", { blockPrivateIps: true });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /private\/internal network address/);
+});
+
+test("fetchText rejects private/loopback when blockPrivateIps is set", async () => {
+  const r = await fetchText("http://127.0.0.1:3000/robots.txt", { blockPrivateIps: true });
+  assert.equal(r.ok, false);
+  assert.match(r.error ?? "", /private\/internal network address/);
 });
 
 test("fetchWithRedirects rejects cloud metadata endpoints", async () => {
@@ -184,4 +242,126 @@ test("renderCsv produces valid RFC 4180 CSV with escaped fields", () => {
   assert.ok(csv.includes("Severity,Check ID,Category,Title,Evidence,Fix,SEO Impact,GEO Impact"));
   assert.ok(csv.includes('"Not on HTTPS, insecure"'));
   assert.ok(csv.includes('"Found ""http://"" link"'));
+});
+
+test("isPrivateOrReservedIpv4 and isPrivateOrLoopbackHost cover all RFC-reserved ranges", () => {
+  assert.equal(ipv4ToUint32("127.0.0.1"), 0x7f000001);
+  assert.equal(ipv4ToUint32("invalid"), null);
+  assert.equal(isPrivateOrReservedIpv4(0x7f000001), true);
+  assert.equal(isPrivateOrReservedIpv4(0x08080808), false);
+
+  // 0.0.0.0/8
+  assert.equal(isPrivateOrLoopbackHost("0.0.0.1"), true);
+  // 10.0.0.0/8
+  assert.equal(isPrivateOrLoopbackHost("10.254.254.254"), true);
+  // 100.64.0.0/10 (CGNAT / Alibaba metadata 100.100.100.200)
+  assert.equal(isPrivateOrLoopbackHost("100.64.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("100.100.100.200"), true);
+  assert.equal(isPrivateOrLoopbackHost("100.128.0.1"), false);
+  // 127.0.0.0/8
+  assert.equal(isPrivateOrLoopbackHost("127.0.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("127.255.255.255"), true);
+  // 169.254.0.0/16
+  assert.equal(isPrivateOrLoopbackHost("169.254.169.254"), true);
+  // 172.16.0.0/12
+  assert.equal(isPrivateOrLoopbackHost("172.16.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("172.31.255.255"), true);
+  assert.equal(isPrivateOrLoopbackHost("172.32.0.1"), false);
+  // 192.0.0.0/24 (Oracle Cloud 192.0.0.192)
+  assert.equal(isPrivateOrLoopbackHost("192.0.0.192"), true);
+  // 192.0.2.0/24 (TEST-NET-1)
+  assert.equal(isPrivateOrLoopbackHost("192.0.2.1"), true);
+  // 192.88.99.0/24 (6to4 Relay)
+  assert.equal(isPrivateOrLoopbackHost("192.88.99.1"), true);
+  // 192.168.0.0/16
+  assert.equal(isPrivateOrLoopbackHost("192.168.0.1"), true);
+  // 198.18.0.0/15 (Benchmarking)
+  assert.equal(isPrivateOrLoopbackHost("198.18.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("198.19.255.255"), true);
+  assert.equal(isPrivateOrLoopbackHost("198.20.0.1"), false);
+  // 198.51.100.0/24 (TEST-NET-2)
+  assert.equal(isPrivateOrLoopbackHost("198.51.100.1"), true);
+  // 203.0.113.0/24 (TEST-NET-3)
+  assert.equal(isPrivateOrLoopbackHost("203.0.113.1"), true);
+  // 224.0.0.0/4 (Multicast)
+  assert.equal(isPrivateOrLoopbackHost("224.0.0.1"), true);
+  // 240.0.0.0/4 (Reserved / Broadcast)
+  assert.equal(isPrivateOrLoopbackHost("240.0.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("255.255.255.255"), true);
+  // Public IPs
+  assert.equal(isPrivateOrLoopbackHost("1.1.1.1"), false);
+  assert.equal(isPrivateOrLoopbackHost("8.8.8.8"), false);
+  assert.equal(isPrivateOrLoopbackHost("93.184.216.34"), false);
+  // IPv6
+  assert.equal(isPrivateOrLoopbackHost("[ff02::1]"), true);
+  assert.equal(isPrivateOrLoopbackHost("[2001:db8::1]"), true);
+  assert.equal(isPrivateOrLoopbackHost("[100::1]"), true);
+  assert.equal(isPrivateOrLoopbackHost("[2002::1]"), true);
+  // Hostnames
+  assert.equal(isPrivateOrLoopbackHost("app.local"), true);
+  assert.equal(isPrivateOrLoopbackHost("db.internal"), true);
+  assert.equal(isPrivateOrLoopbackHost("router.lan"), true);
+  assert.equal(isPrivateOrLoopbackHost("nas.home"), true);
+  assert.equal(isPrivateOrLoopbackHost("server.corp"), true);
+});
+
+test("escCsv neutralizes formula injection triggers (=, +, -, @, tab, cr)", () => {
+  // Direct triggers
+  assert.equal(escCsv("=SUM(A1:A10)"), `"'=SUM(A1:A10)"`);
+  assert.equal(escCsv("+12345"), `"'+12345"`);
+  assert.equal(escCsv("-5+2"), `"'-5+2"`);
+  assert.equal(escCsv("@SUM(1,2)"), `"'@SUM(1,2)"`);
+  assert.equal(escCsv("\tcmd"), `"'\tcmd"`);
+  assert.equal(escCsv("\rcmd"), `"' cmd"`);
+
+  // Leading whitespace before formula trigger
+  assert.equal(escCsv("   =1+1"), `"'   =1+1"`);
+  assert.equal(escCsv(" \t @alert"), `"' \t @alert"`);
+
+  // Safe strings without triggers
+  assert.equal(escCsv("Normal text"), "Normal text");
+  assert.equal(escCsv("Text with comma, here"), `"Text with comma, here"`);
+  assert.equal(escCsv('Text with "quotes"'), `"Text with ""quotes"""`);
+
+  // Multiline sanitized
+  assert.equal(escCsv("Line 1\nLine 2"), "Line 1 Line 2");
+  assert.equal(escCsv("=Formula\nLine 2"), `"'=Formula Line 2"`);
+
+  // Unicode text
+  assert.equal(escCsv("Заголовок страницы"), "Заголовок страницы");
+  assert.equal(escCsv("=Заголовок"), `"'=Заголовок"`);
+});
+
+test("safeSarifUri handles URLs, paths, and fallbacks", () => {
+  assert.equal(safeSarifUri("https://example.com/audit"), "https://example.com/audit");
+  assert.equal(safeSarifUri("http://127.0.0.1:3000/page"), "http://127.0.0.1:3000/page");
+  assert.ok(safeSarifUri("C:\\temp\\file.html").startsWith("file:///"));
+  assert.equal(safeSarifUri(""), "file:///unknown");
+  assert.equal(safeSarifUri(null), "file:///unknown");
+});
+
+test("assertSafeDns detects loopback and validates DNS safety", async () => {
+  const direct = await assertSafeDns("127.0.0.1");
+  assert.equal(direct.safe, false);
+  assert.match(direct.error ?? "", /blocked IP address/);
+
+  const pubDirect = await assertSafeDns("8.8.8.8");
+  assert.equal(pubDirect.safe, true);
+});
+
+test("validateTargetUrl checks schemes, metadata, and private IP blocks", async () => {
+  const badScheme = await validateTargetUrl("ftp://example.com/");
+  assert.equal(badScheme.ok, false);
+  assert.match(badScheme.error ?? "", /blocked protocol/);
+
+  const meta = await validateTargetUrl("http://169.254.169.254/latest/meta-data");
+  assert.equal(meta.ok, false);
+  assert.match(meta.error ?? "", /cloud metadata/);
+
+  const priv = await validateTargetUrl("http://192.168.1.1/", { blockPrivateIps: true });
+  assert.equal(priv.ok, false);
+  assert.match(priv.error ?? "", /private\/internal network/);
+
+  const good = await validateTargetUrl("https://example.com/");
+  assert.equal(good.ok, true);
 });
