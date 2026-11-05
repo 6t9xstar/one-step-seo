@@ -4,9 +4,14 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.7.0] - 2026-11-05
 
 ### Added
+
+- **UI Pro Max Design System & Layout Fixes.** Re-architected HTML reports and site dashboard (`index.html`) using a refined two-color palette, fixed recurring issues reach bar constraints (`.topfix-row`), responsive layout, and stacked distribution bars.
+- **SSRF & Cloud Metadata Protection.** Automatic blocking of cloud instance metadata services (`169.254.169.254`, `metadata.google.internal`, `100.100.100.200`, `[fd00:ec2::254]`) during recursive audits to prevent cloud credential exfiltration.
+- **RFC 4180 CSV Export (`--format csv`).** Added full structured CSV export for automated data ingestion and spreadsheets.
+- **Explicit UTF-8 Stream Writes.** Eliminates Windows code-page corruption across all file writing streams.
 
 - **Google PageSpeed Insights & Core Web Vitals (`--psi`).** Opt-in integration
   fetching lab metrics (LCP, CLS, FCP, TBT, Speed Index, TTFB) and Chrome UX

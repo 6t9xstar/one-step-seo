@@ -1,7 +1,7 @@
 <div align="center">
 
 <p align="center">
-  <img src="./assets/logo.svg" width="130" alt="one-step-seo logo">
+  <img src="https://raw.githubusercontent.com/6t9xstar/one-step-seo/main/assets/logo.svg" width="130" alt="one-step-seo logo">
 </p>
 
 # ⚡ one-step-seo
@@ -69,7 +69,7 @@ npx one-step-seo quick https://your-site.com
 ```
 
 <p align="center">
-  <img src="./assets/demo.svg" alt="Terminal demo: one-step-seo quick audit execution" width="800">
+  <img src="https://raw.githubusercontent.com/6t9xstar/one-step-seo/main/assets/demo.svg" alt="Terminal demo: one-step-seo quick audit execution" width="800">
 </p>
 
 That single command audits technical SEO, on-page structure, content depth, JSON-LD schema, robots/sitemap policies, and AI crawler citability — outputting prioritized fixes right to your console:
