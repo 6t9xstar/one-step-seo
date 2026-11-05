@@ -273,7 +273,7 @@ Usage:
 Options:
   --pages N       pages to crawl for 'audit' (default 1, max 200; 'quick' defaults to 5)
   --out DIR       output directory (default ./seo-report)
-  --format        comma list among html,md,json,sarif (default html,md,json)
+  --format        comma list among html,md,json,sarif,csv (default html,md,json)
   --timeout MS    per-request timeout in ms (default 15000, 1000-120000)
   --fail-on SEV   exit 2 when any page has P0 (or P1/P2) findings — for CI gating
   --crawl MODE    audit discovery: links (BFS over internal links) or sitemap (default links)

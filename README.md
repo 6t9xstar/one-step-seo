@@ -106,8 +106,8 @@ npx one-step-seo quick https://example.com
 # Interactive wizard: guides you through goals, depths, and opens the HTML report
 npx one-step-seo
 
-# Full-site recursive crawl with custom output directory
-npx one-step-seo audit https://example.com --pages 10 --out ./seo-report
+# Full-site recursive crawl with custom output directory and multi-format reports (HTML, MD, JSON, CSV, SARIF)
+npx one-step-seo audit https://example.com --pages 10 --out ./seo-report --format html,md,json,csv
 
 # Deep-dive inspection of a single critical landing or pricing page
 npx one-step-seo page https://example.com/pricing
@@ -216,17 +216,17 @@ npx one-step-seo doctor
 
 ## 🛠️ CLI Command Suite
 
-| Command                  | Purpose                                                       | Primary Flags                                           |
-| :----------------------- | :------------------------------------------------------------ | :------------------------------------------------------ |
-| `quick <url>`            | Fastest way to audit a site with sensible defaults.           | `--pages`, `--out`                                      |
-| `audit <url>`            | Comprehensive multi-page crawl and linked site dashboard.     | `--pages`, `--crawl`, `--profile`, `--psi`, `--fail-on` |
-| `page <url>`             | Deep dive on a single web page without crawling links.        | `--out`, `--format`, `--psi`, `--verbose`               |
-| `schema <url>`           | Validate JSON-LD and print copy-paste schema snippets.        | `--generate (video\|job\|course\|review\|recipe\|...)`  |
-| `sitemap <url>`          | Audit sitemap index, robots.txt, and link seeds.              | `--json`                                                |
-| `llms <url>`             | Audit `/llms.txt` and generate AI crawler `robots.txt` rules. | `--json`                                                |
-| `fix <file\|dir>`        | Safe, dry-run diff patcher for local HTML files.              | `--apply`, `--url`, `--backup`                          |
-| `diff <a.json> <b.json>` | Detect score drops and finding escalations between builds.    | `--fail-on (P0\|P1)`                                    |
-| `doctor`                 | Verify environment, HTTP parser, and network connectivity.    | `--verbose`                                             |
+| Command                  | Purpose                                                       | Primary Flags                                                       |
+| :----------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------ |
+| `quick <url>`            | Fastest way to audit a site with sensible defaults.           | `--pages`, `--out`                                                  |
+| `audit <url>`            | Comprehensive multi-page crawl and linked site dashboard.     | `--pages`, `--crawl`, `--profile`, `--psi`, `--fail-on`, `--format` |
+| `page <url>`             | Deep dive on a single web page without crawling links.        | `--out`, `--format`, `--psi`, `--verbose`                           |
+| `schema <url>`           | Validate JSON-LD and print copy-paste schema snippets.        | `--generate (video\|job\|course\|review\|recipe\|...)`              |
+| `sitemap <url>`          | Audit sitemap index, robots.txt, and link seeds.              | `--json`                                                            |
+| `llms <url>`             | Audit `/llms.txt` and generate AI crawler `robots.txt` rules. | `--json`                                                            |
+| `fix <file\|dir>`        | Safe, dry-run diff patcher for local HTML files.              | `--apply`, `--url`, `--backup`                                      |
+| `diff <a.json> <b.json>` | Detect score drops and finding escalations between builds.    | `--fail-on (P0\|P1)`                                                |
+| `doctor`                 | Verify environment, HTTP parser, and network connectivity.    | `--verbose`                                                         |
 
 ---
 
@@ -410,22 +410,24 @@ How `one-step-seo` compares to legacy desktop crawlers, browser-based performanc
 
 ### Feature & Capability Matrix
 
-| Capability                        |           `one-step-seo`            |      Google Lighthouse      |       Screaming Frog        |    Cloud SaaS (Ahrefs / Semrush)    |   Custom LLM / Browser Scripts    |
-| :-------------------------------- | :---------------------------------: | :-------------------------: | :-------------------------: | :---------------------------------: | :-------------------------------: |
-| **Execution**                     |    `npx one-step-seo` (Instant)     |    Chrome DevTools / CLI    |      Desktop Java App       |        Web Dashboard (Cloud)        |       Python / Node Script        |
-| **Runtime Dependencies**          |       **0 (Node 18+ stdlib)**       | Chromium Headless (~400MB)  |    Java Runtime (~500MB)    |         N/A (Remote Cloud)          |  Heavy (Playwright / Puppeteer)   |
-| **Offline / Local Auditing**      |      ✅ **100% Offline-First**      | ⚠️ Local (requires browser) |      ✅ Local Desktop       |     ❌ Cloud only (Public URLs)     | ⚠️ Requires local browser engine  |
-| **Search SEO Engine**             |  ✅ **Deductive Penalty (0–100)**   | ⚠️ Basic 10-point checklist |  ❌ Raw unweighted tables   |        ✅ Cloud health score        |    ❌ Subjective chat response    |
-| **AI Visibility (GEO / AEO)**     |   ✅ **Dedicated 9-signal score**   |           ❌ None           |           ❌ None           |               ❌ None               | ⚠️ Uncalibrated unstructured text |
-| **`/llms.txt` Audit & Generator** |     ✅ **Built-in CLI command**     |           ❌ None           |           ❌ None           |               ❌ None               |     ⚠️ Manual prompt required     |
-| **AI Bot Governance Checks**      |   ✅ **GPTBot, ClaudeBot, etc.**    |           ❌ None           |   ⚠️ Raw robots.txt lines   |       ⚠️ Basic crawler rules        |              ❌ None              |
-| **Automated HTML Fixer**          |  ✅ **Dry-run diff & safe patch**   |     ❌ Read-only audit      |     ❌ Read-only export     |    ❌ Read-only recommendations     |   ⚠️ Hallucination-prone edits    |
-| **CI/CD Regression Tracking**     | ✅ **`audit --diff` + `--fail-on`** |    ⚠️ LHCI (heavy setup)    |      ❌ Manual diffing      |       ❌ Slow cloud crawling        |    ❌ Custom fragile glue code    |
-| **GitHub Code Scanning**          |     ✅ **Native SARIF v2.1.0**      |     ❌ JSON / HTML only     |     ❌ CSV / Excel only     |     ❌ Third-party integrations     |      ❌ Custom parser needed      |
-| **Core Web Vitals Integration**   |  ✅ **PageSpeed & CrUX (`--psi`)**  |   ✅ Lab metrics built-in   |     ⚠️ API key required     |     ⚠️ Periodic CrUX snapshots      |              ❌ None              |
-| **AI Agent Integration**          |  ✅ **Native `SKILL.md` included**  |    ❌ Manual CLI wrapper    | ❌ No native agent protocol |           ❌ Web UI only            |     ⚠️ Custom setup required      |
-| **Privacy & Telemetry**           |  🔒 **Zero telemetry, 100% local**  |     ⚠️ Google telemetry     |    ⚠️ License validation    | ❌ Complete site data sent to cloud |             ⚠️ Varies             |
-| **Cost & Licensing**              |       **Free (MIT License)**        |      Free (Apache 2.0)      |    $259 / year / license    |       $1,200 – $6,000+ / year       |     Varies / API token costs      |
+| Capability                        |             `one-step-seo`              |      Google Lighthouse      |       Screaming Frog        |    Cloud SaaS (Ahrefs / Semrush)    |   Custom LLM / Browser Scripts    |
+| :-------------------------------- | :-------------------------------------: | :-------------------------: | :-------------------------: | :---------------------------------: | :-------------------------------: |
+| **Execution**                     |      `npx one-step-seo` (Instant)       |    Chrome DevTools / CLI    |      Desktop Java App       |        Web Dashboard (Cloud)        |       Python / Node Script        |
+| **Runtime Dependencies**          |         **0 (Node 18+ stdlib)**         | Chromium Headless (~400MB)  |    Java Runtime (~500MB)    |         N/A (Remote Cloud)          |  Heavy (Playwright / Puppeteer)   |
+| **Offline / Local Auditing**      |        ✅ **100% Offline-First**        | ⚠️ Local (requires browser) |      ✅ Local Desktop       |     ❌ Cloud only (Public URLs)     | ⚠️ Requires local browser engine  |
+| **Search SEO Engine**             |    ✅ **Deductive Penalty (0–100)**     | ⚠️ Basic 10-point checklist |  ❌ Raw unweighted tables   |        ✅ Cloud health score        |    ❌ Subjective chat response    |
+| **AI Visibility (GEO / AEO)**     |     ✅ **Dedicated 9-signal score**     |           ❌ None           |           ❌ None           |               ❌ None               | ⚠️ Uncalibrated unstructured text |
+| **`/llms.txt` Audit & Generator** |       ✅ **Built-in CLI command**       |           ❌ None           |           ❌ None           |               ❌ None               |     ⚠️ Manual prompt required     |
+| **AI Bot Governance Checks**      |     ✅ **GPTBot, ClaudeBot, etc.**      |           ❌ None           |   ⚠️ Raw robots.txt lines   |       ⚠️ Basic crawler rules        |              ❌ None              |
+| **Automated HTML Fixer**          |    ✅ **Dry-run diff & safe patch**     |     ❌ Read-only audit      |     ❌ Read-only export     |    ❌ Read-only recommendations     |   ⚠️ Hallucination-prone edits    |
+| **CI/CD Regression Tracking**     |   ✅ **`audit --diff` + `--fail-on`**   |    ⚠️ LHCI (heavy setup)    |      ❌ Manual diffing      |       ❌ Slow cloud crawling        |    ❌ Custom fragile glue code    |
+| **GitHub Code Scanning**          |       ✅ **Native SARIF v2.1.0**        |     ❌ JSON / HTML only     |     ❌ CSV / Excel only     |     ❌ Third-party integrations     |      ❌ Custom parser needed      |
+| **Multi-Format Export**           | ✅ **HTML, Markdown, JSON, SARIF, CSV** |     ⚠️ HTML / JSON only     |     ⚠️ CSV / Excel only     |         ⚠️ PDF / CSV export         |        ❌ Raw output only         |
+| **SSRF & Metadata Protection**    |  ✅ **Cloud metadata & RFC1918 safe**   |    ⚠️ Generic HTTP agent    |  ⚠️ Standard network stack  |       ❌ Remote cloud crawler       |      ❌ Unvalidated request       |
+| **Core Web Vitals Integration**   |    ✅ **PageSpeed & CrUX (`--psi`)**    |   ✅ Lab metrics built-in   |     ⚠️ API key required     |     ⚠️ Periodic CrUX snapshots      |              ❌ None              |
+| **AI Agent Integration**          |    ✅ **Native `SKILL.md` included**    |    ❌ Manual CLI wrapper    | ❌ No native agent protocol |           ❌ Web UI only            |     ⚠️ Custom setup required      |
+| **Privacy & Telemetry**           |    🔒 **Zero telemetry, 100% local**    |     ⚠️ Google telemetry     |    ⚠️ License validation    | ❌ Complete site data sent to cloud |             ⚠️ Varies             |
+| **Cost & Licensing**              |         **Free (MIT License)**          |      Free (Apache 2.0)      |    $259 / year / license    |       $1,200 – $6,000+ / year       |     Varies / API token costs      |
 
 ---
 
