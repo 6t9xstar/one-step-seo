@@ -307,18 +307,20 @@ test("isPrivateOrReservedIpv4 and isPrivateOrLoopbackHost cover all RFC-reserved
   assert.equal(isPrivateOrLoopbackHost("server.corp"), true);
 });
 
-test("escCsv neutralizes formula injection triggers (=, +, -, @, tab, cr)", () => {
+test("escCsv neutralizes formula injection triggers (=, +, -, @, tab, cr, pipe)", () => {
   // Direct triggers
   assert.equal(escCsv("=SUM(A1:A10)"), `"'=SUM(A1:A10)"`);
   assert.equal(escCsv("+12345"), `"'+12345"`);
   assert.equal(escCsv("-5+2"), `"'-5+2"`);
   assert.equal(escCsv("@SUM(1,2)"), `"'@SUM(1,2)"`);
+  assert.equal(escCsv("|cmd|'/C calc'!A0"), `"'|cmd|'/C calc'!A0"`);
   assert.equal(escCsv("\tcmd"), `"'\tcmd"`);
   assert.equal(escCsv("\rcmd"), `"' cmd"`);
 
   // Leading whitespace before formula trigger
   assert.equal(escCsv("   =1+1"), `"'   =1+1"`);
   assert.equal(escCsv(" \t @alert"), `"' \t @alert"`);
+  assert.equal(escCsv("  |calc"), `"'  |calc"`);
 
   // Safe strings without triggers
   assert.equal(escCsv("Normal text"), "Normal text");
@@ -497,6 +499,27 @@ test("CSV formula sanitization preserves legitimate values and does not mutate r
   assert.ok(!rawJson.includes("'+15%"), "JSON must NOT contain formula injection quote prefix");
   assert.ok(!rawJson.includes("'- 3"), "JSON must NOT contain formula injection quote prefix");
   assert.ok(!rawJson.includes("'@devs"), "JSON must NOT contain formula injection quote prefix");
+
+  // 4. Test formula injection on every single exported field
+  const hostileFinding = {
+    severity: "=P0",
+    id: "+T01-evil",
+    category: "-technical",
+    title: "@alert(1)",
+    evidence: "|calc.exe",
+    fix: "\t=cmd|' /C notepad'!A0",
+    seoImpact: "\r=2+2",
+    geoImpact: "   +High",
+  };
+  const hostileCsv = renderCsv({ findings: [hostileFinding] });
+  assert.ok(hostileCsv.includes(`"'=P0"`), "severity sanitized");
+  assert.ok(hostileCsv.includes(`"'+T01-evil"`), "id sanitized");
+  assert.ok(hostileCsv.includes(`"'-technical"`), "category sanitized");
+  assert.ok(hostileCsv.includes(`"'@alert(1)"`), "title sanitized");
+  assert.ok(hostileCsv.includes(`"'|calc.exe"`), "evidence sanitized");
+  assert.ok(hostileCsv.includes(`"'\t=cmd|' /C notepad'!A0"`), "fix sanitized");
+  assert.ok(hostileCsv.includes(`"' =2+2"`), "seoImpact sanitized");
+  assert.ok(hostileCsv.includes(`"'   +High"`), "geoImpact sanitized");
 });
 
 test("validateTargetUrl checks schemes, metadata, and private IP blocks", async () => {

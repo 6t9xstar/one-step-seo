@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
-import { fetchWithRedirects, fetchText } from "../lib/fetch.mjs";
+import { fetchWithRedirects, fetchText, safePinnedFetch } from "../lib/fetch.mjs";
 
 /** @type {import("node:http").Server | null} */
 let server = null;
@@ -260,5 +260,41 @@ test("fetchWithRedirects blocks redirects to private addresses and cloud metadat
   } finally {
     srv.closeAllConnections?.();
     await new Promise((r) => srv.close(r));
+  }
+});
+
+test("safePinnedFetch enforces socket-level DNS pinning and prevents requests reaching rebound private IP", async () => {
+  let internalReceived = false;
+  const internalServer = http.createServer((req, res) => {
+    internalReceived = true;
+    res.writeHead(200);
+    res.end("INTERNAL_SECRET_LEAK");
+  });
+  await new Promise((resolve) => internalServer.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (internalServer.address())?.port;
+
+  try {
+    // 1. Direct IP with blockPrivateIps rejects before connection
+    await assert.rejects(
+      safePinnedFetch(`http://127.0.0.1:${port}/secret`, { blockPrivateIps: true }),
+      /private\/internal network address/,
+    );
+    assert.equal(internalReceived, false, "Internal service must not receive connection on blocked IP");
+
+    // 2. Localhost hostname with blockPrivateIps rejects before connection
+    await assert.rejects(
+      safePinnedFetch(`http://localhost:${port}/secret`, { blockPrivateIps: true }),
+      /private\/internal network address/,
+    );
+    assert.equal(internalReceived, false, "Internal service must not receive connection on localhost");
+
+    // 3. fetchWithRedirects with blockPrivateIps rejects before connection
+    const r = await fetchWithRedirects(`http://127.0.0.1:${port}/secret`, { blockPrivateIps: true });
+    assert.equal(r.ok, false);
+    assert.match(r.error, /private\/internal network address/);
+    assert.equal(internalReceived, false, "Internal service must not receive request via fetchWithRedirects");
+  } finally {
+    internalServer.closeAllConnections?.();
+    await new Promise((r) => internalServer.close(r));
   }
 });

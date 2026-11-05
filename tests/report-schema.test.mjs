@@ -23,112 +23,90 @@ const findingSchema = JSON.parse(readFileSync(join(ROOT, "lib/schema-finding.jso
 const sarifSchema = JSON.parse(readFileSync(join(ROOT, "tests/fixtures/sarif-2.1.0.schema.json"), "utf8"));
 
 /**
- * Validate SARIF data object against the official OASIS SARIF 2.1.0 JSON Schema.
- * Resolves schema definitions and checks types, required keys, and enum constraints.
- * @param {any} sarif
+ * Fully recursive JSON Schema validator against the official OASIS SARIF 2.1.0 JSON Schema.
+ * Resolves schema definitions and checks types, required keys, and constraints across all nodes.
+ * @param {any} data
  * @param {any} schema
+ * @param {any} [root]
+ * @param {string} [path]
  * @returns {string[]} array of validation errors (empty if completely valid)
  */
-function validateSarifAgainstOfficialSchema(sarif, schema) {
-  const errors = [];
-  if (!sarif || typeof sarif !== "object") {
-    errors.push("Root SARIF must be an object");
-    return errors;
-  }
-  // Root required properties
-  for (const req of schema.required || []) {
-    if (!(req in sarif)) errors.push(`Root missing required property: ${req}`);
-  }
-  // Version const check
-  const expectedVer = schema.properties.version?.const ?? schema.properties.version?.enum?.[0] ?? "2.1.0";
-  if (sarif.version !== expectedVer) {
-    errors.push(`Invalid version: ${sarif.version}, expected ${expectedVer}`);
-  }
-  // Runs array
-  if (!Array.isArray(sarif.runs)) {
-    errors.push("sarif.runs must be an array");
-    return errors;
-  }
-  const runDef = schema.definitions.run;
-  const toolDef = schema.definitions.tool;
-  const toolCompDef = schema.definitions.toolComponent;
-  const descDef = schema.definitions.reportingDescriptor;
-  const resultDef = schema.definitions.result;
+export function validateAgainstJsonSchema(data, schema, root = schema, path = "$") {
+  /** @type {string[]} */
+  const errs = [];
+  if (!schema) return errs;
 
-  for (let rIdx = 0; rIdx < sarif.runs.length; rIdx++) {
-    const run = sarif.runs[rIdx];
-    for (const req of runDef.required || []) {
-      if (!(req in run)) errors.push(`runs[${rIdx}] missing required property: ${req}`);
+  if (schema["$ref"]) {
+    const refPath = schema["$ref"].replace(/^#\//, "").split("/");
+    let target = root;
+    for (const seg of refPath) target = target?.[seg];
+    if (!target) return [`${path}: Unresolved ref ${schema["$ref"]}`];
+    return validateAgainstJsonSchema(data, target, root, path);
+  }
+
+  if (schema.const !== undefined && data !== schema.const) {
+    errs.push(`${path}: Expected const ${JSON.stringify(schema.const)}, got ${JSON.stringify(data)}`);
+  }
+
+  if (schema.enum && !schema.enum.includes(data)) {
+    errs.push(`${path}: Value ${JSON.stringify(data)} not in enum [${schema.enum.join(", ")}]`);
+  }
+
+  if (schema.type) {
+    const expected = Array.isArray(schema.type) ? schema.type : [schema.type];
+    const actual = Array.isArray(data) ? "array" : data === null ? "null" : typeof data;
+    if (!expected.includes(actual)) {
+      errs.push(`${path}: Expected type ${expected.join("|")}, got ${actual}`);
+      return errs;
     }
-    // Tool
-    const tool = run.tool;
-    if (tool) {
-      for (const req of toolDef.required || []) {
-        if (!(req in tool)) errors.push(`runs[${rIdx}].tool missing required property: ${req}`);
-      }
-      const driver = tool.driver;
-      if (driver) {
-        for (const req of toolCompDef.required || []) {
-          if (!(req in driver)) errors.push(`runs[${rIdx}].tool.driver missing required property: ${req}`);
-        }
-        if (typeof driver.name !== "string" || !driver.name) {
-          errors.push(`runs[${rIdx}].tool.driver.name must be non-empty string`);
-        }
-        if (driver.rules) {
-          if (!Array.isArray(driver.rules)) {
-            errors.push(`runs[${rIdx}].tool.driver.rules must be an array`);
-          } else {
-            for (let ruleIdx = 0; ruleIdx < driver.rules.length; ruleIdx++) {
-              const rule = driver.rules[ruleIdx];
-              for (const req of descDef.required || []) {
-                if (!(req in rule)) errors.push(`driver.rules[${ruleIdx}] missing required property: ${req}`);
-              }
-              if (typeof rule.id !== "string" || !rule.id) {
-                errors.push(`driver.rules[${ruleIdx}].id must be a string`);
-              }
-            }
-          }
-        }
+  }
+
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    if (schema.required) {
+      for (const req of schema.required) {
+        if (!(req in data)) errs.push(`${path}: Missing required property '${req}'`);
       }
     }
-    // Results
-    if (run.results) {
-      if (!Array.isArray(run.results)) {
-        errors.push(`runs[${rIdx}].results must be an array`);
-      } else {
-        for (let resIdx = 0; resIdx < run.results.length; resIdx++) {
-          const res = run.results[resIdx];
-          for (const req of resultDef.required || []) {
-            if (!(req in res)) errors.push(`results[${resIdx}] missing required property: ${req}`);
-          }
-          if (res.level && !resultDef.properties.level.enum.includes(res.level)) {
-            errors.push(`results[${resIdx}].level '${res.level}' not in official enum`);
-          }
-          // Message
-          if (res.message) {
-            if (typeof res.message.text !== "string" && typeof res.message.id !== "string") {
-              errors.push(`results[${resIdx}].message must have text or id string`);
-            }
-          }
-          // Locations
-          if (res.locations) {
-            if (!Array.isArray(res.locations)) {
-              errors.push(`results[${resIdx}].locations must be an array`);
-            } else {
-              for (let locIdx = 0; locIdx < res.locations.length; locIdx++) {
-                const loc = res.locations[locIdx];
-                const uri = loc?.physicalLocation?.artifactLocation?.uri;
-                if (typeof uri !== "string" || !uri) {
-                  errors.push(`results[${resIdx}].locations[${locIdx}] missing artifactLocation.uri`);
-                }
-              }
-            }
-          }
+    if (schema.properties) {
+      for (const [key, val] of Object.entries(data)) {
+        if (schema.properties[key]) {
+          errs.push(...validateAgainstJsonSchema(val, schema.properties[key], root, `${path}.${key}`));
         }
       }
     }
   }
-  return errors;
+
+  if (Array.isArray(data)) {
+    if (schema.items) {
+      for (let i = 0; i < data.length; i++) {
+        errs.push(...validateAgainstJsonSchema(data[i], schema.items, root, `${path}[${i}]`));
+      }
+    }
+    if (typeof schema.minItems === "number" && data.length < schema.minItems) {
+      errs.push(`${path}: Array length ${data.length} < minItems ${schema.minItems}`);
+    }
+  }
+
+  if (typeof data === "string") {
+    if (schema.minLength && data.length < schema.minLength) {
+      errs.push(`${path}: String length ${data.length} < minLength ${schema.minLength}`);
+    }
+    if (schema.pattern && !new RegExp(schema.pattern).test(data)) {
+      errs.push(`${path}: String '${data}' does not match pattern ${schema.pattern}`);
+    }
+  }
+
+  return errs;
+}
+
+/**
+ * Validate SARIF data object against the official OASIS SARIF 2.1.0 JSON Schema.
+ * @param {any} sarif
+ * @param {any} schema
+ * @returns {string[]}
+ */
+function validateSarifAgainstOfficialSchema(sarif, schema) {
+  return validateAgainstJsonSchema(sarif, schema, schema);
 }
 
 /** @param {any} f @returns {boolean} */
@@ -494,6 +472,104 @@ test("SARIF 2.1.0 output complies with official SARIF schema requirements", () =
     const parsed = new URL(artifactUri);
     assert.ok(["http:", "https:", "file:"].includes(parsed.protocol));
   }
+});
+
+test("SARIF 2.1.0 output complies with official OASIS schema across edge cases, unusual chars, missing fields, malformed URIs", () => {
+  // Test 1: Multiple findings across severities, missing fix/evidence, unusual characters
+  const report1 = buildReport({
+    url: "https://example.com/deep/path?query=1&b=2#hash",
+    finalUrl: "https://example.com/deep/path?query=1&b=2#hash",
+    scores: { search: { score: 70, band: "C" }, ai: { score: 65, band: "D" } },
+    findings: [
+      {
+        id: "T01-https",
+        severity: "P0",
+        category: "technical",
+        title: "HTTPS <script>alert(1)</script>",
+        evidence: "Hostile chars: & ' \" \t \r \n \u0000 \u2603 🚀",
+        fix: "",
+      },
+      {
+        id: "O01-title-missing",
+        severity: "P1",
+        category: "onpage",
+        title: "Missing title",
+        evidence: "",
+        fix: "",
+      },
+      {
+        id: "G01-robots",
+        severity: "P2",
+        category: "geo",
+        title: "Robots missing",
+        evidence: "404",
+        fix: "Add robots",
+      },
+      {
+        id: "P01-pass",
+        severity: "PASS",
+        category: "performance",
+        title: "Fast",
+        evidence: "100ms",
+        fix: "",
+      },
+    ],
+    parsed: { title: "Unusual: <tag> &amp; 🚀", metaDescription: "Unicode desc" },
+    siteFiles: files(),
+    meta: { version: "0.8.0" },
+  });
+
+  const sarif1 = renderSarif(report1);
+  const errs1 = validateAgainstJsonSchema(sarif1, sarifSchema, sarifSchema);
+  assert.deepEqual(errs1, [], `SARIF with unusual characters must be valid: ${errs1.join("; ")}`);
+
+  // Test 2: Local file URI and Windows paths
+  const report2 = buildReport({
+    url: "file:///C:/Users/test/index.html",
+    finalUrl: "file:///C:/Users/test/index.html",
+    scores: { search: { score: 100, band: "A" }, ai: { score: 100, band: "A" } },
+    findings: [
+      {
+        id: "O02-title-short",
+        severity: "P3",
+        category: "onpage",
+        title: "Short title",
+        evidence: "5 chars",
+        fix: "Make longer",
+      },
+    ],
+    parsed: { title: "Local", metaDescription: "Local file" },
+    siteFiles: files(),
+    meta: { version: "0.8.0" },
+  });
+
+  const sarif2 = renderSarif(report2);
+  const errs2 = validateAgainstJsonSchema(sarif2, sarifSchema, sarifSchema);
+  assert.deepEqual(errs2, [], `SARIF with local file URI must be valid: ${errs2.join("; ")}`);
+
+  // Test 3: Empty findings (all passed)
+  const report3 = buildReport({
+    url: "https://example.com/all-pass",
+    finalUrl: "https://example.com/all-pass",
+    scores: { search: { score: 100, band: "A" }, ai: { score: 100, band: "A" } },
+    findings: [
+      {
+        id: "T01-https",
+        severity: "PASS",
+        category: "technical",
+        title: "HTTPS ok",
+        evidence: "valid",
+        fix: "",
+      },
+    ],
+    parsed: { title: "Pass", metaDescription: "Pass" },
+    siteFiles: files(),
+    meta: { version: "0.8.0" },
+  });
+
+  const sarif3 = renderSarif(report3);
+  const errs3 = validateAgainstJsonSchema(sarif3, sarifSchema, sarifSchema);
+  assert.deepEqual(errs3, [], `SARIF with 0 actionable results must be valid: ${errs3.join("; ")}`);
 });
 
 test("rendered HTML report satisfies accessibility standards and semantics", () => {
