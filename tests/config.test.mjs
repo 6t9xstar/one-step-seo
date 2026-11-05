@@ -107,3 +107,21 @@ test("every relative import resolves to a git-tracked file", () => {
   }
   assert.deepEqual(dangling, []);
 });
+
+test("repo contains no committed Google API keys", () => {
+  /** @param {string} dir */
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === "node_modules" || e.name === ".git") continue;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) {
+        walk(full);
+      } else if (e.isFile() && !e.name.endsWith(".png") && !e.name.endsWith(".jpg")) {
+        const text = readFileSync(full, "utf8");
+        const match = text.match(/AIza[0-9A-Za-z-_]{35}/);
+        assert.ok(!match, `Found committed API key in ${full}: ${match?.[0]}`);
+      }
+    }
+  };
+  walk(ROOT);
+});

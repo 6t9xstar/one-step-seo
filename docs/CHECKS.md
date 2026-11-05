@@ -81,10 +81,13 @@ and the `index.html` dashboard — never in per-page `report.json`:
 - Possibly orphaned pages: crawled but linked from no crawled page
   (sitemap-only counts; the start page is exempt).
 
-## Performance hints (P01–P02)
+## Performance hints & Core Web Vitals (P01–P05)
 
-HTML payload >300KB, image count >20. For lab data use PageSpeed;
-this tool flags cheap static signals only.
+- `P01-html-size` (P2): HTML payload >300KB.
+- `P02-img-count` (P2): Image count >20.
+- `P03-psi-lab` (P1/P2/pass): Google PageSpeed Insights lab metrics (LCP > 2.5s / CLS > 0.10). Opt-in with `--psi`.
+- `P04-psi-field` (P1/P2/pass): Chrome UX Report (CrUX) 75th-percentile real-world field metrics. Opt-in with `--psi`.
+- `P05-psi-error` (P3): PageSpeed Insights query rate-limited, timed out, or quota exceeded. Opt-in with `--psi`.
 
 ## Auto-fixable (`one-step-seo fix`)
 

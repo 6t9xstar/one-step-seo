@@ -81,7 +81,17 @@
         "h1": { "type": "array", "items": { "type": "string" } },
         "images": { "type": "number", "minimum": 0 },
         "internalLinks": { "type": "number", "minimum": 0 },
-        "externalLinks": { "type": "number", "minimum": 0 }
+        "externalLinks": { "type": "number", "minimum": 0 },
+        "psi": {
+          "type": ["object", "null"],
+          "properties": {
+            "url": { "type": "string" },
+            "strategy": { "type": "string", "enum": ["mobile", "desktop"] },
+            "checkedAt": { "type": "string" },
+            "lab": { "type": ["object", "null"] },
+            "field": { "type": ["object", "null"] }
+          }
+        }
       }
     },
     "site": {

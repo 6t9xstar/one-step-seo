@@ -138,3 +138,14 @@ test("parseArgs accepts known profiles, rejects unknown ones", () => {
 test("VALID_PROFILES matches the PROFILES registry keys", () => {
   assert.deepEqual([...VALID_PROFILES].sort(), Object.keys(PROFILES).sort());
 });
+
+test("parseArgs handles --psi and --psi-strategy", () => {
+  assert.equal(parseArgs(["audit", "x"]).psi, false);
+  assert.equal(parseArgs(["audit", "x"]).psiStrategy, "mobile");
+  const a = parseArgs(["audit", "x", "--psi", "--psi-strategy", "desktop"]);
+  assert.equal(a.psi, true);
+  assert.equal(a.psiStrategy, "desktop");
+  assert.equal(parseArgs(["audit", "x", "--psi-strategy=mobile"]).psiStrategy, "mobile");
+  assert.throws(() => parseArgs(["audit", "x", "--psi-strategy", "tablet"]), CliError);
+  assert.throws(() => parseArgs(["audit", "x", "--psi-strategy"]), CliError);
+});

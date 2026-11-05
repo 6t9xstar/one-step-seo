@@ -8,6 +8,17 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- **Google PageSpeed Insights & Core Web Vitals (`--psi`).** Opt-in integration
+  fetching lab metrics (LCP, CLS, FCP, TBT, Speed Index, TTFB) and Chrome UX
+  Report (CrUX) real-user 75th-percentile field data. Zero dependencies, pure
+  `fetch`, strict `PSI_API_KEY` environment safety (never leaks or logs the key),
+  and graceful 429 rate-limit degradation. Emits findings `P03-psi-lab`,
+  `P04-psi-field`, and `P05-psi-error`.
+- **Extended Schema.org Generators.** Added generator templates and structural
+  validators for `video` (`VideoObject`), `job` (`JobPosting`), `course` (`Course`),
+  `review` (`Review`), and `recipe` (`Recipe`).
+- **Core Web Vitals Reporting.** Visualized Lab and Field diagnostics in single-file
+  responsive HTML reports (`report.html`) and Markdown exports (`report.md`).
 - **`audit --diff old.json new.json` — regression tracking.** Per-page
   score deltas plus NEW / RESOLVED / ESCALATED findings (terminal table +
   `--json`); `--fail-on` exits 2 only on new-or-escalated findings at the

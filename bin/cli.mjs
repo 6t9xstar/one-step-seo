@@ -40,6 +40,7 @@ import { parseArgs, normalizeUrl, canonicalizeUrl, CliError, MAX_PAGES } from ".
 import { planFixes, FIXER_NAMES } from "../lib/fix.mjs";
 import { diffReports, isReport } from "../lib/report-diff.mjs";
 import { unifiedDiff } from "../lib/diff.mjs";
+import { fetchPsi, psiFindings } from "../lib/psi.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 let VERSION = "0.0.0";
@@ -260,7 +261,7 @@ Usage:
   one-step-seo audit <url> [--pages N] [--out DIR] [--format html,md,json] [--fail-on P0|P1|P2] [--crawl links|sitemap]
   one-step-seo page <url> [--out DIR] [--format html,md,json]
   one-step-seo quick <url> [--pages N] [--out DIR]
-  one-step-seo schema <url> [--generate organization|website|article|faq|breadcrumb|product|event|localbusiness|howto]
+  one-step-seo schema <url> [--generate organization|website|article|faq|breadcrumb|product|event|localbusiness|howto|video|job|course|review|recipe]
   one-step-seo sitemap <url> [--json]
   one-step-seo llms <url> [--json]
   one-step-seo fix <path> [--apply] [--only NAMES] [--url U] [--title T] [--description D] [--lang L] [--og-image U]
@@ -280,8 +281,9 @@ Options:
   --debug         verbose diagnostics: parsed args, robots.txt status, per-page timings
   --force         crawl even when robots.txt disallows the URL (documented override)
   --check-links   verify same-host link targets (capped at 100 checks/run, off by default)
-  --check-links   verify same-host link targets (capped at 100 checks/run, off by default)
   --profile NAME  page-type calibration: default|blog|product|docs|home (default default)
+  --psi           measure Core Web Vitals via Google PageSpeed Insights (reads PSI_API_KEY)
+  --psi-strategy  performance strategy: mobile (default) or desktop
   --json          print JSON to stdout (sitemap / llms / doctor / fix / diff)
 
 Fix options (fix is a dry-run unless --apply is given):
@@ -489,6 +491,13 @@ function breachesFailOn(severity, counts) {
  * @param {import("../lib/args.mjs").ParsedArgs} args
  */
 async function cmdAudit(url, args) {
+  const psiKey = process.env.PSI_API_KEY;
+  if (args.psi && !psiKey) {
+    throw new CliError(
+      `--psi requires the PSI_API_KEY environment variable.\nGet a free API key at https://developers.google.com/speed/docs/insights/v5/get-started and run:\n  PSI_API_KEY=your_key one-step-seo audit <url> --psi`,
+      1,
+    );
+  }
   const formats = args.formats;
   const concurrency = Math.max(1, Math.min(8, args.concurrency ?? 4));
   /** @param {...unknown} m */
@@ -682,6 +691,29 @@ async function cmdAudit(url, args) {
     return;
   }
 
+  if (args.psi && psiKey) {
+    let firstPsi = true;
+    for (const report of pageReports) {
+      if (!firstPsi && args.delay > 0) await sleep(args.delay);
+      firstPsi = false;
+      dbg(`fetching PSI for ${report.finalUrl} (${args.psiStrategy})...`);
+      const psiRes = await fetchPsi(report.finalUrl, {
+        key: psiKey,
+        strategy: args.psiStrategy,
+        timeoutMs: 25000,
+        userAgent: UA,
+      });
+      if (psiRes.data) {
+        report.page.psi = psiRes.data;
+      }
+      const extraFindings = psiFindings(psiRes);
+      for (const ef of extraFindings) {
+        report.findings.push(ef);
+        report.counts[ef.severity] = (report.counts[ef.severity] ?? 0) + 1;
+      }
+    }
+  }
+
   const outDir = resolve(args.out);
   const withHtml = formats.includes("html");
   // Possibly orphaned pages: crawled, but no crawled page links to them
@@ -816,6 +848,13 @@ async function cmdAudit(url, args) {
  * @param {import("../lib/args.mjs").ParsedArgs} args
  */
 async function cmdPage(url, args) {
+  const psiKey = process.env.PSI_API_KEY;
+  if (args.psi && !psiKey) {
+    throw new CliError(
+      `--psi requires the PSI_API_KEY environment variable.\nGet a free API key at https://developers.google.com/speed/docs/insights/v5/get-started and run:\n  PSI_API_KEY=your_key one-step-seo page <url> --psi`,
+      1,
+    );
+  }
   const { blocked, robotsText } = await checkRobotsAllowed(url, args);
   if (blocked) {
     console.error(
@@ -842,6 +881,23 @@ async function cmdPage(url, args) {
     await checkPageLinks(r, [], args, { budget: MAX_LINK_CHECKS, checked: new Set() }, robotsText);
   }
   const report = toReport(r, url);
+  if (args.psi && psiKey) {
+    if (args.debug) console.error(`debug: fetching PSI for ${report.finalUrl} (${args.psiStrategy})...`);
+    const psiRes = await fetchPsi(report.finalUrl, {
+      key: psiKey,
+      strategy: args.psiStrategy,
+      timeoutMs: 25000,
+      userAgent: UA,
+    });
+    if (psiRes.data) {
+      report.page.psi = psiRes.data;
+    }
+    const extraFindings = psiFindings(psiRes);
+    for (const ef of extraFindings) {
+      report.findings.push(ef);
+      report.counts[ef.severity] = (report.counts[ef.severity] ?? 0) + 1;
+    }
+  }
   const written = writeOutputs(resolve(args.out), report, args.formats);
   console.log(
     `Search SEO: ${report.scores.search.score}/100 (${report.scores.search.band})  |  AI Visibility: ${report.scores.ai.score}/100 (${report.scores.ai.band})`,
@@ -1508,6 +1564,10 @@ process.on("SIGINT", () => {
 });
 
 main().catch((err) => {
+  if (err instanceof CliError) {
+    console.error(`Error: ${err.message}`);
+    process.exit(err.code);
+  }
   const msg = err instanceof Error ? err.message : String(err);
   console.error(`Runtime error: ${msg}`);
   if (verbose && err instanceof Error && err.stack) console.error(err.stack);

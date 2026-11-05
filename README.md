@@ -216,17 +216,38 @@ npx one-step-seo doctor
 
 ## 🛠️ CLI Command Suite
 
-| Command                  | Purpose                                                       | Primary Flags                                  |
-| :----------------------- | :------------------------------------------------------------ | :--------------------------------------------- |
-| `quick <url>`            | Fastest way to audit a site with sensible defaults.           | `--pages`, `--out`                             |
-| `audit <url>`            | Comprehensive multi-page crawl and linked site dashboard.     | `--pages`, `--crawl`, `--profile`, `--fail-on` |
-| `page <url>`             | Deep dive on a single web page without crawling links.        | `--out`, `--format`, `--verbose`               |
-| `schema <url>`           | Validate JSON-LD and print copy-paste schema snippets.        | `--generate (faq\|article\|product)`           |
-| `sitemap <url>`          | Audit sitemap index, robots.txt, and link seeds.              | `--json`                                       |
-| `llms <url>`             | Audit `/llms.txt` and generate AI crawler `robots.txt` rules. | `--json`                                       |
-| `fix <file\|dir>`        | Safe, dry-run diff patcher for local HTML files.              | `--apply`, `--url`, `--backup`                 |
-| `diff <a.json> <b.json>` | Detect score drops and finding escalations between builds.    | `--fail-on (P0\|P1)`                           |
-| `doctor`                 | Verify environment, HTTP parser, and network connectivity.    | `--verbose`                                    |
+| Command                  | Purpose                                                       | Primary Flags                                           |
+| :----------------------- | :------------------------------------------------------------ | :------------------------------------------------------ |
+| `quick <url>`            | Fastest way to audit a site with sensible defaults.           | `--pages`, `--out`                                      |
+| `audit <url>`            | Comprehensive multi-page crawl and linked site dashboard.     | `--pages`, `--crawl`, `--profile`, `--psi`, `--fail-on` |
+| `page <url>`             | Deep dive on a single web page without crawling links.        | `--out`, `--format`, `--psi`, `--verbose`               |
+| `schema <url>`           | Validate JSON-LD and print copy-paste schema snippets.        | `--generate (video\|job\|course\|review\|recipe\|...)`  |
+| `sitemap <url>`          | Audit sitemap index, robots.txt, and link seeds.              | `--json`                                                |
+| `llms <url>`             | Audit `/llms.txt` and generate AI crawler `robots.txt` rules. | `--json`                                                |
+| `fix <file\|dir>`        | Safe, dry-run diff patcher for local HTML files.              | `--apply`, `--url`, `--backup`                          |
+| `diff <a.json> <b.json>` | Detect score drops and finding escalations between builds.    | `--fail-on (P0\|P1)`                                    |
+| `doctor`                 | Verify environment, HTTP parser, and network connectivity.    | `--verbose`                                             |
+
+---
+
+## ⚡ Core Web Vitals & PageSpeed Insights (`--psi`)
+
+Evaluate real lab performance and Chrome UX Report (CrUX) field data alongside traditional SEO and AI visibility:
+
+```bash
+# Set your API key in the environment (never committed or leaked)
+export PSI_API_KEY="your_google_cloud_api_key"
+
+# Audit a single page with mobile Core Web Vitals
+npx one-step-seo page https://example.com --psi
+
+# Audit multi-page crawl with desktop strategy
+npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy desktop
+```
+
+- **Lab metrics**: Largest Contentful Paint (LCP), Cumulative Layout Shift (CLS), Total Blocking Time (TBT), First Contentful Paint (FCP), Speed Index, Time to First Byte (TTFB).
+- **Field metrics**: Real-user 75th-percentile data directly from the Chrome UX Report (CrUX).
+- **Security by design**: The key is read exclusively from `process.env.PSI_API_KEY`, never passed as a CLI flag or recorded in reports.
 
 ---
 

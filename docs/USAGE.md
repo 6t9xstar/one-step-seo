@@ -162,9 +162,11 @@ review — `fix` closes the mechanical loop, judgment stays with you.
 | `--out DIR`       | `./seo-report` | Output directory (created with `mkdir -p`, existing files overwritten)                                                                                                                                                                                                                   |
 | `--format`        | `html,md,json` | Which reports to write (`html`, `md`, `json`, `sarif` only — anything else exits 1)                                                                                                                                                                                                      |
 | `--timeout MS`    | `15000`        | Per-request timeout in ms (integer 1000–120000; applies to pages + robots/sitemap/llms)                                                                                                                                                                                                  |
-| `--generate KIND` | —              | `organization\|website\|article\|faq\|breadcrumb\|product\|event\|localbusiness\|howto`                                                                                                                                                                                                  |
+| `--generate KIND` | —              | `organization\|website\|article\|faq\|breadcrumb\|product\|event\|localbusiness\|howto\|video\|job\|course\|review\|recipe`                                                                                                                                                              |
 | `--fail-on SEV`   | —              | `P0\|P1\|P2` — exit 2 when any audited page has that severity or higher (CI gating). For `diff`: exit 2 only on _new or escalated_ findings at the threshold                                                                                                                             |
 | `--profile NAME`  | `default`      | Page-type calibration: `default` (reference), `blog` (same calibration, explicit), `product` (thin threshold 120, skips answer-first), `docs` (FAQ + llms.txt bumped to P1), `home` (thin threshold 100, skips answer-first). The AI checklist is identical across profiles              |
+| `--psi`           | —              | Measure Core Web Vitals via Google PageSpeed Insights (lab + CrUX field metrics). Reads `PSI_API_KEY` from the environment.                                                                                                                                                              |
+| `--psi-strategy`  | `mobile`       | Strategy for `--psi`: `mobile` or `desktop`                                                                                                                                                                                                                                              |
 | `--crawl MODE`    | `links`        | `links` (BFS over internal links) or `sitemap` (seeds from `sitemap.xml`, or the `Sitemap:` URL declared in `robots.txt`; follows up to 5 child sitemaps of a `<sitemapindex>`, caps seeds at 500, drops cross-host seeds, and warns + falls back to `links` when no sitemap URLs exist) |
 | `--concurrency N` | `4`            | Parallel page fetches for `audit` (integer 1–8)                                                                                                                                                                                                                                          |
 | `--delay MS`      | `250`          | Politeness pause between crawl batches in ms (integer 0–10000)                                                                                                                                                                                                                           |
@@ -181,6 +183,21 @@ review — `fix` closes the mechanical loop, judgment stays with you.
 | `--lang LANG`     | —              | `fix`: `<html lang>` value when missing (never guessed)                                                                                                                                                                                                                                  |
 | `--og-image URL`  | —              | `fix`: absolute image URL for `og:image`                                                                                                                                                                                                                                                 |
 | `--no-backup`     | —              | `fix`: skip the `.bak` copy on `--apply`                                                                                                                                                                                                                                                 |
+
+## Core Web Vitals (PageSpeed Insights)
+
+Measure real-world Core Web Vitals and Google Lighthouse lab metrics by passing `--psi`:
+
+```bash
+PSI_API_KEY=your_key one-step-seo audit https://example.com --psi
+PSI_API_KEY=your_key one-step-seo page https://example.com --psi --psi-strategy desktop
+```
+
+- **Environment variable only**: The Google API key is read strictly from `process.env.PSI_API_KEY` (never a CLI flag value, ensuring it never leaks into shell history or CI logs). Get a key for free at [Google PageSpeed Insights API](https://developers.google.com/speed/docs/insights/v5/get-started).
+- **Core Web Vitals evaluated**:
+  - Lab: Largest Contentful Paint (LCP), Cumulative Layout Shift (CLS), Total Blocking Time (TBT), First Contentful Paint (FCP), Speed Index, Time to First Byte (TTFB).
+  - Field: Real-user 75th-percentile metrics from Chrome UX Report (CrUX).
+- **Graceful degradation**: If rate-limited (HTTP 429) or offline, audits log `P05-psi-error` (P3 hint) and proceed without failing the audit.
 
 ## Outputs
 

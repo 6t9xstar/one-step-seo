@@ -12,12 +12,12 @@ const CLI = join(ROOT, "bin/cli.mjs");
 
 /**
  * @param {string[]} args
- * @param {{ timeout?: number }} [opts]
+ * @param {{ timeout?: number, env?: NodeJS.ProcessEnv }} [opts]
  * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
  */
-function runCli(args, { timeout = 20000 } = {}) {
+function runCli(args, { timeout = 20000, env = process.env } = {}) {
   return new Promise((resolve) => {
-    execFile(process.execPath, [CLI, ...args], { timeout }, (error, stdout, stderr) => {
+    execFile(process.execPath, [CLI, ...args], { timeout, env }, (error, stdout, stderr) => {
       resolve({
         code: Number(error?.code ?? 0),
         stdout: String(stdout ?? ""),
@@ -707,4 +707,12 @@ test("cli: llms --json has the documented shape", async () => {
   } finally {
     await closeServer(server);
   }
+});
+
+test("cli: --psi without PSI_API_KEY exits 1 with actionable guidance", async () => {
+  const r = await runCli(["page", "https://example.com", "--psi"], {
+    env: { ...process.env, PSI_API_KEY: "" },
+  });
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /requires the PSI_API_KEY environment variable/);
 });

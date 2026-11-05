@@ -262,6 +262,11 @@ test("every schema generator produces valid output", () => {
     "event",
     "localbusiness",
     "howto",
+    "video",
+    "job",
+    "course",
+    "review",
+    "recipe",
     "other",
   ]) {
     const node = generateSchema(kind, { name: "N", url: "https://example.com", description: "D" });
