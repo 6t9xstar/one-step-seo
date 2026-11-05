@@ -6,6 +6,7 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createColorHelper } from "../lib/colors.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = join(ROOT, "bin/cli.mjs");
@@ -715,4 +716,193 @@ test("cli: --psi without PSI_API_KEY exits 1 with actionable guidance", async ()
   });
   assert.equal(r.code, 1);
   assert.match(r.stderr, /requires the PSI_API_KEY environment variable/);
+});
+
+test("cli: ai command runs AI audit and prints citability checklist", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-ai-"));
+    const r = await runCli(["ai", `http://127.0.0.1:${port}/`, "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /AI Search Visibility & Citability Audit/);
+    assert.match(r.stdout, /AI Visibility: \d+\/100/);
+    assert.match(r.stdout, /Citability & Signal Checklist/);
+    assert.match(r.stdout, /AI crawlers in robots\.txt/);
+    assert.match(r.stdout, /llms\.txt discoverable/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: ai --json outputs structured AI search visibility signals", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const r = await runCli(["ai", `http://127.0.0.1:${port}/`, "--json"]);
+    assert.equal(r.code, 0, r.stderr);
+    const data = JSON.parse(r.stdout);
+    assert.equal(data.tool, "one-step-seo");
+    assert.ok(typeof data.aiScore === "number");
+    assert.ok(data.signals);
+    assert.ok("llmsFound" in data.signals);
+    assert.ok("schemaTypes" in data.signals);
+    assert.ok(Array.isArray(data.findings));
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: doctor --check-config prints configuration diagnostics", async () => {
+  const r = await runCli(["doctor", "--check-config"]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.match(r.stdout, /configuration check: all defaults and environment valid \(ok\)/);
+  assert.match(r.stdout, /node v/);
+  assert.match(r.stdout, /fetch: ok/);
+});
+
+test("cli: quiet flag suppresses verbose banner in quick command", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-quiet-"));
+    const normal = await runCli(["quick", `http://127.0.0.1:${port}/`, "--pages", "1", "--out", out]);
+    assert.match(normal.stdout, /Quick audit: up to 1 page\(s\)/);
+
+    const quiet = await runCli([
+      "quick",
+      `http://127.0.0.1:${port}/`,
+      "--pages",
+      "1",
+      "--out",
+      out,
+      "--quiet",
+    ]);
+    assert.doesNotMatch(quiet.stdout, /Quick audit: up to 1 page\(s\)/);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("colors: createColorHelper respects isTTY, NO_COLOR, and formatting", () => {
+  const ttyColor = createColorHelper({ isTTY: true }, { NO_COLOR: "", TERM: "xterm-256color" });
+  assert.equal(ttyColor.enabled, true);
+  assert.equal(ttyColor.bold("test"), "\x1b[1mtest\x1b[0m");
+  assert.equal(ttyColor.severityBadge("P0"), "\x1b[1;31m[P0]\x1b[0m");
+  assert.equal(ttyColor.scoreBadge(95, "good"), "\x1b[1;32m95/100 (good)\x1b[0m");
+
+  const noColor = createColorHelper({ isTTY: true }, { NO_COLOR: "1", TERM: "xterm-256color" });
+  assert.equal(noColor.enabled, false);
+  assert.equal(noColor.bold("test"), "test");
+  assert.equal(noColor.severityBadge("P0"), "[P0]");
+  assert.equal(noColor.scoreBadge(95, "good"), "95/100 (good)");
+
+  const pipe = createColorHelper({ isTTY: false }, { NO_COLOR: "", TERM: "xterm-256color" });
+  assert.equal(pipe.enabled, false);
+});
+
+test("cli: skills command lists all skills in table format", async () => {
+  const r = await runCli(["skills"]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.match(r.stdout, /One-Step SEO — Skills Registry/);
+  assert.match(r.stdout, /technical-seo/);
+  assert.match(r.stdout, /onpage-seo/);
+  assert.match(r.stdout, /geo-ai-search/);
+  assert.match(r.stdout, /accessibility-ux/);
+});
+
+test("cli: skills --json outputs valid JSON array of skills", async () => {
+  const r = await runCli(["skills", "--json"]);
+  assert.equal(r.code, 0, r.stderr);
+  const data = JSON.parse(r.stdout);
+  assert.ok(Array.isArray(data));
+  assert.ok(data.length >= 9);
+  assert.ok(data.some((s) => s.id === "technical-seo"));
+  assert.ok(data.some((s) => s.id === "onpage-seo"));
+});
+
+test("cli: skills <id> outputs detailed skill information", async () => {
+  const r = await runCli(["skills", "technical-seo"]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.match(r.stdout, /Skill: Technical SEO & Indexability/);
+  assert.match(r.stdout, /Category: Technical SEO/);
+  assert.match(r.stdout, /Checks \(\d+ rules\):/);
+  assert.match(r.stdout, /T01-https/);
+});
+
+test("cli: skills unknown-id exits 1 with error message", async () => {
+  const r = await runCli(["skills", "non-existent-skill"]);
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /Unknown skill: "non-existent-skill"/);
+});
+
+test("cli: page audits local HTML file offline and produces valid report", async () => {
+  const out = mkdtempSync(join(tmpdir(), "oss-local-page-"));
+  const fixturePath = join(ROOT, "tests/fixtures/good.html");
+  const r = await runCli(["page", fixturePath, "--out", out]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.match(r.stdout, /Search SEO:/);
+  assert.match(r.stdout, /AI Visibility:/);
+  assert.ok(existsSync(join(out, "report.json")));
+  assert.ok(existsSync(join(out, "report.md")));
+  assert.ok(existsSync(join(out, "report.html")));
+  const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+  assert.ok(report.scores.search.score > 0);
+  assert.ok(report.scores.ai.score > 0);
+  assert.ok(report.findings.length > 0);
+});
+
+test("cli: audit audits local directory offline with multi-page reports and dashboard", async () => {
+  const out = mkdtempSync(join(tmpdir(), "oss-local-dir-"));
+  const fixturesDir = join(ROOT, "tests/fixtures");
+  const r = await runCli(["audit", fixturesDir, "--pages", "2", "--out", out]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.match(r.stdout, /Audited 2 local page\(s\):/);
+  assert.ok(existsSync(join(out, "report.json")));
+  assert.ok(existsSync(join(out, "report-2.json")));
+  assert.ok(existsSync(join(out, "index.md")));
+  assert.ok(existsSync(join(out, "index.html")));
+});
+
+test("cli: --skills filters checks to specified skill category", async () => {
+  const out = mkdtempSync(join(tmpdir(), "oss-skills-filter-"));
+  const fixturePath = join(ROOT, "tests/fixtures/good.html");
+  const r = await runCli(["page", fixturePath, "--skills", "onpage", "--out", out]);
+  assert.equal(r.code, 0, r.stderr);
+  const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+  // Findings must only be from onpage checks
+  for (const f of report.findings) {
+    assert.ok(f.id.startsWith("O"), `finding ${f.id} should be an onpage check`);
+  }
+});
+
+test("cli: --exclude-skills filters out specified skill checks", async () => {
+  const out = mkdtempSync(join(tmpdir(), "oss-exclude-skills-"));
+  const fixturePath = join(ROOT, "tests/fixtures/good.html");
+  const r = await runCli(["page", fixturePath, "--exclude-skills", "performance-cwv", "--out", out]);
+  assert.equal(r.code, 0, r.stderr);
+  const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8"));
+  for (const f of report.findings) {
+    assert.ok(!f.id.startsWith("P0"), `finding ${f.id} should not be a performance check`);
+  }
+});
+
+test("cli: page accepts file:// scheme URI", async () => {
+  const out = mkdtempSync(join(tmpdir(), "oss-file-uri-"));
+  const fixturePath = join(ROOT, "tests/fixtures/good.html");
+  const fileUri = `file:///${fixturePath.replace(/\\/g, "/")}`;
+  const r = await runCli(["page", fileUri, "--out", out]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.ok(existsSync(join(out, "report.json")));
+});
+
+test("cli: local audit handles missing files and empty directories gracefully", async () => {
+  const rMissing = await runCli(["page", "non-existent-file.html"]);
+  assert.equal(rMissing.code, 1);
+  assert.match(rMissing.stderr, /Local file not found/);
+
+  const emptyDir = mkdtempSync(join(tmpdir(), "oss-empty-dir-"));
+  const rEmpty = await runCli(["audit", emptyDir]);
+  assert.equal(rEmpty.code, 1);
+  assert.match(rEmpty.stderr, /No \.html or \.htm files found/);
 });

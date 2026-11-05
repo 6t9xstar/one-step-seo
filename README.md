@@ -216,17 +216,67 @@ npx one-step-seo doctor
 
 ## 🛠️ CLI Command Suite
 
-| Command                  | Purpose                                                       | Primary Flags                                                       |
-| :----------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------ |
-| `quick <url>`            | Fastest way to audit a site with sensible defaults.           | `--pages`, `--out`                                                  |
-| `audit <url>`            | Comprehensive multi-page crawl and linked site dashboard.     | `--pages`, `--crawl`, `--profile`, `--psi`, `--fail-on`, `--format` |
-| `page <url>`             | Deep dive on a single web page without crawling links.        | `--out`, `--format`, `--psi`, `--verbose`                           |
-| `schema <url>`           | Validate JSON-LD and print copy-paste schema snippets.        | `--generate (video\|job\|course\|review\|recipe\|...)`              |
-| `sitemap <url>`          | Audit sitemap index, robots.txt, and link seeds.              | `--json`                                                            |
-| `llms <url>`             | Audit `/llms.txt` and generate AI crawler `robots.txt` rules. | `--json`                                                            |
-| `fix <file\|dir>`        | Safe, dry-run diff patcher for local HTML files.              | `--apply`, `--url`, `--backup`                                      |
-| `diff <a.json> <b.json>` | Detect score drops and finding escalations between builds.    | `--fail-on (P0\|P1)`                                                |
-| `doctor`                 | Verify environment, HTTP parser, and network connectivity.    | `--verbose`                                                         |
+| Command                  | Purpose                                                       | Primary Flags                                                                                                    |
+| :----------------------- | :------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------- |
+| `quick <url\|dir>`       | Fastest way to audit a site or local build directory.         | `--pages`, `--out`, `--quiet`                                                                                    |
+| `audit <url\|dir>`       | Comprehensive multi-page crawl or local directory audit.      | `--pages`, `--crawl`, `--profile`, `--psi`, `--fail-on`, `--format`, `--skills`, `--exclude-skills`, `--offline` |
+| `page <url\|file>`       | Deep dive on a single page or offline HTML file.              | `--out`, `--format`, `--psi`, `--skills`, `--exclude-skills`, `--offline`, `--block-private-ips`                 |
+| `ai <url>`               | Dedicated AI Search Visibility and Citability audit.          | `--out`, `--format`, `--json`, `--skills`, `--exclude-skills`, `--block-private-ips`                             |
+| `skills [id]`            | Inspect modular auditing skills catalog and check rules.      | `--json`                                                                                                         |
+| `schema <url>`           | Validate JSON-LD and print copy-paste schema snippets.        | `--generate (video\|job\|course\|review\|recipe\|...)`                                                           |
+| `sitemap <url>`          | Audit sitemap index, robots.txt, and link seeds.              | `--json`, `--block-private-ips`                                                                                  |
+| `llms <url>`             | Audit `/llms.txt` and generate AI crawler `robots.txt` rules. | `--json`, `--block-private-ips`                                                                                  |
+| `fix <file\|dir>`        | Safe, dry-run diff patcher for local HTML files.              | `--apply`, `--url`, `--backup`                                                                                   |
+| `diff <a.json> <b.json>` | Detect score drops and finding escalations between builds.    | `--fail-on (P0\|P1)`                                                                                             |
+| `doctor`                 | Verify environment, runtime config, and connectivity.         | `--json`, `--check-config`                                                                                       |
+
+---
+
+## 🧠 Modular Skills Architecture
+
+`one-step-seo` groups 50+ granular audit rules into 9 coherent, programmatic **skills** across technical SEO, content, and AI citability:
+
+```bash
+# List all 9 skills with categories, offline support, and check counts
+npx one-step-seo skills
+
+# Inspect detailed checks, remediation guidelines, and limitations for a skill
+npx one-step-seo skills onpage-seo
+npx one-step-seo skills geo-ai-search --json
+```
+
+### Selective Skill Execution (`--skills` & `--exclude-skills`)
+
+Run audits targeted to specific engineering or editorial disciplines:
+
+```bash
+# Focus only on On-Page and Structured Data skills
+npx one-step-seo audit https://example.com --skills onpage,schema
+
+# Run full audit but skip performance checks (e.g. in environments without PSI API keys)
+npx one-step-seo audit https://example.com --exclude-skills performance-cwv
+```
+
+---
+
+## 🔌 100% Offline Auditing Engine
+
+Audit local static site builds (Astro, Next.js static exports, Vite, Hugo, raw HTML) completely offline without deploying or running a web server:
+
+```bash
+# Audit a single local HTML file
+npx one-step-seo page ./dist/index.html --out ./offline-report
+
+# Audit an entire build directory offline (recursively audits up to N HTML files)
+npx one-step-seo audit ./dist --pages 10 --out ./offline-report
+
+# Enforce pure offline execution (skips all remote network requests)
+npx one-step-seo audit ./dist --offline
+```
+
+- **Local Asset Discovery**: Automatically inspects `robots.txt`, `sitemap.xml`, and `llms.txt` if present in the build directory.
+- **Zero Network Leakage**: Never triggers external network calls when auditing local files.
+- **Full Reporting**: Generates interactive HTML dashboards, executive Markdown summaries, RFC 4180 CSV, and GitHub SARIF reports directly on disk.
 
 ---
 

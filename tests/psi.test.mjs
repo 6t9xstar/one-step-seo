@@ -361,3 +361,204 @@ test("reports render Core Web Vitals section in Markdown and HTML", () => {
   assert.ok(html.includes("Core Web Vitals"));
   assert.ok(html.includes("Lab Performance Score: 92/100"));
 });
+
+test("fetchPsi handles malformed JSON responses cleanly", async () => {
+  const badJsonServer = http.createServer((_req, res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end("<html>Not JSON at all</html>");
+  });
+  await new Promise((resolve) => badJsonServer.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (badJsonServer.address())?.port;
+  try {
+    const res = await fetchPsi("https://example.com/", {
+      endpoint: `http://127.0.0.1:${port}/runPagespeed`,
+    });
+    assert.equal(res.ok, false);
+    assert.match(res.error || "", /JSON/i);
+  } finally {
+    badJsonServer.closeAllConnections?.();
+    await new Promise((r) => badJsonServer.close(r));
+  }
+});
+
+test("fetchPsi times out on stalled response bodies", async () => {
+  const stallServer = http.createServer((_req, res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write('{"lighthouseResult":');
+    // Stalls and never sends the rest
+  });
+  await new Promise((resolve) => stallServer.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (stallServer.address())?.port;
+  try {
+    const started = Date.now();
+    const res = await fetchPsi("https://example.com/", {
+      endpoint: `http://127.0.0.1:${port}/runPagespeed`,
+      timeoutMs: 500,
+    });
+    const elapsed = Date.now() - started;
+    assert.equal(res.ok, false);
+    assert.match(res.error || "", /timeout/);
+    assert.ok(elapsed < 4000, `expected fast timeout, took ${elapsed}ms`);
+  } finally {
+    stallServer.closeAllConnections?.();
+    await new Promise((r) => stallServer.close(r));
+  }
+});
+
+test("fetchPsi enforces SSRF blocks on metadata and private IPs", async () => {
+  const meta = await fetchPsi("https://example.com/", {
+    endpoint: "http://169.254.169.254/latest/meta-data",
+  });
+  assert.equal(meta.ok, false);
+  assert.match(meta.error || "", /cloud metadata/);
+
+  const priv = await fetchPsi("https://example.com/", {
+    endpoint: "http://127.0.0.1:8080/runPagespeed",
+    blockPrivateIps: true,
+  });
+  assert.equal(priv.ok, false);
+  assert.match(priv.error || "", /private\/internal network/);
+});
+
+test("psiFindings distinguishes missing metrics from 0 values and evaluates INP thresholds", () => {
+  // Partial data with all lab metrics missing
+  const partialData = {
+    ok: true,
+    data: {
+      url: "https://example.com/",
+      strategy: /** @type {"mobile"} */ ("mobile"),
+      checkedAt: new Date().toISOString(),
+      lab: {
+        score: null,
+        lcpMs: null,
+        cls: null,
+        fcpMs: null,
+        tbtMs: null,
+        speedIndexMs: null,
+        ttfbMs: null,
+      },
+      field: null,
+    },
+  };
+  const partialFindings = psiFindings(partialData);
+  const lab = partialFindings.find((f) => f.id === "P03-psi-lab");
+  assert.ok(lab);
+  assert.equal(lab.severity, "P3");
+  assert.match(lab.title, /lab metrics unavailable/i);
+
+  // Field data with poor INP (>500ms)
+  const poorInpData = {
+    ok: true,
+    data: {
+      url: "https://example.com/",
+      strategy: /** @type {"mobile"} */ ("mobile"),
+      checkedAt: new Date().toISOString(),
+      lab: {
+        score: 95,
+        lcpMs: 1200,
+        cls: 0.02,
+        fcpMs: 800,
+        tbtMs: 50,
+        speedIndexMs: 1100,
+        ttfbMs: 150,
+      },
+      field: {
+        overallCategory: "NONE",
+        lcpMs: 1500,
+        cls: 0.05,
+        inpMs: 580, // Poor INP (>500ms)
+        fcpMs: 1000,
+      },
+    },
+  };
+  const poorInpFindings = psiFindings(poorInpData);
+  const field1 = poorInpFindings.find((f) => f.id === "P04-psi-field");
+  assert.ok(field1);
+  assert.equal(field1.severity, "P1");
+  assert.match(field1.title, /Poor real-user Core Web Vitals/i);
+
+  // Field data with INP needing improvement (>200ms)
+  const avgInpData = {
+    ok: true,
+    data: {
+      url: "https://example.com/",
+      strategy: /** @type {"mobile"} */ ("mobile"),
+      checkedAt: new Date().toISOString(),
+      lab: poorInpData.data.lab,
+      field: {
+        overallCategory: "NONE",
+        lcpMs: 1500,
+        cls: 0.05,
+        inpMs: 320, // Needs improvement (>200ms)
+        fcpMs: 1000,
+      },
+    },
+  };
+  const avgInpFindings = psiFindings(avgInpData);
+  const field2 = avgInpFindings.find((f) => f.id === "P04-psi-field");
+  assert.ok(field2);
+  assert.equal(field2.severity, "P2");
+  assert.match(field2.title, /Real-user Core Web Vitals need improvement/i);
+});
+
+test("fetchPsi follows safe redirects and blocks dangerous redirect destinations", async () => {
+  let redirectedKeyReceived = "";
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url || "/", `http://${req.headers.host}`);
+    if (url.pathname === "/redirect-to-metadata") {
+      res.writeHead(302, { Location: "http://169.254.169.254/latest/meta-data" });
+      res.end();
+      return;
+    }
+    if (url.pathname === "/redirect-to-private") {
+      res.writeHead(302, { Location: "http://127.0.0.1:8080/private" });
+      res.end();
+      return;
+    }
+    if (url.pathname === "/redirect-safe") {
+      res.writeHead(302, { Location: "/final-psi" + url.search });
+      res.end();
+      return;
+    }
+    if (url.pathname === "/final-psi") {
+      redirectedKeyReceived = url.searchParams.get("key") || "";
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ lighthouseResult: { categories: { performance: { score: 0.95 } } } }));
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
+
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (server.address())?.port;
+
+  try {
+    // 1. Block redirect to metadata
+    const metaRes = await fetchPsi("https://example.com/", {
+      endpoint: `http://127.0.0.1:${port}/redirect-to-metadata`,
+    });
+    assert.equal(metaRes.ok, false);
+    assert.match(metaRes.error || "", /metadata/i);
+
+    // 2. Block redirect to private when blockPrivateIps is active
+    const privRes = await fetchPsi("https://example.com/", {
+      endpoint: `http://127.0.0.1:${port}/redirect-to-private`,
+      blockPrivateIps: true,
+    });
+    assert.equal(privRes.ok, false);
+    assert.match(privRes.error || "", /private\/internal|blocked/i);
+
+    // 3. Follow safe relative redirect on same server and preserve key
+    const safeRes = await fetchPsi("https://example.com/", {
+      endpoint: `http://127.0.0.1:${port}/redirect-safe`,
+      key: "secret-key-123",
+    });
+    assert.equal(safeRes.ok, true);
+    assert.equal(safeRes.data?.lab?.score, 95);
+    assert.equal(redirectedKeyReceived, "secret-key-123");
+  } finally {
+    server.closeAllConnections?.();
+    await new Promise((r) => server.close(r));
+  }
+});

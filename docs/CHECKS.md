@@ -25,6 +25,7 @@ Thresholds live in `lib/checks.mjs` (`THRESHOLDS`).
 | T14-third-party      | P2/pass    | At most 5 third-party script hosts                                                              |
 | T15-security-headers | P3/pass    | CSP + HSTS + X-Content-Type-Options present (skipped when headers unknown)                      |
 | T16-broken-links     | P1         | `--check-links` only: same-host link target returns 4xx/5xx or fails (capped at 100 checks/run) |
+| T17-canonical-http   | P1/pass    | Canonical link specifies insecure http:// on an otherwise secure https:// page                  |
 
 Bodies over 5 MiB are truncated for safety and reported as `T00-truncated`
 (P2) — checks then cover the head portion only.
@@ -34,6 +35,8 @@ Bodies over 5 MiB are truncated for safety and reported as `T00-truncated`
 Title 30–60ch, meta 120–155ch, single H1, logical heading order,
 H2s on pages >600 words, complete Open Graph, favicon, image alt,
 image dimensions (CLS), internal linking (0 = P1, >200 = P2).
+
+Structural: `O04-heading-empty` (P2: heading tags containing no visible text clutter accessibility trees and dilute search relevance).
 
 Polish (P3, never blocks): `W01-social` (twitter:card), `W02-og-url`
 (og:url matches canonical), `W03-hreflang` (alternates complete),
@@ -57,7 +60,7 @@ Finding IDs use sanitized suffixes (`S02-faqpage`, never raw `S02-FAQPage`).
 Only mark up visible content. `S03-faq-parity` (P3) fires when FAQPage markup
 and visible FAQ copy disagree in either direction.
 
-## GEO / AI (G01–G09)
+## GEO / AI (G01–G11)
 
 `llms.txt` (optional), AI crawlers not blanket-blocked,
 facts in extractable structures, share-title/page-title entity consistency
@@ -69,8 +72,11 @@ note), question-shaped H2s (`G07-question-headings`: ≥50% of 3+ H2s, P3),
 quantified metrics on substantive pages (`G08-stat-density`: ≥2 metrics
 with units at 300+ words, P3), snippet eligibility (`G09-snippet-controls`:
 P2 when `nosnippet`/`max-snippet: 0` blocks AI quoting — paywalled content
-excepted). All G04+ findings are GEO-only except `G09`, which deducts like
-`G03` (see `docs/SCORING.md`).
+excepted), author/publisher attribution (`G10-author`: P3 on substantive
+300+ word pages lacking `<meta name="author">` or `rel="author"` metadata),
+semantic content landmarks (`G11-semantic-content`: P3 on long 600+ word
+articles without `<main>` or `<article>` landmarks). All G04+ findings are
+GEO-only except `G09`, which deducts like `G03` (see `docs/SCORING.md`).
 
 ## Site-level (multi-page runs)
 
