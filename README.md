@@ -1,7 +1,7 @@
 <div align="center">
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/6t9xstar/one-step-seo/main/assets/Futuristic Blue 1STEP SEO Logo.png" width="130" alt="one-step-seo logo">
+  <img src="https://raw.githubusercontent.com/6t9xstar/one-step-seo/main/assets/Futuristic Blue 1STEP SEO Logo.png" alt="one-step-seo logo">
 </p>
 
 # ⚡ One-Step-Seo
