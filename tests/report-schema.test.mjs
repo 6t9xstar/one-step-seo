@@ -20,6 +20,116 @@ import { parseRobots, looksLikeSitemap, countSitemapUrls } from "../lib/robots.m
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const findingSchema = JSON.parse(readFileSync(join(ROOT, "lib/schema-finding.json"), "utf8"));
+const sarifSchema = JSON.parse(readFileSync(join(ROOT, "tests/fixtures/sarif-2.1.0.schema.json"), "utf8"));
+
+/**
+ * Validate SARIF data object against the official OASIS SARIF 2.1.0 JSON Schema.
+ * Resolves schema definitions and checks types, required keys, and enum constraints.
+ * @param {any} sarif
+ * @param {any} schema
+ * @returns {string[]} array of validation errors (empty if completely valid)
+ */
+function validateSarifAgainstOfficialSchema(sarif, schema) {
+  const errors = [];
+  if (!sarif || typeof sarif !== "object") {
+    errors.push("Root SARIF must be an object");
+    return errors;
+  }
+  // Root required properties
+  for (const req of schema.required || []) {
+    if (!(req in sarif)) errors.push(`Root missing required property: ${req}`);
+  }
+  // Version const check
+  const expectedVer = schema.properties.version?.const ?? schema.properties.version?.enum?.[0] ?? "2.1.0";
+  if (sarif.version !== expectedVer) {
+    errors.push(`Invalid version: ${sarif.version}, expected ${expectedVer}`);
+  }
+  // Runs array
+  if (!Array.isArray(sarif.runs)) {
+    errors.push("sarif.runs must be an array");
+    return errors;
+  }
+  const runDef = schema.definitions.run;
+  const toolDef = schema.definitions.tool;
+  const toolCompDef = schema.definitions.toolComponent;
+  const descDef = schema.definitions.reportingDescriptor;
+  const resultDef = schema.definitions.result;
+
+  for (let rIdx = 0; rIdx < sarif.runs.length; rIdx++) {
+    const run = sarif.runs[rIdx];
+    for (const req of runDef.required || []) {
+      if (!(req in run)) errors.push(`runs[${rIdx}] missing required property: ${req}`);
+    }
+    // Tool
+    const tool = run.tool;
+    if (tool) {
+      for (const req of toolDef.required || []) {
+        if (!(req in tool)) errors.push(`runs[${rIdx}].tool missing required property: ${req}`);
+      }
+      const driver = tool.driver;
+      if (driver) {
+        for (const req of toolCompDef.required || []) {
+          if (!(req in driver)) errors.push(`runs[${rIdx}].tool.driver missing required property: ${req}`);
+        }
+        if (typeof driver.name !== "string" || !driver.name) {
+          errors.push(`runs[${rIdx}].tool.driver.name must be non-empty string`);
+        }
+        if (driver.rules) {
+          if (!Array.isArray(driver.rules)) {
+            errors.push(`runs[${rIdx}].tool.driver.rules must be an array`);
+          } else {
+            for (let ruleIdx = 0; ruleIdx < driver.rules.length; ruleIdx++) {
+              const rule = driver.rules[ruleIdx];
+              for (const req of descDef.required || []) {
+                if (!(req in rule)) errors.push(`driver.rules[${ruleIdx}] missing required property: ${req}`);
+              }
+              if (typeof rule.id !== "string" || !rule.id) {
+                errors.push(`driver.rules[${ruleIdx}].id must be a string`);
+              }
+            }
+          }
+        }
+      }
+    }
+    // Results
+    if (run.results) {
+      if (!Array.isArray(run.results)) {
+        errors.push(`runs[${rIdx}].results must be an array`);
+      } else {
+        for (let resIdx = 0; resIdx < run.results.length; resIdx++) {
+          const res = run.results[resIdx];
+          for (const req of resultDef.required || []) {
+            if (!(req in res)) errors.push(`results[${resIdx}] missing required property: ${req}`);
+          }
+          if (res.level && !resultDef.properties.level.enum.includes(res.level)) {
+            errors.push(`results[${resIdx}].level '${res.level}' not in official enum`);
+          }
+          // Message
+          if (res.message) {
+            if (typeof res.message.text !== "string" && typeof res.message.id !== "string") {
+              errors.push(`results[${resIdx}].message must have text or id string`);
+            }
+          }
+          // Locations
+          if (res.locations) {
+            if (!Array.isArray(res.locations)) {
+              errors.push(`results[${resIdx}].locations must be an array`);
+            } else {
+              for (let locIdx = 0; locIdx < res.locations.length; locIdx++) {
+                const loc = res.locations[locIdx];
+                const uri = loc?.physicalLocation?.artifactLocation?.uri;
+                if (typeof uri !== "string" || !uri) {
+                  errors.push(`results[${resIdx}].locations[${locIdx}] missing artifactLocation.uri`);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return errors;
+}
 
 /** @param {any} f @returns {boolean} */
 function matchesFindingSchema(f) {
@@ -338,6 +448,14 @@ test("SARIF 2.1.0 output complies with official SARIF schema requirements", () =
   });
 
   const sarif = /** @type {any} */ (renderSarif(report));
+
+  // Official OASIS SARIF 2.1.0 JSON Schema validation
+  const officialSchemaErrors = validateSarifAgainstOfficialSchema(sarif, sarifSchema);
+  assert.deepEqual(
+    officialSchemaErrors,
+    [],
+    `SARIF report must strictly conform to official OASIS SARIF 2.1.0 schema: ${officialSchemaErrors.join("; ")}`,
+  );
 
   // Schema conformance checks
   assert.equal(sarif.version, "2.1.0");

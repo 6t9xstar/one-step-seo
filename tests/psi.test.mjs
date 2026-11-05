@@ -500,3 +500,65 @@ test("psiFindings distinguishes missing metrics from 0 values and evaluates INP 
   assert.equal(field2.severity, "P2");
   assert.match(field2.title, /Real-user Core Web Vitals need improvement/i);
 });
+
+test("fetchPsi follows safe redirects and blocks dangerous redirect destinations", async () => {
+  let redirectedKeyReceived = "";
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url || "/", `http://${req.headers.host}`);
+    if (url.pathname === "/redirect-to-metadata") {
+      res.writeHead(302, { Location: "http://169.254.169.254/latest/meta-data" });
+      res.end();
+      return;
+    }
+    if (url.pathname === "/redirect-to-private") {
+      res.writeHead(302, { Location: "http://127.0.0.1:8080/private" });
+      res.end();
+      return;
+    }
+    if (url.pathname === "/redirect-safe") {
+      res.writeHead(302, { Location: "/final-psi" + url.search });
+      res.end();
+      return;
+    }
+    if (url.pathname === "/final-psi") {
+      redirectedKeyReceived = url.searchParams.get("key") || "";
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ lighthouseResult: { categories: { performance: { score: 0.95 } } } }));
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
+
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (server.address())?.port;
+
+  try {
+    // 1. Block redirect to metadata
+    const metaRes = await fetchPsi("https://example.com/", {
+      endpoint: `http://127.0.0.1:${port}/redirect-to-metadata`,
+    });
+    assert.equal(metaRes.ok, false);
+    assert.match(metaRes.error || "", /metadata/i);
+
+    // 2. Block redirect to private when blockPrivateIps is active
+    const privRes = await fetchPsi("https://example.com/", {
+      endpoint: `http://127.0.0.1:${port}/redirect-to-private`,
+      blockPrivateIps: true,
+    });
+    assert.equal(privRes.ok, false);
+    assert.match(privRes.error || "", /private\/internal|blocked/i);
+
+    // 3. Follow safe relative redirect on same server and preserve key
+    const safeRes = await fetchPsi("https://example.com/", {
+      endpoint: `http://127.0.0.1:${port}/redirect-safe`,
+      key: "secret-key-123",
+    });
+    assert.equal(safeRes.ok, true);
+    assert.equal(safeRes.data?.lab?.score, 95);
+    assert.equal(redirectedKeyReceived, "secret-key-123");
+  } finally {
+    server.closeAllConnections?.();
+    await new Promise((r) => server.close(r));
+  }
+});

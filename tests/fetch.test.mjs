@@ -236,3 +236,29 @@ test("fetchText handles redirects and enforces SSRF boundaries on redirect hops"
     await new Promise((r) => redirectServer.close(r));
   }
 });
+
+test("fetchWithRedirects blocks redirects to private addresses and cloud metadata", async () => {
+  const srv = http.createServer((req, res) => {
+    if (req.url === "/meta") {
+      res.writeHead(302, { location: "http://169.254.169.254/latest/meta-data" });
+      res.end();
+    } else if (req.url === "/priv") {
+      res.writeHead(302, { location: "http://10.0.0.1/admin" });
+      res.end();
+    }
+  });
+  await new Promise((resolve) => srv.listen(0, "127.0.0.1", () => resolve(undefined)));
+  const port = /** @type {import("node:net").AddressInfo} */ (srv.address())?.port;
+  try {
+    const metaRes = await fetchWithRedirects(`http://127.0.0.1:${port}/meta`);
+    assert.equal(metaRes.ok, false);
+    assert.match(metaRes.error, /cloud metadata endpoint/);
+
+    const privRes = await fetchWithRedirects(`http://127.0.0.1:${port}/priv`, { blockPrivateIps: true });
+    assert.equal(privRes.ok, false);
+    assert.match(privRes.error, /private\/internal/);
+  } finally {
+    srv.closeAllConnections?.();
+    await new Promise((r) => srv.close(r));
+  }
+});

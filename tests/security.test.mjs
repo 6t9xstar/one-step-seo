@@ -19,6 +19,8 @@ import {
   isBlockedMetadataEndpoint,
   isPrivateOrLoopbackHost,
   isPrivateOrReservedIpv4,
+  isPrivateOrReservedIpv6,
+  parseIpv6Hextets,
   ipv4ToUint32,
   assertSafeDns,
   validateTargetUrl,
@@ -347,6 +349,154 @@ test("assertSafeDns detects loopback and validates DNS safety", async () => {
 
   const pubDirect = await assertSafeDns("8.8.8.8");
   assert.equal(pubDirect.safe, true);
+});
+
+test("parseIpv6Hextets and isPrivateOrReservedIpv6 normalize and classify unusual IPv6 representations", () => {
+  // 1. Parsing and zero compression expansion
+  assert.deepEqual(parseIpv6Hextets("::1"), [0, 0, 0, 0, 0, 0, 0, 1]);
+  assert.deepEqual(parseIpv6Hextets("::"), [0, 0, 0, 0, 0, 0, 0, 0]);
+  assert.deepEqual(parseIpv6Hextets("2001:db8::1"), [0x2001, 0x0db8, 0, 0, 0, 0, 0, 1]);
+  assert.deepEqual(parseIpv6Hextets("[::1]"), [0, 0, 0, 0, 0, 0, 0, 1]);
+  assert.deepEqual(parseIpv6Hextets("0:0:0:0:0:0:0:1"), [0, 0, 0, 0, 0, 0, 0, 1]);
+
+  // Scope IDs stripped cleanly
+  assert.deepEqual(parseIpv6Hextets("fe80::1%eth0"), [0xfe80, 0, 0, 0, 0, 0, 0, 1]);
+  assert.deepEqual(parseIpv6Hextets("[fe80::1%1]"), [0xfe80, 0, 0, 0, 0, 0, 0, 1]);
+
+  const loopbackHextets = parseIpv6Hextets("::1");
+  assert.ok(loopbackHextets && isPrivateOrReservedIpv6(loopbackHextets));
+  const publicHextets = parseIpv6Hextets("2607:f8b0:4005:805::200e");
+  assert.ok(publicHextets && !isPrivateOrReservedIpv6(publicHextets));
+
+  // Embedded dotted-quad IPv4 converted to hextets
+  // 127.0.0.1 -> 0x7f00, 0x0001
+  assert.deepEqual(parseIpv6Hextets("::ffff:127.0.0.1"), [0, 0, 0, 0, 0, 0xffff, 0x7f00, 1]);
+  assert.deepEqual(parseIpv6Hextets("0:0:0:0:0:ffff:127.0.0.1"), [0, 0, 0, 0, 0, 0xffff, 0x7f00, 1]);
+
+  // Invalid IPv6 strings
+  assert.equal(parseIpv6Hextets(""), null);
+  assert.equal(parseIpv6Hextets(":::"), null);
+  assert.equal(parseIpv6Hextets("1:2:3:4:5:6:7:8:9"), null);
+  assert.equal(parseIpv6Hextets("invalid::string"), null);
+
+  // 2. Comprehensive classification via isPrivateOrReservedIpv6 & isPrivateOrLoopbackHost
+  // Loopback (::1) and Unspecified (::)
+  assert.equal(isPrivateOrLoopbackHost("::1"), true);
+  assert.equal(isPrivateOrLoopbackHost("[::1]"), true);
+  assert.equal(isPrivateOrLoopbackHost("::"), true);
+  assert.equal(isPrivateOrLoopbackHost("0:0:0:0:0:0:0:1"), true);
+
+  // IPv4-mapped IPv6 loopback and private ranges
+  assert.equal(isPrivateOrLoopbackHost("::ffff:127.0.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("[::ffff:127.0.0.1]"), true);
+  assert.equal(isPrivateOrLoopbackHost("::ffff:7f00:1"), true); // hex representation of 127.0.0.1
+  assert.equal(isPrivateOrLoopbackHost("::ffff:192.168.1.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("::ffff:10.0.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("::ffff:169.254.169.254"), true);
+
+  // IPv4-compatible IPv6 (::0:0/96, RFC 4291)
+  assert.equal(isPrivateOrLoopbackHost("::127.0.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("::192.168.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("::10.0.0.1"), true);
+
+  // 6to4 (2002::/16) embedding private IPv4 addresses
+  // 127.0.0.1 in 6to4 is 2002:7f00:0001::
+  assert.equal(isPrivateOrLoopbackHost("2002:7f00:1::"), true);
+  // 169.254.169.254 in 6to4 is 2002:a9fe:a9fe::
+  assert.equal(isPrivateOrLoopbackHost("2002:a9fe:a9fe::"), true);
+  // 10.0.0.1 in 6to4 is 2002:0a00:0001::
+  assert.equal(isPrivateOrLoopbackHost("2002:0a00:1::"), true);
+
+  // NAT64 (64:ff9b::/96 and 64:ff9b:1::/48)
+  assert.equal(isPrivateOrLoopbackHost("64:ff9b::127.0.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("64:ff9b::169.254.169.254"), true);
+  assert.equal(isPrivateOrLoopbackHost("64:ff9b::192.168.1.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("64:ff9b:1::10.0.0.1"), true);
+
+  // ISATAP (hextet 5 is 5efe)
+  assert.equal(isPrivateOrLoopbackHost("fe80::5efe:127.0.0.1"), true);
+  assert.equal(isPrivateOrLoopbackHost("fe80::0200:5efe:192.168.1.1"), true);
+
+  // Link-Local (fe80::/10)
+  assert.equal(isPrivateOrLoopbackHost("fe80::1"), true);
+  assert.equal(isPrivateOrLoopbackHost("[fe80::200:5eff:fe00:101]"), true);
+
+  // Unique Local Address ULA (fc00::/7) including AWS IMDSv2 (fd00:ec2::254)
+  assert.equal(isPrivateOrLoopbackHost("fc00::1"), true);
+  assert.equal(isPrivateOrLoopbackHost("fd00:ec2::254"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://[fd00:ec2::254]/latest/meta-data"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://[2002:a9fe:a9fe::]/latest/meta-data"), true);
+  assert.equal(isBlockedMetadataEndpoint("http://[::ffff:169.254.169.254]/latest/meta-data"), true);
+
+  // Multicast (ff00::/8)
+  assert.equal(isPrivateOrLoopbackHost("ff02::1"), true);
+
+  // Documentation (2001:db8::/32) & Discard (100::/64)
+  assert.equal(isPrivateOrLoopbackHost("2001:db8::1"), true);
+  assert.equal(isPrivateOrLoopbackHost("100::1"), true);
+
+  // Public IPv6 addresses must be classified as public / not private
+  assert.equal(isPrivateOrLoopbackHost("2607:f8b0:4005:805::200e"), false); // Google
+  assert.equal(isPrivateOrLoopbackHost("2001:4860:4860::8888"), false); // Google DNS
+  assert.equal(isPrivateOrLoopbackHost("2a00:1450:4009:81f::200e"), false);
+  assert.equal(isPrivateOrLoopbackHost("::ffff:8.8.8.8"), false); // Public IPv4 mapped
+  assert.equal(isPrivateOrLoopbackHost("64:ff9b::8.8.8.8"), false); // Public NAT64
+});
+
+test("CSV formula sanitization preserves legitimate values and does not mutate raw JSON", () => {
+  const originalReport = {
+    url: "https://example.com/",
+    finalUrl: "https://example.com/",
+    findings: [
+      {
+        severity: "P2",
+        id: "T02-metrics",
+        category: "technical",
+        title: "+15% Organic Traffic Target",
+        evidence: "- 3 missing meta descriptions and 2 missing titles",
+        fix: "@devs: Add canonical tags and structured data",
+        seoImpact: "+ High improvement predicted",
+        geoImpact: "- Minor adjustment",
+      },
+    ],
+  };
+
+  // Deep clone to ensure immutability comparison
+  const reportBefore = JSON.parse(JSON.stringify(originalReport));
+
+  // Render CSV
+  const csv = renderCsv(originalReport);
+
+  // 1. In CSV, formula triggers are prefixed with single quote for spreadsheet safety
+  assert.ok(csv.includes(`"'+15% Organic Traffic Target"`), "CSV must prefix + with single quote");
+  assert.ok(
+    csv.includes(`"'- 3 missing meta descriptions and 2 missing titles"`),
+    "CSV must prefix - with single quote",
+  );
+  assert.ok(
+    csv.includes(`"'@devs: Add canonical tags and structured data"`),
+    "CSV must prefix @ with single quote",
+  );
+  assert.ok(csv.includes(`"'+ High improvement predicted"`), "CSV must prefix + with single quote");
+  assert.ok(csv.includes(`"'- Minor adjustment"`), "CSV must prefix - with single quote");
+
+  // 2. The original report object MUST NOT be mutated
+  assert.deepEqual(originalReport, reportBefore, "renderCsv must not mutate the input report object");
+
+  // 3. Raw JSON export retains exact pristine values without any single quote prefix
+  const rawJson = JSON.stringify(originalReport);
+  assert.ok(rawJson.includes('"+15% Organic Traffic Target"'), "JSON must keep pristine raw title");
+  assert.ok(
+    rawJson.includes('"- 3 missing meta descriptions and 2 missing titles"'),
+    "JSON must keep pristine raw evidence",
+  );
+  assert.ok(
+    rawJson.includes('"@devs: Add canonical tags and structured data"'),
+    "JSON must keep pristine raw fix",
+  );
+  assert.ok(!rawJson.includes("'+15%"), "JSON must NOT contain formula injection quote prefix");
+  assert.ok(!rawJson.includes("'- 3"), "JSON must NOT contain formula injection quote prefix");
+  assert.ok(!rawJson.includes("'@devs"), "JSON must NOT contain formula injection quote prefix");
 });
 
 test("validateTargetUrl checks schemes, metadata, and private IP blocks", async () => {
