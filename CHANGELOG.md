@@ -4,6 +4,32 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/).
 
+## [0.9.0] - 2026-11-05
+
+### Added
+
+- **Structured 13-Skill Agent Library (`skills/*/SKILL.md` & `lib/skills.mjs`).**
+  - Expanded `skills/` from 2 sub-skills into 13 standardized, 9-section Agent Skill playbooks across 6 domains:
+    - Core Workflow: `seo-audit`, `seo-fix`
+    - Technical SEO: `technical-seo`, `sitemap-robots`
+    - On-Page & Content: `onpage-optimization`, `content-quality`, `duplicate-content`, `internal-linking`
+    - GEO / AEO / AI Search: `geo-optimization`, `llms-txt`
+    - Structured Data: `schema-validation`
+    - Performance & Quality: `core-web-vitals`
+    - Monitoring & Reporting: `seo-regression`
+  - Expanded programmatic CLI skills registry (`SKILLS` in `lib/skills.mjs`) to 14 executable skills with alias resolution (`onpage-optimization`, `schema-validation`, `ecommerce-seo`, `geo-optimization`, `core-web-vitals`, `local-seo`, `content-quality`), `AGENT_SKILLS` catalog metadata, and `matchesSkillChecks()` supporting prefix rules (`S02-*`) and base-ID pass variants (`O01-title`).
+- **Expanded Schema.org Required-Property Validation (`lib/schema.mjs`).**
+  - Added required property validation in `REQUIRED_PROPS` for `LocalBusiness` (`name`), `WebSite` (`name`), `HowTo` (`name`), `JobPosting` (`title`), `Course` (`name`), `Recipe` (`name`), `Review` (`itemReviewed`), and `SoftwareApplication` (`name`), raising total validated schema types to 15.
+- **Premium Reporting Redesign — "One Audit, Four Experiences" (`lib/report.mjs` & `templates/report.html`).**
+  - **Visual & Accessibility System**: Deep navy/charcoal dark surfaces (`#090d16`, `#111726`), electric blue (`#2563eb` / `#3b82f6`) for Search SEO, violet (`#7c3aed` / `#8b5cf6`) for AI Visibility, emerald (`#059669` / `#10b981`) for pass states, `<meta name="color-scheme" content="light dark">`, `:root:has(...)` theme selectors, `@supports (color: light-dark(...))` progressive enhancement, manual **Theme Toggle** (`Auto / Dark / Light`), and **Executive Mode Toggle** (`Executive Mode: Off / On`).
+  - **Individual Page Dashboard (`report.html`)**: Added status pill & `rulesVersion` in header, category filter (`#cat-filter`) in Findings Explorer, **SEO Details** (`#seo-details`), **AI Visibility & Citability** (`#citable`) with signal breakdown table, always-visible **Performance & Core Web Vitals** (`#psi`) distinguishing `Not measured (opt-in)` and `Unavailable` from real zero values, and **Remediation & Verification** (`#remediation`).
+  - **Multi-Page Site Dashboard (`index.html`)**: Excluded `null`/`undefined` page scores from site-wide averages while displaying contributing page counts (`N/M valid pages`), added Highest & Lowest Performing Page cards, Crawl & Aggregation Summary, client-side URL/band search and column sorting on the Page Comparison Table, **Category Issue Distribution** (`#cat-dist`), and **Internal Linking & Dead-End Risk** (`#linking`).
+  - **Markdown Report (`report.md`)**: Added `rulesVersion` header metadata, `## Page SEO & AI signal snapshot`, and `## Verification & next steps`.
+
+### Fixed
+
+- Removed duplicate `applySkillsFilter` invocation in `cmdPage` (`bin/cli.mjs`) and unified skill check filtering with `matchesSkillChecks` so `S02-<type>` findings and base-ID pass findings (`O01-title`, `O02-meta`, `O03-h1`, `O04-headings`) match their parent skill groups accurately.
+
 ## [0.8.0] - 2026-11-05
 
 ### Added

@@ -538,3 +538,44 @@ test("validateTargetUrl checks schemes, metadata, and private IP blocks", async 
   const good = await validateTargetUrl("https://example.com/");
   assert.equal(good.ok, true);
 });
+
+test("hostile HTML in page details and site dashboard is strictly escaped", () => {
+  const xssReport = buildReport({
+    url: 'https://example.com/?q="<script>alert(1)</script>',
+    finalUrl: 'https://example.com/?q="<script>alert(1)</script>',
+    scores: { search: { score: 75, band: "C" }, ai: { score: 65, band: "D" } },
+    findings: [
+      {
+        id: "O01-title-short",
+        category: "onpage",
+        severity: "P2",
+        title: '<img src=x onerror="alert(2)">',
+        evidence: '<svg onload="alert(3)">',
+        fix: 'Use <title>Safe</title> & "quotes"',
+      },
+    ],
+    parsed: {
+      title: '<script>alert("title")</script>',
+      metaDescription: '<iframe src="javascript:alert(4)"></iframe>',
+      canonical: 'https://example.com/"><script>alert(5)</script>',
+      h1s: [{ text: '<b onmouseover="alert(6)">H1</b>' }],
+      wordCount: 350,
+    },
+    siteFiles: {
+      origin: 'https://example.com"><script>alert(7)</script>',
+      robots: { found: true },
+      sitemap: { found: true, urlCount: 5 },
+      llms: { found: false },
+    },
+    meta: { version: "0.9.0" },
+    checkedAt: "2026-10-08T00:00:00.000Z",
+  });
+  const pageHtml = renderHtml(xssReport);
+  assert.ok(!pageHtml.includes('<script>alert("title")</script>'));
+  assert.ok(!pageHtml.includes('<iframe src="javascript:alert(4)">'));
+  assert.ok(!pageHtml.includes("<script>alert(5)</script>"));
+  assert.ok(!pageHtml.includes('<b onmouseover="alert(6)">'));
+  assert.ok(!pageHtml.includes("<script>alert(7)</script>"));
+  assert.ok(!pageHtml.includes('<img src=x onerror="alert(2)">'));
+  assert.ok(!pageHtml.includes('<svg onload="alert(3)">'));
+});

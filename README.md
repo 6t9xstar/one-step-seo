@@ -6,26 +6,26 @@
 
 # ⚡ One-Step-Seo
 
-**Next-Generation Dual-Engine Auditor for Traditional Search SEO & Generative AI Visibility (GEO / AEO).**
+**Next-Generation Dual-Engine Auditor & Autonomous Agent Skill Suite for Traditional Search SEO & Generative AI Visibility (GEO / AEO).**
 
 [![npm version](https://img.shields.io/npm/v/one-step-seo.svg?logo=npm&logoColor=white)](https://www.npmjs.com/package/one-step-seo)
 [![CI Status](https://github.com/6t9xstar/one-step-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/6t9xstar/one-step-seo/actions/workflows/ci.yml)
 [![Node >= 18](https://img.shields.io/badge/node-%3E%3D18.0.0-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Zero Dependencies](https://img.shields.io/badge/runtime%20dependencies-0-blue.svg)](package.json)
+[![Agent Skills: 13](https://img.shields.io/badge/agent%20skills-13%20playbooks-7c3aed.svg)](./skills)
 [![License: MIT](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/6t9xstar/one-step-seo.svg?logo=github&color=gold)](https://github.com/6t9xstar/one-step-seo/stargazers)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 <p align="center">
+  <a href="#-one-prompt-for-your-ai-agent-to-do-your-seo-for-you">AI Agent One-Prompt</a> •
   <a href="#-the-modern-search-paradox">Why Dual-Engine?</a> •
   <a href="#-quickstart">Quickstart</a> •
   <a href="#-system-architecture">Architecture</a> •
   <a href="#-the-dual-score-engine">Dual Scoring</a> •
+  <a href="#-modular-skills-architecture--agent-skill-library">13 Agent Skills</a> •
   <a href="#-cli-command-suite">CLI Suite</a> •
-  <a href="#-rule-catalogue">Rule Catalogue</a> •
-  <a href="#-audit-profiles">Profiles</a> •
-  <a href="#-autonomous-ai-agents">AI Agent Skill</a> •
-  <a href="#-cicd-pipeline">CI/CD</a> •
+  <a href="#-cicd-pipeline-integration">CI/CD</a> •
   <a href="#-comparison">Comparison</a>
 </p>
 
@@ -91,6 +91,42 @@ Wrote:
   ./seo-report/report.json   (machine-readable JSON schema)
   ./seo-report/report.md     (citable executive markdown summary)
   ./seo-report/report.html   (shareable standalone responsive dashboard)
+```
+
+---
+
+## 🤖 One Prompt for Your AI Agent to Do Your SEO For You
+
+Paste this **single prompt** into **Claude Code, Cursor, Antigravity, Windsurf, Codex, or OpenCode** (replace `https://your-site.com` or `./dist` with your live URL or local build folder) and let your AI coding agent audit, fix, and verify your entire SEO + AI-Search readiness end-to-end:
+
+```text
+Act as a Principal Technical SEO & AI-Search (GEO/AEO) Engineer using `one-step-seo`.
+Target to audit and optimize: https://your-site.com (and local build/source directory if present in this workspace).
+
+Execute this exact workflow without skipping steps:
+1. BASELINE AUDIT:
+   - Run: `npx one-step-seo audit https://your-site.com --pages 10 --out ./seo-report --format html,md,json,csv,sarif`
+   - Run: `npx one-step-seo ai https://your-site.com --json`
+   - Run: `npx one-step-seo llms https://your-site.com`
+   - Read `./seo-report/report.json` and `./seo-report/report.md` (and `./seo-report/index.md` for multi-page runs).
+   - Report the baseline **Search SEO Score (0–100)** and **AI Visibility Score (0–100)** separately (never blend them), along with P0/P1/P2/P3 counts.
+
+2. SAFE AUTOMATED REMEDIATION (LOCAL FILES):
+   - If local HTML or build files exist (e.g., `./dist`, `./out`, `./public`), first preview safe additive `<head>` fixes:
+     `npx one-step-seo fix <local-dir> --url https://your-site.com/`
+   - Show me the unified diff preview, then apply safe mechanical fixes (`charset`, `viewport`, `lang`, missing `title`/`description`, `canonical`, `og`, `twitter-card`, `favicon`) and verify them in memory.
+
+3. HIGH-IMPACT SOURCE & CONTENT FIXES (P0 -> P1 -> P2):
+   - For every remaining P0 and P1 finding in `report.json`, quote the exact `id` and `evidence`, then implement or generate the exact code fix:
+     • Technical SEO: fix `noindex` conflicts, broken canonicals, redirect chains, `robots.txt`, and `sitemap.xml`.
+     • On-Page & Architecture: fix missing/duplicate `<title>` (30–60 chars) and `<meta name="description">` (120–155 chars), enforce a single `<h1>` aligned with `<title>`, and resolve orphan pages (`0` internal links).
+     • Structured Data: run `npx one-step-seo schema https://your-site.com` and add valid JSON-LD `@graph` markup matching visible page content only (never invent ratings, prices, or facts).
+     • AI Search & Citability (GEO): draft `/llms.txt` from the `llms` output, allow AI search crawlers (`GPTBot`, `ClaudeBot`, `PerplexityBot`) in `robots.txt` if desired, and structure key pages with a 40–60 word answer-first opening paragraph and semantic `<th>` comparison tables.
+
+4. VERIFICATION & REGRESSION GATE:
+   - Re-run the audit to `./seo-report-after` and run:
+     `npx one-step-seo diff ./seo-report/report.json ./seo-report-after/report.json --fail-on P1`
+   - Present a final before/after scorecard showing Search SEO delta, AI Visibility delta, resolved findings, and where to open `./seo-report-after/report.html` (or `index.html`).
 ```
 
 ---
@@ -173,10 +209,55 @@ npx one-step-seo doctor
                     │               Multi-Format Reporting              │
                     │ • report.json (Automated tooling & CI gates)      │
                     │ • report.md   (Human PR reviews & Agent action)   │
-                    │ • report.html (Standalone executive dashboard)    │
+                    │ • report.html (Interactive page dashboard)        │
                     │ • index.html  (Aggregated multi-page site rollup) │
+                    │ • SARIF / CSV (GitHub Code Scanning & BI exports) │
                     └───────────────────────────────────────────────────┘
 ```
+
+### Reporting Architecture — One Audit, Four Experiences
+
+Every audit runs once through the core deterministic engine and normalizes into a single canonical audit model (`lib/schema-report.json`), powering four primary output experiences plus two enterprise export adapters:
+
+```mermaid
+flowchart TD
+  subgraph Engine["AUDIT ENGINE"]
+    A["Crawl & Discovery · Technical SEO · On-Page & Content · Schema · GEO / AI Citability · PageSpeed / CWV"]
+  end
+
+  subgraph Model["CANONICAL AUDIT MODEL"]
+    B["Normalized Scores · Prioritized Findings (P0–P3 / Pass) · Evidence · Page Signals · Site Rollup"]
+  end
+
+  subgraph Experiences["REPORT GENERATION & PRESENTATION (One Audit · Four Experiences)"]
+    C1["01 · report.json<br/>Machine-Readable<br/>CI/CD · APIs · Regression Diff"]
+    C2["02 · report.md<br/>Developer / AI Agent<br/>PR Reviews · Action Plans"]
+    C3["03 · report.html<br/>Individual Page Dashboard<br/>Interactive Triage · Executive Mode"]
+    C4["04 · index.html<br/>Multi-Page Site Dashboard<br/>Site Rollup · Sortable Page Matrix"]
+  end
+
+  subgraph Adapters["ADDITIONAL EXPORTS"]
+    D1["SARIF 2.1.0 (report.sarif)<br/>GitHub Code Scanning"]
+    D2["RFC 4180 CSV (report.csv)<br/>Spreadsheets & BI Pipelines"]
+  end
+
+  A --> B
+  B --> C1
+  B --> C2
+  B --> C3
+  B --> C4
+  B --> D1
+  B --> D2
+```
+
+| Experience                   | Output File    | Target Audience               | Key Capabilities                                                                                                                               |
+| :--------------------------- | :------------- | :---------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| **01 · Machine-Readable**    | `report.json`  | CI/CD, APIs, Regression Gates | Draft-07 schema validated (`lib/schema-report.json`), version-stamped (`rulesVersion`), deterministic diffing (`one-step-seo diff`).           |
+| **02 · Developer / Agent**   | `report.md`    | Engineers, PR Reviews, LLMs   | Verdict-first executive summary, page & AI signal snapshot, Impact/Effort/Owner triage, copy-paste code fixes, verification commands.          |
+| **03 · Individual Page UI**  | `report.html`  | Developers, SEO Leads, Execs  | Self-contained zero-dependency dashboard with Dark/Light/Auto theme toggle, Executive Mode, interactive findings explorer, and CWV cards.      |
+| **04 · Multi-Page Site UI**  | `index.html`   | Site Owners, Technical SEOs   | Site-wide executive rollup, valid-page score aggregation, sortable/filterable page matrix, recurring issues, duplicate metadata, orphan risks. |
+| **Adapter · Code Scanning**  | `report.sarif` | GitHub Security Tab           | Official OASIS SARIF v2.1.0 schema compliance (`--format sarif`) for inline pull-request annotations.                                          |
+| **Adapter · Tabular Export** | `report.csv`   | Analysts, BI & Spreadsheets   | RFC 4180 CSV (`--format csv`) hardened against CWE-1236 spreadsheet formula injection.                                                         |
 
 ---
 
@@ -232,29 +313,51 @@ npx one-step-seo doctor
 
 ---
 
-## 🧠 Modular Skills Architecture
+## 🧠 Modular Skills Architecture & Agent Skill Library
 
-`one-step-seo` groups 50+ granular audit rules into 9 coherent, programmatic **skills** across technical SEO, content, and AI citability:
+`one-step-seo` combines **14 programmatic CLI skill groups** (`lib/skills.mjs`) with **13 specialized Agent Skill playbooks** (`skills/*/SKILL.md`) across 6 core engineering and editorial domains:
 
 ```bash
-# List all 9 skills with categories, offline support, and check counts
+# List all 14 CLI skills with categories, offline support, check counts, and agent playbooks
 npx one-step-seo skills
 
-# Inspect detailed checks, remediation guidelines, and limitations for a skill
-npx one-step-seo skills onpage-seo
-npx one-step-seo skills geo-ai-search --json
+# Inspect detailed checks, aliases, remediation guidelines, and limitations for a skill
+npx one-step-seo skills onpage-optimization
+npx one-step-seo skills geo-optimization --json
 ```
+
+### Skill Library Matrix
+
+| Category                   | Skill Name (`--skills`)                                     | Purpose                                                                                          | CLI Support                                       | External Data Requirements                            | Skill Documentation Link                                                                                                                                       |
+| :------------------------- | :---------------------------------------------------------- | :----------------------------------------------------------------------------------------------- | :------------------------------------------------ | :---------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core Workflow**          | `seo-audit`                                                 | Full-spectrum audit execution, dual-score interpretation, and prioritized remediation            | `audit`, `page`, `quick`, `ai`                    | None (100% local/live HTML; optional `--psi` / GSC)   | [`skills/seo-audit/SKILL.md`](./skills/seo-audit/SKILL.md)                                                                                                     |
+| **Core Workflow**          | `seo-fix`                                                   | Conservative, dry-run-first automated HTML remediation with in-memory verification               | `fix [--apply]`                                   | None (100% local HTML files/directories)              | [`skills/seo-fix/SKILL.md`](./skills/seo-fix/SKILL.md)                                                                                                         |
+| **Technical SEO**          | `technical-seo`                                             | Crawlability, indexation (`noindex`), canonical URLs, redirect chains, HTTPS/status              | `audit/page --skills technical-seo`               | Live HTTP required for status, redirects, and headers | [`skills/technical-seo/SKILL.md`](./skills/technical-seo/SKILL.md)                                                                                             |
+| **Technical SEO**          | `sitemap-robots`                                            | `robots.txt` directives, XML sitemap discovery, `<sitemapindex>` validation                      | `sitemap`, `audit --skills sitemap-robots`        | Live origin or local build `robots.txt`/`sitemap.xml` | [`skills/sitemap-robots/SKILL.md`](./skills/sitemap-robots/SKILL.md)                                                                                           |
+| **On-Page & Content**      | `onpage-optimization` (`onpage-seo`)                        | `<title>`, meta description, H1–H6 hierarchy, Open Graph, Twitter Card, image alt/CLS            | `audit/page --skills onpage-optimization`         | None (100% offline + live HTML compatible)            | [`skills/onpage-optimization/SKILL.md`](./skills/onpage-optimization/SKILL.md)                                                                                 |
+| **On-Page & Content**      | `content-quality` (`content-architecture`)                  | Word count depth, answer-first lead blocks, comparison tables (`<th>`), FAQ structure            | `audit/page --skills content-quality`             | None (100% offline + live HTML compatible)            | [`skills/content-quality/SKILL.md`](./skills/content-quality/SKILL.md)                                                                                         |
+| **On-Page & Content**      | `duplicate-content`                                         | Cross-page duplicate `<title>` and meta descriptions, canonical consolidation                    | `audit --pages N --skills duplicate-content`      | Requires multi-page crawl (`--pages 2+`)              | [`skills/duplicate-content/SKILL.md`](./skills/duplicate-content/SKILL.md)                                                                                     |
+| **On-Page & Content**      | `internal-linking`                                          | Internal link density, orphan/dead-end page detection, generic anchor text, 4xx links            | `audit --skills internal-linking [--check-links]` | Live HTTP required for `--check-links` status probes  | [`skills/internal-linking/SKILL.md`](./skills/internal-linking/SKILL.md)                                                                                       |
+| **GEO / AEO / AI Search**  | `geo-optimization` (`geo-ai-search`)                        | AI crawler access (`GPTBot`, `ClaudeBot`, `PerplexityBot`), snippet gates, citability            | `ai`, `audit --skills geo-optimization`           | None (100% offline + live HTML compatible)            | [`skills/geo-optimization/SKILL.md`](./skills/geo-optimization/SKILL.md)                                                                                       |
+| **GEO / AEO / AI Search**  | `llms-txt`                                                  | `/llms.txt` discovery, structural quality (`G05`), starter generation & bot policies             | `llms`, `audit --skills llms-txt`                 | Live origin or local build `llms.txt`                 | [`skills/llms-txt/SKILL.md`](./skills/llms-txt/SKILL.md)                                                                                                       |
+| **Structured Data**        | `schema-validation` (`structured-data`)                     | JSON-LD syntax, `@graph` entity linking, 15 required-property validators, FAQ parity             | `schema`, `audit --skills schema-validation`      | None (100% offline + live HTML compatible)            | [`skills/schema-validation/SKILL.md`](./skills/schema-validation/SKILL.md)                                                                                     |
+| **Performance & Quality**  | `core-web-vitals` (`performance-cwv`)                       | HTML payload size, image count, Lighthouse lab metrics (LCP/CLS/TBT) & CrUX field INP            | `audit/page --psi --skills core-web-vitals`       | `PSI_API_KEY` env var for live `--psi` lab/CrUX data  | [`skills/core-web-vitals/SKILL.md`](./skills/core-web-vitals/SKILL.md)                                                                                         |
+| **Monitoring & Reporting** | `seo-regression`                                            | Baseline vs. candidate JSON diffing, score deltas, `rulesVersion` parity, CI gates               | `diff <base.json> <head.json> [--fail-on P0\|P1]` | Two `report.json` artifacts (zero network needed)     | [`skills/seo-regression/SKILL.md`](./skills/seo-regression/SKILL.md)                                                                                           |
+| **Additional CLI Skills**  | `security-hygiene`, `accessibility-ux`, `international-seo` | Mixed content (`T13`), security headers (`T15`), third-party scripts (`T14`), `hreflang` (`W03`) | `audit/page --skills security,a11y,i18n`          | Live HTTP required for `T15-security-headers`         | Covered in [`skills/technical-seo/SKILL.md`](./skills/technical-seo/SKILL.md) & [`skills/onpage-optimization/SKILL.md`](./skills/onpage-optimization/SKILL.md) |
 
 ### Selective Skill Execution (`--skills` & `--exclude-skills`)
 
-Run audits targeted to specific engineering or editorial disciplines:
+Run audits targeted to specific engineering or editorial disciplines (supports primary IDs, category names, and aliases):
 
 ```bash
 # Focus only on On-Page and Structured Data skills
-npx one-step-seo audit https://example.com --skills onpage,schema
+npx one-step-seo audit https://example.com --skills onpage-optimization,schema-validation
+
+# Focus on Sitemap & Robots or Internal Linking
+npx one-step-seo audit https://example.com --skills sitemap-robots,internal-linking
 
 # Run full audit but skip performance checks (e.g. in environments without PSI API keys)
-npx one-step-seo audit https://example.com --exclude-skills performance-cwv
+npx one-step-seo audit https://example.com --exclude-skills core-web-vitals
 ```
 
 ---
@@ -386,26 +489,34 @@ npx one-step-seo audit https://news.example.com --profile news
 
 ---
 
-## 🤖 Autonomous AI Agents (`SKILL.md`)
+## 🤖 Autonomous AI Agents (`SKILL.md` + 13 Specialized Sub-Skills)
 
-`one-step-seo` ships with a native **Agent Skill** (`SKILL.md`) compatible with **Claude Code, Cursor, Codex, OpenCode**, and custom LLM agent workstreams:
+`one-step-seo` ships with a root **Agent Skill** (`SKILL.md`) plus **13 domain-specialized sub-skills** (`skills/*/SKILL.md`) compatible with **Claude Code, Cursor, Antigravity, Windsurf, Codex, OpenCode**, and custom LLM agent workstreams:
 
 ```bash
-# Install skill for Claude Code / Cursor
+# Install root skill + all 13 specialized sub-skills for Claude Code / Antigravity / Cursor
 git clone --depth 1 https://github.com/6t9xstar/one-step-seo.git
+mkdir -p ~/.claude/skills/one-step-seo
 cp one-step-seo/SKILL.md ~/.claude/skills/one-step-seo/SKILL.md
+cp -r one-step-seo/skills/* ~/.claude/skills/
 ```
 
-### Prompt Example:
+### Ready-to-Use AI Agent Prompts by Domain
 
-> _"Audit https://my-saas.com using one-step-seo. Inspect the resulting report.json, propose fixes for any P0/P1 issues, draft an llms.txt file, and prepare an executive summary for our engineering team."_
+| Goal                             | Copy-Paste Prompt for Your AI Agent                                                                                                                                                   |
+| :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Full SEO + AI Autopilot**      | _"Run `npx one-step-seo audit https://my-saas.com --pages 10 --out ./seo-report`, read `report.json`, fix all P0/P1 issues, draft `/llms.txt`, and verify the score improvement."_    |
+| **Offline Local Build Fixer**    | _"Audit our build directory with `npx one-step-seo audit ./dist --offline`, preview safe HTML fixes with `npx one-step-seo fix ./dist --url https://my-saas.com/`, and apply them."_  |
+| **AI Search & Citability (GEO)** | _"Run `npx one-step-seo ai https://my-saas.com` and `npx one-step-seo llms https://my-saas.com`, then optimize our pages for ChatGPT/Perplexity citations and generate `/llms.txt`."_ |
+| **JSON-LD `@graph` Schema**      | _"Run `npx one-step-seo schema https://my-saas.com`, validate all JSON-LD blocks, and generate a unified `@graph` (`Organization` + `WebSite` + `FAQPage`) matching visible copy."_   |
+| **PR Regression Check**          | _"Compare our baseline and PR build with `npx one-step-seo diff base-report.json pr-report.json --fail-on P1` and summarize any new or escalated SEO findings."_                      |
 
-The skill instructs agents to:
+Each skill follows a strict 9-section engineering contract instructing agents to:
 
-1. Parse the schema-validated `report.json` output.
-2. Prioritize P0 (critical) and P1 (high-impact) findings first.
-3. Apply conservative, additive fixes via `one-step-seo fix` with diff previews.
-4. Keep Search SEO and AI Visibility scores separate in executive reports.
+1. Parse the schema-validated `report.json` output and quote verbatim `evidence`.
+2. Prioritize P0 (critical) and P1 (high-impact) findings first with Impact / Effort / Owner labels.
+3. Apply conservative, additive fixes via `one-step-seo fix` with dry-run diff previews and `.bak` backups.
+4. Keep Search SEO and AI Visibility scores separate in executive reports and never fabricate facts, reviews, or metrics.
 
 ---
 

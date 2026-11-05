@@ -57,7 +57,7 @@ import { diffReports, isReport } from "../lib/report-diff.mjs";
 import { unifiedDiff } from "../lib/diff.mjs";
 import { fetchPsi, psiFindings } from "../lib/psi.mjs";
 import { createColorHelper, c } from "../lib/colors.mjs";
-import { getSkills, getSkill, CATEGORIES, filterSkills } from "../lib/skills.mjs";
+import { getSkills, getSkill, CATEGORIES, filterSkills, matchesSkillChecks } from "../lib/skills.mjs";
 
 export { createColorHelper, c };
 
@@ -962,10 +962,6 @@ async function cmdPage(url, args) {
     r.findings = applySkillsFilter(r.findings, args.skills, args.excludeSkills);
     r.scores = computeScores(r.findings, r.geo);
   }
-  if (args.skills || args.excludeSkills) {
-    r.findings = applySkillsFilter(r.findings, args.skills, args.excludeSkills);
-    r.scores = computeScores(r.findings, r.geo);
-  }
   const report = toReport(r, url);
   if (args.psi && psiKey) {
     if (args.debug) console.error(`debug: fetching PSI for ${report.finalUrl} (${args.psiStrategy})...`);
@@ -1447,8 +1443,8 @@ function applySkillsFilter(findings, skillsFilter, excludeSkillsFilter) {
     excludedChecks = new Set(inactive.flatMap((s) => s.checks));
   }
   return findings.filter((f) => {
-    if (allowedChecks && !allowedChecks.has(f.id)) return false;
-    if (excludedChecks && excludedChecks.has(f.id)) return false;
+    if (allowedChecks && !matchesSkillChecks(f.id, allowedChecks)) return false;
+    if (excludedChecks && matchesSkillChecks(f.id, excludedChecks)) return false;
     return true;
   });
 }
@@ -1553,6 +1549,9 @@ function cmdSkills(skillId, args) {
     console.log(`\n${c.bold(`Skill: ${skill.name}`)} (${c.cyan(skill.id)})`);
     console.log(`Category: ${CATEGORIES[skill.category]?.name ?? skill.category}`);
     console.log(`Offline Supported: ${skill.offlineSupported ? c.green("Yes") : c.yellow("No")}`);
+    if (skill.agentSkill) {
+      console.log(`Agent Workflow: ${skill.agentSkill}`);
+    }
     console.log(`\n${c.bold("Description:")}\n  ${skill.description}`);
     console.log(`\n${c.bold("Purpose:")}\n  ${skill.purpose}`);
     console.log(`\n${c.bold(`Checks (${skill.checks.length} rules):`)}`);

@@ -5,7 +5,16 @@ nothing here is promised on a date — issues and PRs decide the pace.
 
 ## Completed Milestones
 
-### 0.8.0 (Current)
+### 0.9.0 (Current)
+
+- [x] Expanded Agent Skill Library (`skills/*/SKILL.md` — 13 structured 9-section playbooks across 6 domains)
+- [x] Expanded CLI skills registry (`lib/skills.mjs` — 14 executable skill groups, alias resolution, prefix/pass-variant check matching)
+- [x] Expanded Schema.org required-property validators (`LocalBusiness`, `WebSite`, `HowTo`, `JobPosting`, `Course`, `Recipe`, `Review`, `SoftwareApplication`)
+- [x] Premium Reporting Redesign ("One audit. Four experiences.") for `report.html`, `index.html`, and `report.md`
+- [x] Interactive `report.html` controls: Dark/Light/Auto theme toggle, Executive Mode toggle, category filter, SEO Details, AI Citability breakdown, Core Web Vitals card, Remediation & Verification guide
+- [x] Enhanced `index.html` multi-page site dashboard: valid-page score aggregation, sortable/filterable page matrix, Category Issue Distribution, Duplicate Metadata, and Internal Linking & Dead-End Risk
+
+### 0.8.0
 
 - [x] Modular skills architecture (`lib/skills.mjs`) & `skills` catalog command
 - [x] Pure offline auditing for local HTML files & build directories (`page <file>`, `audit <dir>`, `--offline`)

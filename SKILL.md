@@ -39,11 +39,31 @@ Run a full SEO + GEO/AEO audit in one step. Zero dependencies, Node 18+.
    Inspect auditing skills & filter by skill domain:
    ```bash
    npx one-step-seo skills
-   npx one-step-seo audit https://example.com --skills onpage,schema
+   npx one-step-seo audit https://example.com --skills onpage-optimization,schema-validation
    ```
-2. Read `./seo-report/report.json` (machine) or `report.md` (human). Multi-page runs also write `report-N.*`, `index.md`, and a site-wide `index.html` dashboard (totals, worst-first pages, recurring issues) — start there for the big picture.
+2. Read `./seo-report/report.json` (machine) or `report.md` (human). Multi-page runs also write `report-N.*`, `index.md`, and a site-wide `index.html` dashboard (totals, worst-first pages, recurring issues, category distribution, duplicate titles/metas, internal linking & orphan risks) — start there for the big picture.
 3. Present the **two scores separately** — Search SEO 0-100 and AI Visibility 0-100, never blended.
 4. Fix in priority order P0 → P1 → P2. Each fix needs evidence from the report.
+
+## Specialized Agent Sub-Skills (`skills/*/SKILL.md`)
+
+Delegate domain-specific engineering and editorial workflows to the 13 structured playbooks in `skills/`:
+
+| Domain                     | Sub-Skill Path                        | Primary CLI Commands & Flags                                | When to Activate                                                                 |
+| -------------------------- | ------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Core Workflow**          | `skills/seo-audit/SKILL.md`           | `audit`, `page`, `quick`, `ai`                              | Full-site or single-page audits, score triage, and 30/60/90-day action plans     |
+| **Core Workflow**          | `skills/seo-fix/SKILL.md`             | `fix [--apply] [--url] [--lang]`                            | Safe, dry-run-first automated HTML remediation with `.bak` backups               |
+| **Technical SEO**          | `skills/technical-seo/SKILL.md`       | `audit/page --skills technical-seo`                         | HTTPS, HTTP 200 status, redirect chains, `noindex`, canonical URLs, mixed assets |
+| **Technical SEO**          | `skills/sitemap-robots/SKILL.md`      | `sitemap`, `audit --skills sitemap-robots --crawl sitemap`  | `robots.txt` directives, XML sitemaps, `<sitemapindex>` expansion                |
+| **On-Page & Content**      | `skills/onpage-optimization/SKILL.md` | `audit/page --skills onpage-optimization`                   | `<title>`, meta description, H1–H6 hierarchy, Open Graph, Twitter Card, alt/CLS  |
+| **On-Page & Content**      | `skills/content-quality/SKILL.md`     | `audit/page --skills content-quality [--profile ...]`       | Word count depth, answer-first lead blocks, comparison tables (`<th>`), FAQs     |
+| **On-Page & Content**      | `skills/duplicate-content/SKILL.md`   | `audit --pages N --skills duplicate-content`                | Cross-page duplicate titles/descriptions and canonical consolidation             |
+| **On-Page & Content**      | `skills/internal-linking/SKILL.md`    | `audit --pages N --skills internal-linking [--check-links]` | Crawl depth, orphan/dead-end pages, generic anchor text, broken same-host links  |
+| **GEO / AEO / AI Search**  | `skills/geo-optimization/SKILL.md`    | `ai`, `audit --skills geo-optimization`                     | AI crawler access (`GPTBot`, `ClaudeBot`, `PerplexityBot`), snippet gates, facts |
+| **GEO / AEO / AI Search**  | `skills/llms-txt/SKILL.md`            | `llms`, `audit --skills llms-txt`                           | `/llms.txt` discovery, structural quality (`G05`), starter draft generation      |
+| **Structured Data**        | `skills/schema-validation/SKILL.md`   | `schema [--generate <kind>]`, `audit --skills schema`       | JSON-LD syntax, `@graph` entity linking, 15 required-property validators, parity |
+| **Performance & Quality**  | `skills/core-web-vitals/SKILL.md`     | `audit/page --psi [--psi-strategy desktop] --skills cwv`    | HTML payload size, image count, Lighthouse lab metrics (LCP/CLS/TBT) & CrUX INP  |
+| **Monitoring & Reporting** | `skills/seo-regression/SKILL.md`      | `diff <base.json> <head.json> [--fail-on P0\|P1]`           | CI/CD regression gating, score deltas, `rulesVersion` verification               |
 
 ## Reading report.json
 

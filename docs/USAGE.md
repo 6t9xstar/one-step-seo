@@ -69,18 +69,19 @@ one-step-seo diff base-report.json seo-report/report.json --fail-on P1
 one-step-seo doctor
 one-step-seo doctor --json
 
-# Skills inspection
+# Skills inspection (14 executable CLI skills + 13 Agent Skill playbooks)
 one-step-seo skills
-one-step-seo skills onpage-seo
+one-step-seo skills onpage-optimization
 one-step-seo skills --json
 
 # Offline local file and directory audits
 one-step-seo page ./dist/index.html --out ./offline-report
 one-step-seo audit ./dist --pages 10 --out ./offline-report
 
-# Selective skill execution
-one-step-seo audit https://example.com --skills onpage,schema
-one-step-seo audit https://example.com --exclude-skills performance-cwv
+# Selective skill execution (supports primary IDs, categories, and aliases)
+one-step-seo audit https://example.com --skills onpage-optimization,schema-validation
+one-step-seo audit https://example.com --skills sitemap-robots,internal-linking
+one-step-seo audit https://example.com --exclude-skills core-web-vitals
 ```
 
 `page` audits exactly one URL. `audit --pages 1` is equivalent but also writes

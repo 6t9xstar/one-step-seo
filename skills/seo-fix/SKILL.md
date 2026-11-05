@@ -1,47 +1,97 @@
 ---
 name: seo-fix
-description: Apply safe SEO fixes previewed from a one-step-seo report. Read-only by default.
+description: Preview and safely apply additive HTML metadata remediations (charset, viewport, lang, title, description, canonical, Open Graph, Twitter card, favicon) on local files using one-step-seo fix.
 ---
 
-# seo-fix sub-skill (opt-in writer)
+# seo-fix — Conservative Preview-First Remediation
 
-Only run when the user explicitly asks to fix. Default: preview only.
+## 1. Description & Activation Criteria
 
-## Allowed without asking (additive, verifiable)
+Use `seo-fix` when:
 
-- `<meta charset>`, viewport, `lang`, title/meta tweaks user approved
-- Canonical link, OG/Twitter tags, favicon link
-- Image `alt`, `width`/`height`, `loading="lazy"`
-- JSON-LD snippets from `one-step-seo schema <url> --generate <kind>`
-  (kinds: organization, website, article, faq, breadcrumb, product, event, localbusiness, howto)
-- `robots.txt` sitemap line, `sitemap.xml` entry, `llms.txt` draft
-- Snippets printed in `report.md` (“Copy-paste starting point”) and by
-  `one-step-seo llms <url>` (starter `llms.txt`, AI-crawler `robots.txt`
-  snippet) — review placeholders with the user before publishing
+- An audit (`report.json`) has identified fixable HTML `<head>` defects on local `.html`/`.htm` files or a static build directory.
+- The user asks to remediate, patch, or auto-fix SEO findings in their project.
 
-## Needs per-item approval
+Always run in **preview (dry-run) mode first** and obtain explicit user confirmation before passing `--apply`.
 
-- Generated title/meta rewrites, heading restructuring
-- New FAQ/answer blocks, internal-link insertions
-- Any content rewrite
+## 2. Inputs & Prerequisites
 
-## Never do
+- **Target path (required)**: Local `.html`/`.htm` file, directory, or `file://` URL.
+- **Explicit metadata flags (recommended so values are never guessed)**:
+  - `--url <https://...>`: Canonical and `og:url` target.
+  - `--lang <bcp47>`: Document language for `<html lang="...">` (required for `lang` fixer; never guessed).
+  - `--title <text>`: Explicit `<title>` (otherwise derived conservatively from the first `<h1>`).
+  - `--description <text>`: Explicit meta description (otherwise derived from opening body prose `>=40` chars).
+  - `--og-image <https://...>`: Absolute image URL for `og:image`.
+  - `--only <fixers>`: Comma-separated subset of fixers (`charset,viewport,lang,title,description,canonical,og,og-url,twitter-card,favicon`).
 
-- Fake reviews, stats, citations, business info, competitor claims
-- Performance rewrites, redirects, link-building promises
-- Write to `.git/`, secrets, lockfiles
-- Claim guaranteed rankings or AI citations
+## 3. Step-by-Step Workflow
 
-## Protocol
+1. **Inspect current git status**:
+   - Check `git status --short` on the target files so uncommitted work is noted before any edits.
+2. **Run a dry-run preview (no `--apply`)**:
+   - Execute `npx one-step-seo fix <path> --url <canonical-url> --lang <lang>` (without `--apply`).
+   - Inspect the planned fixes, skipped fixers (with reasons), and unified diff output.
+3. **Present the diff and request approval**:
+   - Show the user the exact unified diff and list which finding IDs (`T10-charset`, `T11-viewport`, `T09-lang`, `O01-title-missing`, `O02-meta-missing`, `T08-canonical`, `O06-og`, `W02-og-url`, `W01-social`, `O07-favicon`) will be cleared.
+   - For findings that `fix` intentionally refuses to auto-edit (e.g., `O08-alt`, `T07-noindex`, `C01-thin`, `S01-none`), present copy-paste snippets from `report.md` / `lib/finding-meta.mjs`.
+4. **Apply approved fixes with backups**:
+   - Once approved, run `npx one-step-seo fix <path> ... --apply`.
+   - Confirm in-memory verification marks (`verified: ... check`) and `.bak` backup creation.
+5. **Re-audit to verify score improvement**:
+   - Run `npx one-step-seo page <path> --offline` and compare against the pre-fix `report.json` using `npx one-step-seo diff old-report.json new-report.json`.
 
-1. `git status --porcelain` — refuse dirty tree unless user confirms.
-2. For local `.html` files, prefer the built-in writer (dry-run first):
-   ```bash
-   npx one-step-seo fix <path> [--url U] [--lang L] [--only a,b]   # preview diff
-   npx one-step-seo fix <path> --apply                              # writes + .bak
-   ```
-   It only applies the allow-listed additive fixes below, verifies each one
-   in memory, and prints the unified diff before anything is written.
-3. For any other file change, show a unified diff before writing.
-4. Re-run `npx one-step-seo page <url>` after fixes; report score delta.
-5. Keep backups; explain rollback (`git checkout -- <file>`).
+## 4. Tools & CLI Commands
+
+```bash
+# Step 1: Dry-run preview (default, writes nothing)
+npx one-step-seo fix ./dist/index.html --url https://example.com/ --lang en
+
+# Step 2: Machine-readable fix plan for agent inspection
+npx one-step-seo fix ./dist --url https://example.com/ --lang en --json
+
+# Step 3: Apply after user approval (writes *.bak backups by default)
+npx one-step-seo fix ./dist/index.html --url https://example.com/ --lang en --apply
+```
+
+## 5. Evidence Requirements
+
+- Cite every planned fixer by its `name`, `findingId`, and `summary` from the `one-step-seo fix` output.
+- Report every skipped fixer and its exact `reason` (e.g., `--lang not provided (language is never guessed)` or `existing non-UTF-8 charset is never overwritten`).
+- Show the before/after `Search SEO` and `AI Visibility` scores from re-auditing the patched file.
+
+## 6. Expected Outputs
+
+1. **Planned Fix Table**: Fixer name, target finding ID, action summary, and verification status (`cleared: true | partial`).
+2. **Unified Diff Preview**: Exact `<head>` insertions to be made.
+3. **Manual Remediation Snippets**: Structured JSON-LD or content recommendations for issues outside the 10 additive fixers.
+4. **Post-Apply Verification**: Output of `one-step-seo diff` confirming resolved findings and zero regressions.
+
+## 7. Limitations & External Data
+
+- **Additive `<head>` fixes only**: `one-step-seo fix` only inserts missing metadata into local HTML files containing a `<head>` tag.
+- **Refused by design**: Never removes `noindex`, never fabricates image `alt` text (`O08-alt` requires melihat/inspecting the image), never rewrites existing short/long titles or descriptions, and never overwrites non-UTF-8 encodings.
+- **Framework templates**: If `./dist` is generated by Next.js, Astro, Remix, or WordPress, inform the user that patching `./dist` proves the fix, and help port the metadata tags to their source layout component.
+
+## 8. Safety & Approval Rules
+
+- **Never run `--apply` without prior user approval** of the dry-run diff.
+- **Keep backups enabled**: Do not pass `--no-backup` unless the user explicitly asks to omit `.bak` files in a clean git working tree.
+- **Never invent facts**: Never pass made-up company names, phone numbers, pricing, or ratings into `--title`, `--description`, or schema snippets.
+
+## 9. Examples
+
+```bash
+# Preview only canonical and Open Graph fixes on a local file
+npx one-step-seo fix ./public/pricing.html \
+  --only canonical,og,og-url,twitter-card \
+  --url https://example.com/pricing \
+  --og-image https://example.com/images/pricing-og.png
+
+# Apply approved fixes and verify with diff
+npx one-step-seo fix ./public/pricing.html \
+  --only canonical,og,og-url,twitter-card \
+  --url https://example.com/pricing \
+  --og-image https://example.com/images/pricing-og.png \
+  --apply
+```

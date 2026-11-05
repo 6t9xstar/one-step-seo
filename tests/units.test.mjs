@@ -803,3 +803,107 @@ test("diffReports flags escalations and rules-version changes", () => {
   assert.deepEqual(d.newFindings, []);
   assert.deepEqual(d.resolvedFindings, []);
 });
+
+test("renderHtml renders SEO details, Remediation, Executive Mode toggle, Theme toggle, Category filter, and unmeasured PSI state", () => {
+  const r = buildReport({
+    url: "https://example.com/pricing",
+    finalUrl: "https://example.com/pricing/",
+    scores: { search: { score: 88, band: "B" }, ai: { score: 75, band: "C" } },
+    findings: [
+      {
+        id: "O01-title-long",
+        category: "onpage",
+        severity: "P2",
+        title: "Title too long",
+        evidence: "72 chars",
+        fix: "Trim title to 60 chars",
+      },
+    ],
+    parsed: {
+      title: "Enterprise Cloud Pricing Plans",
+      metaDescription: "Compare Starter, Team, and Enterprise pricing.",
+      canonical: "https://example.com/pricing/",
+      wordCount: 420,
+      h1s: [{ text: "Pricing Plans" }],
+      images: [{ src: "/a.png" }],
+      internalLinkCount: 5,
+      externalLinkCount: 2,
+    },
+    siteFiles: {
+      origin: "https://example.com",
+      robots: { found: true },
+      sitemap: { found: true, urlCount: 18 },
+      llms: { found: true },
+    },
+    meta: { version: "0.9.0" },
+    checkedAt: "2026-10-08T00:00:00.000Z",
+  });
+  const html = renderHtml(r);
+  assert.match(html, /<meta name="color-scheme" content="light dark">/);
+  assert.match(html, /id="cat-filter"/);
+  assert.match(html, /id="exec-mode-btn"/);
+  assert.match(html, /id="theme-toggle"/);
+  assert.match(html, /id="seo-details"/);
+  assert.match(html, /id="remediation"/);
+  assert.match(html, /id="psi"/);
+  assert.match(html, /Not measured \(opt-in\)/);
+  assert.match(html, /Unmeasured metrics are reported as unavailable, never zero/);
+  assert.match(html, /Enterprise Cloud Pricing Plans/);
+  assert.match(html, /Rules 2026\.10/);
+});
+
+test("renderHtml renders partial PSI lab and field metrics as Unavailable, never zero", () => {
+  const r = buildReport({
+    url: "https://example.com/",
+    finalUrl: "https://example.com/",
+    scores: { search: { score: 90, band: "A" }, ai: { score: 85, band: "B" } },
+    findings: [],
+    parsed: {},
+    siteFiles: {},
+    meta: { version: "0.9.0" },
+    checkedAt: "2026-10-08T00:00:00.000Z",
+    psi: {
+      strategy: "mobile",
+      lab: { score: 92, lcpMs: 1800, cls: null, tbtMs: null, fcpMs: 900 },
+      field: { overallCategory: "FAST", lcpMs: 2100, cls: null, inpMs: null },
+    },
+  });
+  const html = renderHtml(r);
+  assert.match(html, /Lab Performance Score: 92\/100/);
+  assert.match(html, /1\.80s/);
+  assert.match(html, /2\.10s/);
+  assert.match(html, /<dt>Cumulative Layout Shift<\/dt><dd>Unavailable<\/dd>/);
+  assert.match(html, /<dt>Total Blocking Time<\/dt><dd>Unavailable<\/dd>/);
+  assert.match(html, /<dt>Field CLS<\/dt><dd>Unavailable<\/dd>/);
+  assert.match(html, /<dt>Field INP<\/dt><dd>Unavailable<\/dd>/);
+  assert.ok(!html.includes("<dd>0.000</dd>"), "null CLS must not render as 0.000");
+});
+
+test("renderSiteIndex excludes unavailable scores from aggregation and shows contributing page counts", () => {
+  const validPage = mkReport([mkFinding({ id: "O01-title-long", severity: "P2" }, "onpage")], {
+    search: 80,
+    ai: 90,
+  });
+  validPage.url = "https://example.com/a";
+  validPage.finalUrl = "https://example.com/a";
+  validPage.page = { title: "Page A", metaDescription: "Desc A", internalLinks: 1 };
+
+  const missingScorePage = /** @type {any} */ ({
+    ...mkReport([mkFinding({ id: "T01-https", severity: "P0" }, "technical")]),
+    url: "https://example.com/b",
+    finalUrl: "https://example.com/b",
+    truncated: true,
+    scores: { search: { score: null, band: "F" }, ai: { score: undefined, band: "F" } },
+    page: { title: "Page B", metaDescription: "Desc B", internalLinks: 3 },
+  });
+
+  const html = renderSiteIndex([validPage, missingScorePage]);
+  assert.match(html, /Average 80\/100 · lowest 80 · highest 80 \(1\/2 valid pages\)/);
+  assert.match(html, /Average 90\/100 · lowest 90 · highest 90 \(1\/2 valid pages\)/);
+  assert.match(html, /Search: 1\/2 &middot; AI: 1\/2/);
+  assert.match(html, /1 page\(s\) hit 5MB cap/);
+  assert.match(html, /id="cat-dist"/);
+  assert.match(html, /id="linking"/);
+  assert.match(html, /1 internal outlink/);
+  assert.match(html, /role="region" aria-labelledby="pages-h"/);
+});

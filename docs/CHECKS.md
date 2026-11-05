@@ -54,8 +54,7 @@ any JSON-LD alone does not count), header cells in comparison tables
 ## Schema (S01–S03)
 
 JSON-LD present + valid JSON, known `@type` spelling, required
-fields (Article headline, FAQ mainEntity, Breadcrumb items, Product
-offers/review, Event startDate, VideoObject thumbnailUrl, Organization name).
+fields (Article/NewsArticle/BlogPosting headline, FAQPage mainEntity, BreadcrumbList itemListElement, Product offers/review/aggregateRating, Event startDate, VideoObject thumbnailUrl, Organization name, LocalBusiness name, WebSite name, HowTo name, JobPosting title, Course name, Recipe name, Review itemReviewed, SoftwareApplication name).
 Finding IDs use sanitized suffixes (`S02-faqpage`, never raw `S02-FAQPage`).
 Only mark up visible content. `S03-faq-parity` (P3) fires when FAQPage markup
 and visible FAQ copy disagree in either direction.
