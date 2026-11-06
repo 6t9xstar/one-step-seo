@@ -59,8 +59,10 @@ after(
   () =>
     /** @type {Promise<void>} */ (
       new Promise((resolve) => {
-        if (server) server.close(() => resolve());
-        else resolve();
+        if (server) {
+          server.closeAllConnections?.();
+          server.close(() => resolve());
+        } else resolve();
       })
     ),
 );

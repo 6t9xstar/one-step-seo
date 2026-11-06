@@ -917,7 +917,7 @@ test("cli: offline directory audit parses local robots.txt blockedBots and llms.
   );
   writeFileSync(
     join(siteDir, "robots.txt"),
-    "User-agent: GPTBot\nDisallow: /\nUser-agent: ClaudeBot\nDisallow: /\n",
+    "User-agent: GPTBot\nDisallow: /\nUser-agent: ClaudeBot\nDisallow: /\nUser-agent: PerplexityBot\nDisallow: /\n",
     "utf8",
   );
   writeFileSync(
@@ -942,7 +942,7 @@ test("cli: offline directory audit parses local robots.txt blockedBots and llms.
   const g02 = report.findings.find((/** @type {any} */ f) => f.id === "G02-ai-blocked");
   assert.ok(g02, "G02-ai-blocked finding must be present");
   assert.equal(g02.severity, "P1");
-  assert.equal(g02.evidence, "Disallow: / for gptbot, claudebot");
+  assert.equal(g02.evidence, "Disallow: / for gptbot, claudebot, perplexitybot");
   const g01 = report.findings.find((/** @type {any} */ f) => f.id === "G01-llms");
   assert.ok(g01, "G01-llms finding must be present");
   assert.equal(g01.severity, "pass");

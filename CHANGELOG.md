@@ -18,6 +18,9 @@ All notable changes to this project are documented here. Format follows
   - Aligned `C02-answer` (`P1`), `C04-faq` (`P2`, or `P1` on `docs`), and `T11-viewport` (`P1`) severity groupings in `skills/seo-audit/SKILL.md`.
   - Updated `skills/llms-txt/SKILL.md` to match the exact `G05-llms-quality` check condition and `G02-ai-blocked` evidence string (`Disallow: / for ...`).
   - Added `blockedBots: parsed.blockedBots` to `getLocalSiteFiles(dir)` in `bin/cli.mjs` so offline directory audits with AI-blocking `robots.txt` files report the exact blocked bot tokens in `G02-ai-blocked` evidence.
+- **Node 18 Stream & Abort-Listener Compatibility (`lib/fetch.mjs`, `tests/fetch.test.mjs`).**
+  - Replaced `Readable.toWeb(res)` in `safePinnedFetch()` with a state-guarded `ReadableStream` wrapper so cancelling redirect response bodies (`res.body.cancel()`) on Node 18 never triggers an uncaught `TypeError [ERR_INVALID_STATE]: Invalid state: Controller is already closed`.
+  - Registered a single `AbortSignal` listener per `readCappedText()` call (cleaned up in `finally`) instead of one listener per chunk, eliminating `MaxListenersExceededWarning` on multi-megabyte HTML responses.
 - **Adversarial Regression Test Suite (`tests/*.test.mjs`).**
   - Added comprehensive regression tests for missing/partial/zero/`NaN`/`Infinity` score reporting, client-side table sorting, `lib/schema-report.json` contract validation, Agent Skill playbook severity/threshold/CLI contracts, and HTML report escaping/accessibility/offline operation.
 
