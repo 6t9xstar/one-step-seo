@@ -155,6 +155,24 @@ test("robotsRuleMatches handles prefix, wildcard and end-anchor", () => {
   assert.equal(robotsRuleMatches("/", "/anything"), true);
 });
 
+test("parseRobots clears aiBlocked when Allow: / follows Disallow: / in the same group", () => {
+  const r = parseRobots("User-agent: *\nDisallow: /\nAllow: /\n");
+  assert.equal(r.aiBlocked, false);
+  assert.deepEqual(r.blockedBots, []);
+
+  const partial = parseRobots(
+    "User-agent: GPTBot\nDisallow: /\nAllow: /\n\nUser-agent: ClaudeBot\nDisallow: /\n",
+  );
+  assert.equal(partial.aiBlocked, true);
+  assert.deepEqual(partial.blockedBots, ["claudebot"]);
+});
+
+test("getSiteFiles enforces blockPrivateIps on robots.txt declared Sitemap URLs", async () => {
+  const sf = await getSiteFiles(`${base}/some-page`, { blockPrivateIps: true });
+  assert.equal(sf.robots.found, false);
+  assert.equal(sf.sitemap.found, false);
+});
+
 test("isDisallowed honors star groups, specific tokens and Allow ties", () => {
   assert.equal(isDisallowed("User-agent: *\nDisallow: /\n", "one-step-seo", "/"), true);
   assert.equal(isDisallowed("User-agent: *\nDisallow:\n", "one-step-seo", "/"), false);

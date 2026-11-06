@@ -947,3 +947,23 @@ test("cli: offline directory audit parses local robots.txt blockedBots and llms.
   assert.ok(g01, "G01-llms finding must be present");
   assert.equal(g01.severity, "pass");
 });
+
+test("cli: ai and schema commands work on local HTML files and --offline rejects remote URLs", async () => {
+  const fixturePath = join(ROOT, "tests/fixtures/good.html");
+  const outDir = mkdtempSync(join(tmpdir(), "oss-ai-local-"));
+
+  const rAi = await runCli(["ai", fixturePath, "--json", "--out", outDir]);
+  assert.equal(rAi.code, 0, rAi.stderr);
+  const aiData = JSON.parse(rAi.stdout);
+  assert.equal(aiData.tool, "one-step-seo");
+  assert.equal(typeof aiData.aiScore, "number");
+
+  const rSchema = await runCli(["schema", fixturePath, "--generate", "faq"]);
+  assert.equal(rSchema.code, 0, rSchema.stderr);
+  assert.match(rSchema.stdout, /Found \d+ JSON-LD node\(s\)/);
+  assert.match(rSchema.stdout, /"@type": "FAQPage"/);
+
+  const rOfflineUrl = await runCli(["page", "https://example.com", "--offline"]);
+  assert.equal(rOfflineUrl.code, 1);
+  assert.match(rOfflineUrl.stderr, /--offline requires a local file or directory path/);
+});

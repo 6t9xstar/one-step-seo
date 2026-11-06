@@ -6,6 +6,8 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { parseHtml } from "../lib/html.mjs";
+import { extractJsonLd, validateSchema } from "../lib/schema.mjs";
 import {
   geoDetails,
   computeScores,
@@ -1520,4 +1522,53 @@ test("verdictFor and renderMarkdown/renderHtml handle partial and unavailable sc
   // Both scores valid (95, 90) and 0 findings -> Excellent
   const bothValid = mkReport([], { search: 95, ai: 90 });
   assert.equal(verdictFor(bothValid), "Excellent — no actionable issues found. Re-audit after site changes.");
+});
+
+test("parseHtml ignores HTML comments, script/style bodies, and supports boolean attributes and > in quotes", () => {
+  const html = `<!doctype html>
+  <html lang="en">
+  <head>
+    <!-- <meta name="robots" content="noindex"> -->
+    <!-- <link rel="canonical" href="https://evil.example.com/"> -->
+    <title>Valid Page Title With Optimal Length Here</title>
+    <meta name="description" content="A > B comparison description with more than one hundred and twenty characters so it passes the meta description length check cleanly.">
+    <link rel="canonical" href="https://example.com/page">
+    <script>const tpl = "<h1>Fake Heading In Script</h1><img src='fake.jpg'>";</script>
+  </head>
+  <body>
+    <!-- <h1>Commented Out Heading</h1> <img src="commented.jpg"> <a href="https://commented.example.com">link</a> -->
+    <main>
+      <h1>Valid Page Title With Optimal Length Here</h1>
+      <img src="/decorative.svg" alt width="40" height="40">
+      <img src="/diagram.png" alt="A > B Diagram" width="200" height="100">
+      <a href="javascript:void(0)">JS Link</a>
+      <a href="data:text/plain,hello">Data Link</a>
+      <a href="/internal-page">Internal Link</a>
+    </main>
+    <script type="application/ld+json">
+      {"@context":["https://schema.org",{"@language":"en"}],"@graph":[{"@type":["WebPage","FAQPage"],"mainEntity":[{"@type":"Question","name":"What is A > B?","acceptedAnswer":{"@type":"Answer","text":"A is greater than B."}}]}]}
+    </script>
+  </body>
+  </html>`;
+  const parsed = parseHtml(html, "file:///D:/site/index.html");
+  assert.equal(parsed.robotsMeta, "");
+  assert.equal(parsed.h1s.length, 1);
+  assert.equal(parsed.h1s[0]?.text, "Valid Page Title With Optimal Length Here");
+  assert.equal(parsed.images.length, 2);
+  assert.equal(parsed.imagesWithoutAlt, 0);
+  assert.equal(parsed.imagesWithoutDimensions, 0);
+  assert.equal(parsed.images[1]?.alt, "A > B Diagram");
+  assert.equal(parsed.internalLinks.length, 1);
+  assert.ok(
+    !parsed.internalLinks.some(
+      (/** @type {string} */ u) => u.startsWith("javascript:") || u.startsWith("data:"),
+    ),
+  );
+  assert.equal(parsed.hasFaqMarkup, true);
+
+  const extracted = extractJsonLd(parsed.jsonLdBlocks);
+  assert.equal(extracted.errors.length, 0);
+  assert.equal(extracted.items.length, 1);
+  const validated = validateSchema(extracted.items);
+  assert.equal(validated.issues.length, 0);
 });

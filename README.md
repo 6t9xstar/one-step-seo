@@ -84,8 +84,8 @@ Top fixes:
        Impact: medium · Effort: days · Owner: content
   [P2] llms.txt missing (G01-llms) — Add /llms.txt summarizing key pages for AI crawlers.
        Impact: medium · Effort: minutes · Owner: developer
-  [P2] Schema FAQ markup missing (S01-schema) — Add JSON-LD FAQPage markup to earn rich snippets.
-       Impact: high · Effort: minutes · Owner: developer
+  [P2] FAQ coverage missing (C04-faq) — Add 3–6 real user questions with direct answers, plus FAQPage JSON-LD.
+       Impact: medium · Effort: hours · Owner: content
 
 Wrote:
   ./seo-report/report.json   (machine-readable JSON schema)
@@ -443,7 +443,7 @@ npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy deskto
 - `O05-h2`: Verifies descriptive `<h2>` subheadings on articles over 600 words.
 - `O06-og`: Checks Open Graph metadata completeness (`og:title`, `og:description`, `og:image`).
 - `O07-favicon`: Verifies `<link rel="icon">` declaration.
-- `O08-img-alt`: Identifies images missing `alt` attributes (`P1` when all missing, `P2` when partial).
+- `O08-alt`: Identifies images missing `alt` attributes (`P1`).
 - `O09-img-dims`: Flags `<img>` tags missing explicit `width`/`height` attributes (CLS prevention).
 - `O10-internal` / `O10-internal-many`: Flags dead-end pages with `0` internal links (`P1`) or excessive internal links (`>200`, `P2`).
 - `O11-generic-anchors`: Flags repetitive generic anchor text (`click here`, `read more`, `learn more`).
@@ -451,15 +451,15 @@ npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy deskto
 
 ### ✍️ Content Quality (`C01` – `C05`)
 
-- `C01-thin`: Identifies thin content under profile word-count thresholds (`200` words default/blog/docs, `100` product, `80` home).
+- `C01-thin`: Identifies thin content under profile word-count thresholds (`200` words default/blog/docs, `120` product, `100` home).
 - `C02-answer`: Verifies an answer-first summary or definition in the opening 150 words.
-- `C03-structures`: Checks for extractable `<ul>`/`<ol>` lists or `<table>` blocks on substantive pages.
+- `C03-extractable`: Checks for extractable `<ul>`/`<ol>` lists or `<table>` blocks on substantive pages.
 - `C04-faq`: Checks for visible FAQ question-and-answer coverage or `FAQPage` schema.
 - `C05-table-headers`: Flags `<table>` elements missing semantic `<th>` header cells (`P3`).
 
 ### 🧬 Structured Data & Schema (`S01` – `S03`)
 
-- `S01-present` / `S01-jsonld-parse`: Verifies JSON-LD presence and valid JSON syntax (`P1` on parse error).
+- `S01-present` / `S01-none` / `S01-json-invalid`: Verifies JSON-LD presence and valid JSON syntax (`P1` when missing or on parse error).
 - `S02-<type>` / `S02-unknown-type`: Enforces 15 required-property validator rules covering 17 Schema.org types (`Article`/`NewsArticle`/`BlogPosting`, `FAQPage`, `BreadcrumbList`, `Product`, `Event`, `VideoObject`, `Organization`, `LocalBusiness`, `WebSite`, `HowTo`, `JobPosting`, `Course`, `Recipe`, `Review`, `SoftwareApplication`).
 - `S03-faq-parity`: Verifies that `FAQPage` JSON-LD and visible FAQ headings stay synchronized (`P3`).
 
@@ -492,7 +492,7 @@ npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy deskto
 Calibrate scoring thresholds and checks to suit your specific website architecture (`default`, `blog`, `product`, `docs`, `home`):
 
 ```bash
-# Product / E-commerce: Adjusted word-count thresholds (100 words) for product and landing pages
+# Product / E-commerce: Adjusted word-count thresholds (120 words) and skips C02-answer for product pages
 npx one-step-seo audit https://shop.example.com --profile product
 
 # Documentation: Emphasizes technical reference structure, H2/H3 hierarchies, and llms.txt integration
@@ -501,7 +501,7 @@ npx one-step-seo audit https://docs.example.com --profile docs
 # Editorial / Blog: Enforces full 200-word depth, answer-first lead blocks, and author/freshness signals
 npx one-step-seo audit https://blog.example.com --profile blog
 
-# Homepage: Calibrated for concise navigation-focused homepages (80-word threshold, skips H2/FAQ penalties)
+# Homepage: Calibrated for concise navigation-focused homepages (100-word threshold, skips C02-answer)
 npx one-step-seo page https://example.com --profile home
 ```
 

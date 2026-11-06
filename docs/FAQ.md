@@ -41,8 +41,8 @@ override for your own staging sites).
 ## How is this different from Lighthouse / PageSpeed?
 
 Those measure browser performance deeply on one page. one-step-seo measures
-SEO + AI-readiness breadth across up to 20 pages with no browser — it
-complements them; for lab timing data it tells you to run PageSpeed.
+SEO + AI-readiness breadth across up to 200 pages with no browser — it
+complements them; for lab timing data you can pass `--psi` with `PSI_API_KEY`.
 
 ## Can AI agents use it?
 

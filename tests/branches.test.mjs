@@ -554,6 +554,11 @@ test("colors: all helper methods and badge branches", () => {
   assert.equal(clr.severityBadge("P3"), "\x1b[90m[P3]\x1b[0m");
   assert.equal(clr.severityBadge("pass"), "\x1b[32m[pass]\x1b[0m");
   assert.equal(clr.severityBadge("unknown"), "[unknown]");
+  assert.equal(clr.scoreBadge(95, "A"), "\x1b[1;32m95/100 (A)\x1b[0m");
+  assert.equal(clr.scoreBadge(85, "B"), "\x1b[1;32m85/100 (B)\x1b[0m");
+  assert.equal(clr.scoreBadge(75, "C"), "\x1b[1;33m75/100 (C)\x1b[0m");
+  assert.equal(clr.scoreBadge(65, "D"), "\x1b[1;33m65/100 (D)\x1b[0m");
+  assert.equal(clr.scoreBadge(40, "F"), "\x1b[1;31m40/100 (F)\x1b[0m");
   assert.equal(clr.scoreBadge(95, "good"), "\x1b[1;32m95/100 (good)\x1b[0m");
   assert.equal(clr.scoreBadge(70, "needs-work"), "\x1b[1;33m70/100 (needs-work)\x1b[0m");
   assert.equal(clr.scoreBadge(60, "fair"), "\x1b[1;33m60/100 (fair)\x1b[0m");

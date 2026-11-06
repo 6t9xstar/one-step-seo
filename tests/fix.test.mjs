@@ -325,6 +325,21 @@ test("fix: over-long <h1> is trimmed at a word boundary for <title>", () => {
   assert.equal(parsed.title, parsed.title.trim());
 });
 
+test("fix: handles surrogate pairs in trimWords, accurate O06-og skip flags, and $ in attributes", () => {
+  const emojiH1 = `🚀 ${"A".repeat(70)}`;
+  const htmlEmoji = doc({ htmlAttrs: 'data-price="$&"', head: "", body: `<h1>${emojiH1}</h1>` });
+  const planEmoji = planFixes(htmlEmoji, { lang: "en" });
+  assert.ok(planEmoji.newHtml.includes('data-price="$&"'), "must not corrupt $& in html attributes");
+  const parsedEmoji = parseHtml(planEmoji.newHtml, "https://example.com/");
+  assert.ok(parsedEmoji.titleLength <= 60);
+
+  const emptyDoc = doc({ head: "", body: "" });
+  const planEmpty = planFixes(emptyDoc);
+  const ogSkip = planEmpty.skipped.find((s) => s.name === "og");
+  assert.ok(ogSkip);
+  assert.match(ogSkip.reason, /needs --title --description --og-image/);
+});
+
 test("fix: unclosed <head> reports an error instead of guessing placement", () => {
   const html = `<!doctype html>
 <html lang="en">

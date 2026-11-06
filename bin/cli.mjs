@@ -49,6 +49,8 @@ import {
   siteTopFindings,
   coverageLine,
   findDuplicateTitles,
+  escMd,
+  SEV_RANK,
 } from "../lib/report.mjs";
 import { getFindingMeta, FINDING_META } from "../lib/finding-meta.mjs";
 import { parseArgs, normalizeUrl, canonicalizeUrl, isLocalPath, CliError, MAX_PAGES } from "../lib/args.mjs";
@@ -570,6 +572,7 @@ async function cmdAudit(url, args) {
     `audit ${url} pages=${args.pages} crawl=${args.crawl} concurrency=${concurrency} delay=${args.delay} timeout=${args.timeout} force=${args.force}`,
   );
   const seen = new Set([canonicalizeUrl(url) || url]);
+  const crawled = new Set();
   const queue = [url];
   /** @type {import("../lib/report.mjs").Report[]} */
   const pageReports = [];
@@ -641,15 +644,21 @@ async function cmdAudit(url, args) {
   }
 
   let firstBatch = true;
-  while (queue.length > 0 && pageReports.length < args.pages) {
+  while (queue.length > 0 && pageReports.length < args.pages && !interrupted) {
     if (!firstBatch && args.delay > 0) await sleep(args.delay);
     firstBatch = false;
     const batch = [];
-    while (batch.length < concurrency && queue.length > 0 && pageReports.length + batch.length < args.pages) {
+    while (
+      batch.length < concurrency &&
+      queue.length > 0 &&
+      pageReports.length + batch.length < args.pages &&
+      !interrupted
+    ) {
       const next = queue.shift();
       if (next === undefined) break;
       const key = canonicalizeUrl(next) || next;
-      if (seen.has(key) && pageReports.some((r) => r.url === next)) continue;
+      if (crawled.has(key)) continue;
+      crawled.add(key);
       seen.add(key);
       batch.push(next);
     }
@@ -770,6 +779,7 @@ async function cmdAudit(url, args) {
   if (args.psi && psiKey) {
     let firstPsi = true;
     for (const report of pageReports) {
+      if (interrupted) break;
       if (!firstPsi && args.delay > 0) await sleep(args.delay);
       firstPsi = false;
       dbg(`fetching PSI for ${report.finalUrl} (${args.psiStrategy})...`);
@@ -778,14 +788,23 @@ async function cmdAudit(url, args) {
         strategy: args.psiStrategy,
         timeoutMs: 25000,
         userAgent: UA,
+        blockPrivateIps: Boolean(args.blockPrivateIps),
       });
       if (psiRes.data) {
         report.page.psi = psiRes.data;
       }
-      const extraFindings = psiFindings(psiRes);
-      for (const ef of extraFindings) {
-        report.findings.push(ef);
-        report.counts[ef.severity] = (report.counts[ef.severity] ?? 0) + 1;
+      let extraFindings = psiFindings(psiRes);
+      if (args.skills || args.excludeSkills) {
+        extraFindings = applySkillsFilter(extraFindings, args.skills, args.excludeSkills);
+      }
+      if (extraFindings.length > 0) {
+        for (const ef of extraFindings) {
+          report.findings.push(ef);
+          report.counts[ef.severity] = (report.counts[ef.severity] ?? 0) + 1;
+        }
+        report.findings.sort((a, b) => (SEV_RANK[a.severity] ?? 5) - (SEV_RANK[b.severity] ?? 5));
+        const newScores = computeScores(report.findings, { score: report.scores.ai.score });
+        report.scores.search = newScores.search;
       }
     }
   }
@@ -823,6 +842,7 @@ async function cmdAudit(url, args) {
         ...(formats.includes("json") ? [`[json](./${name}.json)`] : []),
         ...(formats.includes("html") ? [`[html](./${name}.html)`] : []),
         ...(formats.includes("sarif") ? [`[sarif](./${name}.sarif)`] : []),
+        ...(formats.includes("csv") ? [`[csv](./${name}.csv)`] : []),
       ];
       lines.push(
         `- Page ${idx + 1}: ${r.finalUrl} — Search ${r.scores.search.score} (${r.scores.search.band}), AI ${r.scores.ai.score} (${r.scores.ai.band}) — ${links.join(" ")}`,
@@ -970,14 +990,22 @@ async function cmdPage(url, args) {
       strategy: args.psiStrategy,
       timeoutMs: 25000,
       userAgent: UA,
+      blockPrivateIps: Boolean(args.blockPrivateIps),
     });
     if (psiRes.data) {
       report.page.psi = psiRes.data;
     }
-    const extraFindings = psiFindings(psiRes);
-    for (const ef of extraFindings) {
-      report.findings.push(ef);
-      report.counts[ef.severity] = (report.counts[ef.severity] ?? 0) + 1;
+    let extraFindings = psiFindings(psiRes);
+    if (args.skills || args.excludeSkills) {
+      extraFindings = applySkillsFilter(extraFindings, args.skills, args.excludeSkills);
+    }
+    if (extraFindings.length > 0) {
+      for (const ef of extraFindings) {
+        report.findings.push(ef);
+        report.counts[ef.severity] = (report.counts[ef.severity] ?? 0) + 1;
+      }
+      report.findings.sort((a, b) => (SEV_RANK[a.severity] ?? 5) - (SEV_RANK[b.severity] ?? 5));
+      report.scores = computeScores(report.findings, r.geo);
     }
   }
   const written = writeOutputs(resolve(args.out), report, args.formats);
@@ -1000,23 +1028,28 @@ async function cmdPage(url, args) {
  * @param {import("../lib/args.mjs").ParsedArgs} args
  */
 async function cmdAi(url, args) {
-  const { blocked } = await checkRobotsAllowed(url, args);
-  if (blocked) {
-    console.error(
-      `! robots.txt disallows auditing ${url} — crawl skipped (re-run with --force to override).`,
-    );
-    const blockedRep = blockedReport(url);
-    const writtenBlocked = writeOutputs(resolve(args.out), blockedRep, args.formats);
-    console.log(
-      `AI Visibility: ${c.scoreBadge(blockedRep.scores.ai.score, blockedRep.scores.ai.band)}  |  Search SEO: ${c.scoreBadge(blockedRep.scores.search.score, blockedRep.scores.search.band)}`,
-    );
-    printTopFixes(blockedRep, `one-step-seo ai ${url} --force`);
-    if (writtenBlocked.length > 0) console.log(`Wrote:\n  ${writtenBlocked.join("\n  ")}`);
-    return;
+  const local = isLocalPath(url);
+  if (!local) {
+    const { blocked } = await checkRobotsAllowed(url, args);
+    if (blocked) {
+      console.error(
+        `! robots.txt disallows auditing ${url} — crawl skipped (re-run with --force to override).`,
+      );
+      const blockedRep = blockedReport(url);
+      const writtenBlocked = writeOutputs(resolve(args.out), blockedRep, args.formats);
+      console.log(
+        `AI Visibility: ${c.scoreBadge(blockedRep.scores.ai.score, blockedRep.scores.ai.band)}  |  Search SEO: ${c.scoreBadge(blockedRep.scores.search.score, blockedRep.scores.search.band)}`,
+      );
+      printTopFixes(blockedRep, `one-step-seo ai ${url} --force`);
+      if (writtenBlocked.length > 0) console.log(`Wrote:\n  ${writtenBlocked.join("\n  ")}`);
+      return;
+    }
   }
-  const r = await analyzeOne(url, args.timeout, UA, null, args.profile, {
-    blockPrivateIps: Boolean(args.blockPrivateIps),
-  });
+  const r = local
+    ? analyzeLocalFile(url, args)
+    : await analyzeOne(url, args.timeout, UA, null, args.profile, {
+        blockPrivateIps: Boolean(args.blockPrivateIps),
+      });
   if (!r.parsed) {
     console.error(`Fetch failed: ${r.fetched.error || r.fetched.status}`);
     process.exitCode = 2;
@@ -1135,9 +1168,12 @@ async function cmdAi(url, args) {
  * @param {import("../lib/args.mjs").ParsedArgs} args
  */
 async function cmdSchema(url, args) {
-  const r = await analyzeOne(url, args.timeout, UA, null, args.profile, {
-    blockPrivateIps: Boolean(args.blockPrivateIps),
-  });
+  const local = isLocalPath(url);
+  const r = local
+    ? analyzeLocalFile(url, args)
+    : await analyzeOne(url, args.timeout, UA, null, args.profile, {
+        blockPrivateIps: Boolean(args.blockPrivateIps),
+      });
   if (!r.parsed) {
     console.error(`Fetch failed: ${r.fetched.error || r.fetched.status}`);
     process.exitCode = 2;
@@ -1592,11 +1628,11 @@ function cmdSkills(skillId, args) {
 }
 
 /**
- * Audit a single local HTML file directly from disk.
+ * Analyze a local HTML file and return the same result shape as analyzeOne().
  * @param {string} rawTarget
  * @param {import("../lib/args.mjs").ParsedArgs} args
  */
-function auditLocalFile(rawTarget, args) {
+function analyzeLocalFile(rawTarget, args) {
   let target = rawTarget;
   if (/^file:\/\//i.test(rawTarget)) {
     try {
@@ -1642,19 +1678,44 @@ function auditLocalFile(rawTarget, args) {
     ms: 1,
     error: "",
   };
-  let findings = runChecks(parsed, siteFiles, fetched, schemaInfo, { profile: args.profile, offline: true });
+  const findings = runChecks(parsed, siteFiles, fetched, schemaInfo, {
+    profile: args.profile,
+    offline: true,
+  });
+  const geo = geoDetails(parsed, siteFiles);
+  const scores = computeScores(findings, geo);
+  return {
+    fetched,
+    parsed,
+    siteFiles,
+    findings,
+    scores,
+    geo,
+    schemaInfo,
+    truncated: false,
+    skipped: false,
+  };
+}
+
+/**
+ * Audit a single local HTML file directly from disk.
+ * @param {string} rawTarget
+ * @param {import("../lib/args.mjs").ParsedArgs} args
+ */
+function auditLocalFile(rawTarget, args) {
+  const r = analyzeLocalFile(rawTarget, args);
+  let findings = r.findings;
   if (args.skills || args.excludeSkills) {
     findings = applySkillsFilter(findings, args.skills, args.excludeSkills);
   }
-  const geo = geoDetails(parsed, siteFiles);
-  const scores = computeScores(findings, geo);
+  const scores = computeScores(findings, r.geo);
   const report = buildReport({
-    url: fileUrl,
-    finalUrl: fileUrl,
+    url: r.fetched.finalUrl,
+    finalUrl: r.fetched.finalUrl,
     scores,
     findings,
-    parsed,
-    siteFiles,
+    parsed: r.parsed,
+    siteFiles: r.siteFiles,
     meta: { version: VERSION },
   });
 
@@ -1713,6 +1774,7 @@ function auditLocalDirectory(rawTarget, args) {
   const written = [];
 
   for (let i = 0; i < targetFiles.length; i++) {
+    if (interrupted) break;
     const file = targetFiles[i];
     if (!file) continue;
     const html = readFileSync(file, "utf8");
@@ -1790,8 +1852,9 @@ function auditLocalDirectory(rawTarget, args) {
     );
     if (args.formats.includes("md")) {
       const idxPath = join(outDir, "index.md");
+      const dups = findDuplicateTitles(pageReports);
       const lines = [
-        `# Audit index — ${rawTarget}`,
+        `# Audit index — ${escMd(rawTarget)}`,
         "",
         `Generated: ${new Date().toISOString()}`,
         `Pages audited: ${pageReports.length}`,
@@ -1804,11 +1867,29 @@ function auditLocalDirectory(rawTarget, args) {
         const pr = pageReports[i];
         if (!pr) continue;
         const b = i === 0 ? "report" : `report-${i + 1}`;
+        const links = [
+          ...(args.formats.includes("md") ? [`[md](./${b}.md)`] : []),
+          ...(args.formats.includes("json") ? [`[json](./${b}.json)`] : []),
+          ...(args.formats.includes("html") ? [`[html](./${b}.html)`] : []),
+          ...(args.formats.includes("sarif") ? [`[sarif](./${b}.sarif)`] : []),
+          ...(args.formats.includes("csv") ? [`[csv](./${b}.csv)`] : []),
+        ];
         lines.push(
-          `- [${pr.page.title || pr.url}](${b}.html) — Search ${pr.scores.search.score}, AI ${pr.scores.ai.score}`,
+          `- ${escMd(pr.page.title || pr.url)} — Search ${pr.scores.search.score}, AI ${pr.scores.ai.score} — ${links.join(" ")}`,
         );
       }
       lines.push("");
+      if (dups.length > 0) {
+        lines.push(`## Duplicate titles & descriptions`, ``);
+        for (const d of dups.slice(0, 10)) {
+          const refs = d.pages.map((idx) => `page ${idx + 1}`).join(", ");
+          lines.push(
+            `- Duplicate ${d.kind} on ${refs}: "${escMd(d.value.slice(0, 120))}" — give each page a unique ${d.kind}.`,
+          );
+        }
+        if (dups.length > 10) lines.push(`- …and ${dups.length - 10} more.`);
+        lines.push(``);
+      }
       writeFileSync(idxPath, lines.join("\n"), "utf8");
       written.push(idxPath);
     }
@@ -2068,14 +2149,17 @@ function cmdFix(rawTarget, args) {
 
 /**
  * Open a local report file in the default browser (best-effort).
+ * Avoids cmd.exe /c start on Windows so paths containing '&' or spaces
+ * cannot be interpreted as shell metacharacters.
  * @param {string} file
  * @returns {Promise<void>}
  */
 async function openReport(file) {
-  const opener = process.platform === "win32" ? "cmd" : process.platform === "darwin" ? "open" : "xdg-open";
-  const openerArgs = process.platform === "win32" ? ["/c", "start", "", file] : [file];
+  const opener =
+    process.platform === "win32" ? "explorer" : process.platform === "darwin" ? "open" : "xdg-open";
+  const openerArgs = [file];
   await new Promise((resolve) => {
-    execFile(opener, openerArgs, { timeout: 8000 }, () => resolve(undefined));
+    execFile(opener, openerArgs, { timeout: 8000, windowsHide: true }, () => resolve(undefined));
   });
 }
 
@@ -2223,9 +2307,14 @@ async function main() {
   // `diff` compares local report.json files — also routes before URLs.
   if (cmd === "diff") return cmdDiff(args._.slice(1), args);
 
-  // Local file or directory targets:
-  if (rawUrl && isLocalPath(rawUrl)) {
+  // Local file or directory targets (or explicit --offline):
+  if (args.offline && rawUrl && /^https?:\/\//i.test(rawUrl.trim())) {
+    throw new CliError("--offline requires a local file or directory path (got remote http(s) URL).", 1);
+  }
+  if (rawUrl && (isLocalPath(rawUrl) || args.offline)) {
     if (cmd === "page") return auditLocalFile(rawUrl, args);
+    if (cmd === "ai") return cmdAi(rawUrl, args);
+    if (cmd === "schema") return cmdSchema(rawUrl, args);
     if (cmd === "audit" || cmd === "quick") {
       if (cmd === "quick") {
         const argv = process.argv.slice(2);

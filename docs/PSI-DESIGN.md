@@ -1,4 +1,4 @@
-# PageSpeed Insights integration — design (not implemented)
+# PageSpeed Insights integration — design (implemented in `lib/psi.mjs`)
 
 Goal: graduate `P01-html-size` / `P02-img-count` (header/size heuristics)
 with real lab + field data, without compromising zero-dep, privacy, or

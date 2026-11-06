@@ -3,7 +3,7 @@
 Deterministic, no guessing. Every finding carries evidence + fix.
 Thresholds live in `lib/checks.mjs` (`THRESHOLDS`).
 
-## Technical (T00–T16)
+## Technical (T00–T17)
 
 | ID                   | Severity   | What                                                                                            |
 | -------------------- | ---------- | ----------------------------------------------------------------------------------------------- |
