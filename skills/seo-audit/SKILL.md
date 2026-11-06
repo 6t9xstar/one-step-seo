@@ -39,10 +39,10 @@ Do **not** activate this skill to directly mutate user HTML files without first 
    - Check `truncated` (whether HTML exceeded the 5 MiB cap) and `counts` (`P0`, `P1`, `P2`, `P3`, `pass`).
    - Check whether `T05-robots-disallow` is the sole finding (indicating `robots.txt` blocked the crawl and `--force` is needed only if the user owns the site).
 3. **Triage findings by severity and reach**:
-   - **P0 (Critical blockers, -25 Search)**: `T01-https`, `T02-status`, `T07-noindex`, `O01-title-missing`, `S01-json-invalid`. Fix immediately.
-   - **P1 (High impact, -10 Search)**: `T03-redirects`, `T05-robots`, `T06-sitemap`, `T08-canonical`, `T13-mixed` (active), `T16-broken-links`, `T17-canonical-http`, `O02-meta-missing`, `O03-h1-missing`, `O03-h1-multi`, `O08-alt`, `O10-internal`, `C01-thin`, `S01-none`, `G02-ai-blocked`.
-   - **P2 (Medium optimization, -3 Search)**: Title/meta length, heading order, `O06-og`, `O07-favicon`, `O09-img-dims`, `C02-answer`, `C03-extractable`, `S02-*` schema properties, `G01-llms`, `G03-facts`, `G09-snippet-controls`, `P01-html-size`, `P02-img-count`, `T14-third-party`.
-   - **P3 (Polish & GEO depth, -1 Search or GEO-only)**: `O03-h1-drift`, `O11-generic-anchors`, `C04-faq`, `C05-table-headers`, `S03-faq-parity`, `G04-entity`, `G05-llms-quality`, `G06-freshness`, `G07-question-headings`, `G08-stat-density`, `G10-author`, `G11-semantic-content`, `T15-security-headers`, `W01-social`, `W02-og-url`, `W03-hreflang`.
+   - **P0 (Critical blockers, -25 Search)**: `T01-https`, `T02-status`, `T07-noindex`, `O01-title-missing`. Fix immediately.
+   - **P1 (High impact, -10 Search)**: `T03-redirects`, `T05-robots`, `T06-sitemap`, `T08-canonical`, `T11-viewport`, `T13-mixed` (active), `T16-broken-links`, `T17-canonical-http`, `O01-title-short`, `O02-meta-missing`, `O03-h1-missing`, `O03-h1-multi`, `O08-alt`, `O10-internal`, `C01-thin`, `C02-answer`, `S01-json-invalid`, `S01-none`, `G02-ai-blocked`.
+   - **P2 (Medium optimization, -3 Search)**: `O01-title-long`, `O02-meta-short`, `O02-meta-long`, heading order (`O04-headings`, `O04-heading-empty`, `O05-h2`), `O06-og`, `O07-favicon`, `O09-img-dims`, `C03-extractable`, `C04-faq` (P1 on `docs` profile), `S02-*` schema properties, `G01-llms`, `G03-facts`, `G09-snippet-controls`, `P01-html-size`, `P02-img-count`, `T14-third-party`.
+   - **P3 (Polish & GEO depth, -1 Search or GEO-only)**: `O03-h1-drift`, `O11-generic-anchors`, `C05-table-headers`, `S03-faq-parity`, `G04-entity`, `G05-llms-quality`, `G06-freshness`, `G07-question-headings`, `G08-stat-density`, `G10-author`, `G11-semantic-content`, `T15-security-headers`, `W01-social`, `W02-og-url`, `W03-hreflang`.
 4. **Synthesize the action plan**:
    - Group recommendations into Immediate Blockers (P0/P1), Content & Schema Enhancements (P2), and AI Citability / Polish (P3).
    - Provide the exact verification command to re-run after fixes.

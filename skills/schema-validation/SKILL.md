@@ -23,8 +23,8 @@ Activate `schema-validation` when the user wants to:
 
 1. **Inspect existing JSON-LD nodes and issues**:
    - Run `npx one-step-seo schema <url>` or `npx one-step-seo page <target> --skills schema-structured-data --out ./seo-report`.
-2. **Fix JSON syntax errors first (`S01-json-invalid`, P0)**:
-   - Unparseable JSON-LD (trailing commas, unescaped quotes, broken tags) costs 25 Search SEO points and is completely ignored by search engines.
+2. **Fix JSON syntax errors first (`S01-json-invalid`, P1)**:
+   - Unparseable JSON-LD (trailing commas, unescaped quotes, broken tags) costs 10 Search SEO points (`P1`) and is completely ignored by search engines.
 3. **Resolve per-type required property issues (`S02-<type>`, P2)**:
    - Inspect every `S02-*` finding (`schema-structured-data`):
      - `Article` / `BlogPosting` / `NewsArticle`: requires `headline`

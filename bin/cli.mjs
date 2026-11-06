@@ -1461,6 +1461,7 @@ function getLocalSiteFiles(dir) {
     sitemaps: /** @type {string[]} */ ([]),
     disallowCount: 0,
     aiBlocked: false,
+    blockedBots: /** @type {string[]} */ ([]),
     textSample: "# Local offline audit",
     text: "User-agent: *\nAllow: /",
   };
@@ -1475,6 +1476,7 @@ function getLocalSiteFiles(dir) {
         sitemaps: parsed.sitemaps,
         disallowCount: parsed.disallows.length,
         aiBlocked: parsed.aiBlocked,
+        blockedBots: parsed.blockedBots,
         textSample: text.slice(0, 200),
         text,
       };

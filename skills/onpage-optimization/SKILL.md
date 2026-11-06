@@ -17,7 +17,7 @@ Activate `onpage-optimization` when the user wants to:
 
 - **Target**: URL, local `.html` file, or build directory.
 - **Calibrated thresholds (`lib/checks.mjs` -> `THRESHOLDS`)**:
-  - `<title>`: `30–60` characters (`O01-title-missing` P0, `O01-title-short` P2, `O01-title-long` P2).
+  - `<title>`: `30–60` characters (`O01-title-missing` P0, `O01-title-short` P1, `O01-title-long` P2).
   - `<meta name="description">`: `120–155` characters (`O02-meta-missing` P1, `O02-meta-short` P2, `O02-meta-long` P2).
   - `<h1>`: Exactly 1 per page (`O03-h1-missing` P1, `O03-h1-multi` P1) sharing key terms with `<title>` (`O03-h1-drift` P3).
 

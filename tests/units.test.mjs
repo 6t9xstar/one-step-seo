@@ -18,6 +18,7 @@ import {
   esc,
   escTruncate,
   escMd,
+  isValidScore,
   buildReport,
   renderMarkdown,
   renderHtml,
@@ -1020,4 +1021,369 @@ test("renderHtml and renderMarkdown handle missing scores, zero scores, no findi
   assert.match(manyHtml, /<span>All findings<\/span><span class="n">24<\/span>/);
   assert.match(manyHtml, /@media print/);
   assert.match(manyHtml, /prefers-color-scheme:dark/);
+});
+
+test("isValidScore and isReport strictly reject NaN, Infinity, and out-of-range (<0 or >100) scores", () => {
+  assert.equal(isValidScore(0), true);
+  assert.equal(isValidScore(100), true);
+  assert.equal(isValidScore(55.5), true);
+  assert.equal(isValidScore(-0.1), false);
+  assert.equal(isValidScore(100.1), false);
+  assert.equal(isValidScore(NaN), false);
+  assert.equal(isValidScore(Infinity), false);
+  assert.equal(isValidScore(-Infinity), false);
+  assert.equal(isValidScore(null), false);
+  assert.equal(isValidScore(undefined), false);
+  assert.equal(isValidScore("80"), false);
+
+  for (const badScore of [NaN, Infinity, -Infinity, -1, 101, null, undefined, "90"]) {
+    assert.equal(
+      isReport({
+        tool: "one-step-seo",
+        scores: { search: { score: badScore }, ai: { score: 80 } },
+        findings: [],
+      }),
+      false,
+      `isReport must reject search.score=${String(badScore)}`,
+    );
+    assert.equal(
+      isReport({
+        tool: "one-step-seo",
+        scores: { search: { score: 80 }, ai: { score: badScore } },
+        findings: [],
+      }),
+      false,
+      `isReport must reject ai.score=${String(badScore)}`,
+    );
+  }
+});
+
+test("renderSiteIndex selects correct Highest/Lowest-Performing Page across mixed Search/AI unavailable scores and ties", () => {
+  // Page 1: Search unavailable (null), AI valid (40) -> sits at end of `ordered` table, MUST NOT be selected as Highest-Performing Page!
+  const pSearchNullAiValid = /** @type {any} */ ({
+    ...mkReport([]),
+    url: "https://example.com/search-null-ai-40",
+    finalUrl: "https://example.com/search-null-ai-40",
+    scores: { search: { score: null, band: "N/A" }, ai: { score: 40, band: "D" } },
+  });
+  // Page 2: Highest Search (95) and valid AI (90) -> MUST be selected as Highest-Performing Page
+  const pBestBoth = mkReport([], { search: 95, ai: 90 });
+  pBestBoth.url = "https://example.com/best-both";
+  pBestBoth.finalUrl = "https://example.com/best-both";
+  // Page 3: Tied on Highest Search (95), but AI is unavailable (null) -> MUST lose tie-break to pBestBoth for Highest-Performing Page
+  const pBestSearchNullAi = /** @type {any} */ ({
+    ...mkReport([]),
+    url: "https://example.com/best-search-null-ai",
+    finalUrl: "https://example.com/best-search-null-ai",
+    scores: { search: { score: 95, band: "A" }, ai: { score: null, band: "N/A" } },
+  });
+  // Page 4: Lowest Search (25) and valid AI (30) -> MUST be selected as Lowest-Performing Page
+  const pWorst = mkReport([mkFinding({ id: "T01-https", severity: "P0" })], { search: 25, ai: 30 });
+  pWorst.scores = { search: { score: 25, band: "F" }, ai: { score: 30, band: "F" } };
+  pWorst.url = "https://example.com/worst";
+  pWorst.finalUrl = "https://example.com/worst";
+
+  const html = renderSiteIndex([pSearchNullAiValid, pBestBoth, pBestSearchNullAi, pWorst]);
+
+  // Verify Lowest-Performing Page is pWorst (https://example.com/worst)
+  assert.match(
+    html,
+    /Lowest-Performing Page<\/h3><dl class="kv-list">\s*<div class="kv-row"><dt>URL<\/dt><dd><a href="\.\/report-4\.html#main">https:\/\/example\.com\/worst<\/a><\/dd><\/div>\s*<div class="kv-row"><dt>Search SEO<\/dt><dd>25\/100 \(F\)<\/dd><\/div>\s*<div class="kv-row"><dt>AI Visibility<\/dt><dd>30\/100 \(F\)<\/dd><\/div>/,
+  );
+
+  // Verify Highest-Performing Page is pBestBoth (https://example.com/best-both), NOT pSearchNullAiValid or pBestSearchNullAi
+  assert.match(
+    html,
+    /Highest-Performing Page<\/h3><dl class="kv-list">\s*<div class="kv-row"><dt>URL<\/dt><dd><a href="\.\/report-2\.html#main">https:\/\/example\.com\/best-both<\/a><\/dd><\/div>\s*<div class="kv-row"><dt>Search SEO<\/dt><dd>95\/100 \(A\)<\/dd><\/div>\s*<div class="kv-row"><dt>AI Visibility<\/dt><dd>90\/100 \(A\)<\/dd><\/div>/,
+  );
+
+  // Verify initial table ordering: worst (report-4) -> best-both (report-2) -> best-search-null-ai (report-3) -> search-null-ai-40 (report)
+  const tbody = html.split("<tbody>")[1]?.split("</tbody>")[0] ?? "";
+  const idxWorst = tbody.indexOf('href="./report-4.html"');
+  const idxBestBoth = tbody.indexOf('href="./report-2.html"');
+  const idxBestNullAi = tbody.indexOf('href="./report-3.html"');
+  const idxSearchNull = tbody.indexOf('href="./report.html"');
+  assert.ok(idxWorst >= 0 && idxBestBoth > idxWorst, "worst comes before best-both");
+  assert.ok(idxBestNullAi > idxBestBoth, "valid AI tie-break comes before null AI");
+  assert.ok(idxSearchNull > idxBestNullAi, "unavailable Search score row sits at the bottom");
+});
+
+test("renderSiteIndex handles one valid page among many unavailable pages and AI-only fallback ranking", () => {
+  const mkUnavailable = (/** @type {number} */ n, /** @type {any} */ badVal) =>
+    /** @type {any} */ ({
+      ...mkReport([]),
+      url: `https://example.com/unavail-${n}`,
+      finalUrl: `https://example.com/unavail-${n}`,
+      scores: { search: { score: badVal, band: "F" }, ai: { score: badVal, band: "F" } },
+    });
+  const soleValid = mkReport([], { search: 72, ai: 64 });
+  soleValid.url = "https://example.com/only-valid";
+  soleValid.finalUrl = "https://example.com/only-valid";
+
+  const pages = [
+    mkUnavailable(1, null),
+    mkUnavailable(2, undefined),
+    mkUnavailable(3, NaN),
+    soleValid,
+    mkUnavailable(5, Infinity),
+    mkUnavailable(6, -10),
+    mkUnavailable(7, 150),
+  ];
+  const html = renderSiteIndex(pages);
+  assert.match(html, /Average 72\/100 · lowest 72 · highest 72 \(1\/7 valid pages\)/);
+  assert.match(html, /Average 64\/100 · lowest 64 · highest 64 \(1\/7 valid pages\)/);
+  assert.match(html, /Search: 1\/7 &middot; AI: 1\/7/);
+  assert.match(
+    html,
+    /Lowest-Performing Page<\/h3><dl class="kv-list">\s*<div class="kv-row"><dt>URL<\/dt><dd><a href="\.\/report-4\.html#main">https:\/\/example\.com\/only-valid<\/a>/,
+  );
+  assert.match(
+    html,
+    /Highest-Performing Page<\/h3><dl class="kv-list">\s*<div class="kv-row"><dt>URL<\/dt><dd><a href="\.\/report-4\.html#main">https:\/\/example\.com\/only-valid<\/a>/,
+  );
+
+  // Fallback ranking when all Search scores are unavailable but AI scores are valid on 2 pages
+  const aiLow = /** @type {any} */ ({
+    ...mkReport([]),
+    url: "https://example.com/ai-low",
+    finalUrl: "https://example.com/ai-low",
+    scores: { search: { score: null, band: "N/A" }, ai: { score: 35, band: "F" } },
+  });
+  const aiHigh = /** @type {any} */ ({
+    ...mkReport([]),
+    url: "https://example.com/ai-high",
+    finalUrl: "https://example.com/ai-high",
+    scores: { search: { score: null, band: "N/A" }, ai: { score: 88, band: "B" } },
+  });
+  const aiHtml = renderSiteIndex([mkUnavailable(1, null), aiHigh, aiLow]);
+  assert.match(aiHtml, /Average N\/A · lowest N\/A · highest N\/A \(0\/3 valid pages\)/);
+  assert.match(aiHtml, /Average 62\/100 · lowest 35 · highest 88 \(2\/3 valid pages\)/);
+  assert.match(
+    aiHtml,
+    /Lowest-Performing Page<\/h3><dl class="kv-list">\s*<div class="kv-row"><dt>URL<\/dt><dd><a href="\.\/report-3\.html#main">https:\/\/example\.com\/ai-low<\/a>/,
+  );
+  assert.match(
+    aiHtml,
+    /Highest-Performing Page<\/h3><dl class="kv-list">\s*<div class="kv-row"><dt>URL<\/dt><dd><a href="\.\/report-2\.html#main">https:\/\/example\.com\/ai-high<\/a>/,
+  );
+});
+
+test("renderSiteIndex client-side table sorting handles valid, zero, and unavailable scores in both directions", () => {
+  const pZero = mkReport([], { search: 0, ai: 50 });
+  pZero.scores = { search: { score: 0, band: "F" }, ai: { score: 50, band: "D" } };
+  pZero.url = "https://example.com/b-zero";
+  pZero.finalUrl = "https://example.com/b-zero";
+
+  const pHigh = mkReport([], { search: 90, ai: 20 });
+  pHigh.url = "https://example.com/a-high";
+  pHigh.finalUrl = "https://example.com/a-high";
+
+  const pMissing = /** @type {any} */ ({
+    ...mkReport([]),
+    url: "https://example.com/c-missing",
+    finalUrl: "https://example.com/c-missing",
+    scores: { search: { score: null, band: "N/A" }, ai: { score: null, band: "N/A" } },
+  });
+
+  const html = renderSiteIndex([pHigh, pMissing, pZero]);
+  const scriptMatch = html.match(/<script>\s*([\s\S]*?)\s*<\/script>/);
+  assert.ok(scriptMatch, "renderSiteIndex must include inline script");
+
+  // Build minimal DOM harness to execute the exact inline script from renderSiteIndex
+  /** @param {string} tag @param {Record<string, string>} attrs */
+  const makeEl = (tag, attrs = {}) => {
+    /** @type {Record<string, Function[]>} */
+    const listeners = {};
+    /** @type {any} */
+    const el = {
+      tagName: tag.toUpperCase(),
+      attributes: { ...attrs },
+      children: /** @type {any[]} */ ([]),
+      hidden: false,
+      textContent: "",
+      value: "",
+      style: {},
+      getAttribute(/** @type {string} */ k) {
+        return k in this.attributes ? this.attributes[k] : null;
+      },
+      setAttribute(/** @type {string} */ k, /** @type {string} */ v) {
+        this.attributes[k] = String(v);
+      },
+      addEventListener(/** @type {string} */ ev, /** @type {Function} */ fn) {
+        (listeners[ev] ??= []).push(fn);
+      },
+      dispatch(/** @type {string} */ ev, /** @type {any} */ eventObj = {}) {
+        for (const fn of listeners[ev] ?? []) fn(eventObj);
+      },
+      appendChild(/** @type {any} */ child) {
+        const idx = this.children.indexOf(child);
+        if (idx !== -1) this.children.splice(idx, 1);
+        this.children.push(child);
+      },
+      closest() {
+        return tableEl;
+      },
+      querySelector(/** @type {string} */ sel) {
+        if (sel === "tbody") return tbodyEl;
+        return null;
+      },
+      focus() {},
+      select() {},
+      blur() {},
+    };
+    return el;
+  };
+
+  const tbodyEl = makeEl("tbody");
+  const tableEl = makeEl("table");
+  const thUrl = makeEl("th", { "data-sort": "url", "aria-sort": "none" });
+  const thS = makeEl("th", { "data-sort": "s", "aria-sort": "ascending" });
+  const thA = makeEl("th", { "data-sort": "a", "aria-sort": "none" });
+  const ths = [thUrl, thS, thA];
+
+  // Initial rows in worst-first order: pZero (s=0, a=50), pHigh (s=90, a=20), pMissing (s="", a="")
+  const rowZero = makeEl("tr", {
+    "data-search": "https://example.com/b-zero",
+    "data-s": "0",
+    "data-a": "50",
+  });
+  const rowHigh = makeEl("tr", {
+    "data-search": "https://example.com/a-high",
+    "data-s": "90",
+    "data-a": "20",
+  });
+  const rowMissing = makeEl("tr", {
+    "data-search": "https://example.com/c-missing",
+    "data-s": "",
+    "data-a": "",
+  });
+  tbodyEl.children = [rowZero, rowHigh, rowMissing];
+
+  const sqEl = makeEl("input");
+  const pCountEl = makeEl("span");
+  const ttEl = makeEl("button");
+  const metaCsEl = { content: "light dark" };
+  const docStub = {
+    activeElement: null,
+    getElementById(/** @type {string} */ id) {
+      if (id === "site-q") return sqEl;
+      if (id === "pages-count") return pCountEl;
+      if (id === "theme-toggle") return ttEl;
+      return null;
+    },
+    querySelector(/** @type {string} */ sel) {
+      if (sel === 'meta[name="color-scheme"]') return metaCsEl;
+      return null;
+    },
+    querySelectorAll(/** @type {string} */ sel) {
+      if (sel === ".site-chip") return [];
+      if (sel === "table.pages tbody tr") return tbodyEl.children;
+      if (sel === "table.pages thead th[data-sort]") return ths;
+      return [];
+    },
+    addEventListener() {},
+  };
+
+  const fn = new Function("document", "localStorage", scriptMatch[1] ?? "");
+  fn(docStub, { getItem: () => null, setItem: () => {}, removeItem: () => {} });
+
+  // 1. Clicking Search (already aria-sort="ascending") sorts descending: 90, 0, then missing ("") at bottom
+  thS.dispatch("click");
+  assert.equal(thS.getAttribute("aria-sort"), "descending");
+  assert.deepEqual(
+    tbodyEl.children.map((/** @type {any} */ r) => r.getAttribute("data-s")),
+    ["90", "0", ""],
+    "descending Search sort keeps N/A row at the bottom and 0 before N/A",
+  );
+
+  // 2. Clicking AI (aria-sort="none") sorts ascending on first click: 20, 50, then missing ("") at bottom
+  thA.dispatch("click");
+  assert.equal(thA.getAttribute("aria-sort"), "ascending");
+  assert.equal(thS.getAttribute("aria-sort"), "none");
+  assert.deepEqual(
+    tbodyEl.children.map((/** @type {any} */ r) => r.getAttribute("data-a")),
+    ["20", "50", ""],
+    "first click on AI column sorts ascending with N/A at the bottom",
+  );
+
+  // 3. Keyboard Enter on AI flips to descending: 50, 20, then missing ("") at bottom
+  let prevented = false;
+  thA.dispatch("keydown", {
+    key: "Enter",
+    preventDefault() {
+      prevented = true;
+    },
+  });
+  assert.equal(prevented, true);
+  assert.equal(thA.getAttribute("aria-sort"), "descending");
+  assert.deepEqual(
+    tbodyEl.children.map((/** @type {any} */ r) => r.getAttribute("data-a")),
+    ["50", "20", ""],
+    "Enter key sorts AI descending with N/A at the bottom",
+  );
+
+  // 4. Keyboard Space on URL column prevents scroll on keydown and sorts ascending on keyup
+  let spacePrevented = false;
+  thUrl.dispatch("keydown", {
+    key: " ",
+    preventDefault() {
+      spacePrevented = true;
+    },
+  });
+  assert.equal(spacePrevented, true);
+  thUrl.dispatch("keyup", { key: " " });
+  assert.equal(thUrl.getAttribute("aria-sort"), "ascending");
+  assert.deepEqual(
+    tbodyEl.children.map((/** @type {any} */ r) => r.getAttribute("data-search")),
+    ["https://example.com/a-high", "https://example.com/b-zero", "https://example.com/c-missing"],
+  );
+});
+
+test("verdictFor and renderMarkdown/renderHtml handle partial and unavailable scores accurately", () => {
+  // Both scores unavailable + 0 findings -> must NOT claim "Excellent"
+  const bothUnavail = /** @type {any} */ ({
+    ...mkReport([]),
+    scores: { search: { score: null, band: "N/A" }, ai: { score: NaN, band: "N/A" } },
+  });
+  assert.equal(
+    verdictFor(bothUnavail),
+    "Scores unavailable (N/A) — no actionable issues recorded. Re-audit to compute scores.",
+  );
+
+  // Search unavailable, AI valid (85) + 0 findings
+  const searchUnavail = /** @type {any} */ ({
+    ...mkReport([]),
+    scores: { search: { score: undefined, band: "N/A" }, ai: { score: 85, band: "B" } },
+  });
+  assert.equal(
+    verdictFor(searchUnavail),
+    "Partial scores available (Search SEO is N/A) — no actionable issues found.",
+  );
+  assert.match(
+    renderMarkdown(searchUnavail),
+    /- Search SEO: \*\*N\/A\*\*\n- AI Visibility: \*\*85\/100 \(B\)\*\*/,
+  );
+  assert.match(renderHtml(searchUnavail), /Search SEO N\/A \| AI Visibility 85\/100 \(B\)/);
+
+  // Search valid (90), AI unavailable (Infinity) + 0 findings
+  const aiUnavail = /** @type {any} */ ({
+    ...mkReport([]),
+    scores: { search: { score: 90, band: "A" }, ai: { score: Infinity, band: "N/A" } },
+  });
+  assert.equal(
+    verdictFor(aiUnavail),
+    "Partial scores available (AI Visibility is N/A) — no actionable issues found.",
+  );
+  assert.match(
+    renderMarkdown(aiUnavail),
+    /- Search SEO: \*\*90\/100 \(A\)\*\*\n- AI Visibility: \*\*N\/A\*\*/,
+  );
+  assert.match(renderHtml(aiUnavail), /Search SEO 90\/100 \(A\) \| AI Visibility N\/A/);
+
+  // Search unavailable, AI < 60 (45) -> triggers low score verdict for AI Visibility
+  const aiLowSearchUnavail = /** @type {any} */ ({
+    ...mkReport([]),
+    scores: { search: { score: null, band: "N/A" }, ai: { score: 45, band: "D" } },
+  });
+  assert.match(verdictFor(aiLowSearchUnavail), /Below par: AI Visibility is under 60/);
 });

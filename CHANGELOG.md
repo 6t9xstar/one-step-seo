@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/).
 
+## [0.9.2] - 2026-11-05
+
+### Fixed
+
+- **Missing-Score Ranking, Verdict & Range Validation (`lib/report.mjs`, `lib/report-diff.mjs`).**
+  - Fixed `renderSiteIndex()` `Highest-Performing Page` selection (`bestEntry`) so pages with an unavailable Search SEO score (`null`/`undefined`/`NaN`/`Infinity`) and a valid AI Visibility score are never chosen as the highest-performing page ahead of pages with valid Search SEO scores, and secondary AI score ties always prefer valid scores over `N/A`.
+  - Fixed `verdictFor(report)` so reports with unavailable scores (`null`/`undefined`/`NaN`/`Infinity`) and zero `P0`/`P1`/`P2` findings return explicit unavailable or partial-score verdicts instead of `"Excellent — no actionable issues found"`.
+  - Hardened and exported `isValidScore(v)` to enforce `0 <= v <= 100` in addition to `Number.isFinite(v)`, and hardened `isReport(r)` in `lib/report-diff.mjs` to reject `NaN`, `Infinity`, and out-of-range (`< 0` or `> 100`) score values.
+  - Improved client-side table sorting (`sortByHeader`) in `renderSiteIndex()` to derive sort direction per header from `aria-sort`, validate `Number.isFinite` on numeric cells, and split `Enter` (`keydown`) and `Space` (`keyup` with `keydown` scroll prevention) handlers per WCAG 2.1.1 button semantics.
+- **Agent Skill Contract & Offline `robots.txt` Alignment (`skills/*/SKILL.md`, `lib/skills.mjs`, `bin/cli.mjs`).**
+  - Aligned `S01-json-invalid` (`P1`, `-10` Search points) and `O01-title-short` (`P1`) severities across `skills/seo-audit/SKILL.md`, `skills/schema-validation/SKILL.md`, `skills/onpage-optimization/SKILL.md`, and `lib/skills.mjs` (`schema-structured-data` severities `["P1", "P2", "P3"]`).
+  - Aligned `C02-answer` (`P1`), `C04-faq` (`P2`, or `P1` on `docs`), and `T11-viewport` (`P1`) severity groupings in `skills/seo-audit/SKILL.md`.
+  - Updated `skills/llms-txt/SKILL.md` to match the exact `G05-llms-quality` check condition and `G02-ai-blocked` evidence string (`Disallow: / for ...`).
+  - Added `blockedBots: parsed.blockedBots` to `getLocalSiteFiles(dir)` in `bin/cli.mjs` so offline directory audits with AI-blocking `robots.txt` files report the exact blocked bot tokens in `G02-ai-blocked` evidence.
+- **Adversarial Regression Test Suite (`tests/*.test.mjs`).**
+  - Added comprehensive regression tests for missing/partial/zero/`NaN`/`Infinity` score reporting, client-side table sorting, `lib/schema-report.json` contract validation, Agent Skill playbook severity/threshold/CLI contracts, and HTML report escaping/accessibility/offline operation.
+
 ## [0.9.1] - 2026-11-05
 
 ### Fixed

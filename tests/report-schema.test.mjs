@@ -37,6 +37,9 @@ export function validateAgainstJsonSchema(data, schema, root = schema, path = "$
   if (!schema) return errs;
 
   if (schema["$ref"]) {
+    if (schema["$ref"] === "schema-finding.json") {
+      return validateAgainstJsonSchema(data, findingSchema, findingSchema, path);
+    }
     const refPath = schema["$ref"].replace(/^#\//, "").split("/");
     let target = root;
     for (const seg of refPath) target = target?.[seg];
@@ -54,10 +57,28 @@ export function validateAgainstJsonSchema(data, schema, root = schema, path = "$
 
   if (schema.type) {
     const expected = Array.isArray(schema.type) ? schema.type : [schema.type];
-    const actual = Array.isArray(data) ? "array" : data === null ? "null" : typeof data;
-    if (!expected.includes(actual)) {
+    const actual = Array.isArray(data)
+      ? "array"
+      : data === null
+        ? "null"
+        : typeof data === "number" && !Number.isFinite(data)
+          ? "non-finite-number"
+          : typeof data;
+    const typeMatches =
+      expected.includes(actual) ||
+      (expected.includes("integer") && typeof data === "number" && Number.isInteger(data));
+    if (!typeMatches) {
       errs.push(`${path}: Expected type ${expected.join("|")}, got ${actual}`);
       return errs;
+    }
+  }
+
+  if (typeof data === "number" && Number.isFinite(data)) {
+    if (typeof schema.minimum === "number" && data < schema.minimum) {
+      errs.push(`${path}: Number ${data} < minimum ${schema.minimum}`);
+    }
+    if (typeof schema.maximum === "number" && data > schema.maximum) {
+      errs.push(`${path}: Number ${data} > maximum ${schema.maximum}`);
     }
   }
 
@@ -71,6 +92,8 @@ export function validateAgainstJsonSchema(data, schema, root = schema, path = "$
       for (const [key, val] of Object.entries(data)) {
         if (schema.properties[key]) {
           errs.push(...validateAgainstJsonSchema(val, schema.properties[key], root, `${path}.${key}`));
+        } else if (schema.additionalProperties === false) {
+          errs.push(`${path}: Unexpected additional property '${key}'`);
         }
       }
     }
@@ -669,4 +692,68 @@ test("expanded HTML escaping covers attribute breakout, tags, entities, and Unic
   const textWithEmoji = "A".repeat(10) + "🚀" + "B".repeat(10);
   const truncated = escTruncate(textWithEmoji, 12);
   assert.ok(truncated.includes("🚀"));
+});
+
+test("canonical report.json schema (lib/schema-report.json) enforces finite 0-100 scores and supports nullable PSI metrics", () => {
+  const reportSchema = JSON.parse(readFileSync(join(ROOT, "lib/schema-report.json"), "utf8"));
+
+  // 1. Canonical examples pass full recursive JSON Schema validation
+  for (const name of ["report-sample.json", "report-bad-sample.json"]) {
+    const sample = JSON.parse(readFileSync(join(ROOT, "examples", name), "utf8"));
+    const errs = validateAgainstJsonSchema(sample, reportSchema);
+    assert.deepEqual(errs, [], `${name} must conform to lib/schema-report.json`);
+  }
+
+  // 2. Canonical buildReport() output with nullable PSI lab/field metrics conforms to schema
+  const baseReport = buildReport({
+    url: "https://example.com/",
+    finalUrl: "https://example.com/",
+    scores: { search: { score: 85, band: "B" }, ai: { score: 75, band: "C" } },
+    findings: [],
+    parsed: {
+      title: "Canonical Schema Test",
+      metaDescription: "Testing canonical report schema contract.",
+      canonical: "https://example.com/",
+      wordCount: 400,
+      h1s: [{ text: "Main Heading" }],
+      images: [{ alt: "Logo", src: "/logo.png" }],
+      internalLinkCount: 3,
+      externalLinkCount: 1,
+    },
+    siteFiles: files(),
+    meta: { version: "0.9.2" },
+    psi: {
+      strategy: "mobile",
+      performanceScore: 92,
+      lcpMs: 1800,
+      cls: 0.02,
+      tbtMs: 110,
+      fcpMs: 900,
+      inpMs: null,
+      ttfbMs: null,
+      lab: { performanceScore: 92, lcpMs: 1800, cls: 0.02, tbtMs: 110, fcpMs: 900 },
+      field: { category: null, lcpMs: null, cls: null, inpMs: null, fcpMs: null, ttfbMs: null },
+    },
+    checkedAt: "2026-11-05T00:00:00.000Z",
+  });
+  assert.deepEqual(validateAgainstJsonSchema(baseReport, reportSchema), []);
+
+  // 3. Unavailable scores (null, undefined, NaN, Infinity, -1, 101, band "N/A") are defensive render states ONLY
+  // and are strictly rejected by the canonical report.json schema contract.
+  for (const badScore of [null, undefined, NaN, Infinity, -1, 101]) {
+    const invalidSearch = structuredClone(baseReport);
+    // @ts-ignore
+    invalidSearch.scores.search.score = badScore;
+    assert.ok(
+      validateAgainstJsonSchema(invalidSearch, reportSchema).length > 0,
+      `schema-report.json must reject search.score=${String(badScore)}`,
+    );
+  }
+  const invalidBand = structuredClone(baseReport);
+  // @ts-ignore
+  invalidBand.scores.ai.band = "N/A";
+  assert.ok(
+    validateAgainstJsonSchema(invalidBand, reportSchema).length > 0,
+    'schema-report.json must reject band="N/A"',
+  );
 });

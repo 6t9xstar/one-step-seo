@@ -906,3 +906,44 @@ test("cli: local audit handles missing files and empty directories gracefully", 
   assert.equal(rEmpty.code, 1);
   assert.match(rEmpty.stderr, /No \.html or \.htm files found/);
 });
+
+test("cli: offline directory audit parses local robots.txt blockedBots and llms.txt for Agent Skill playbooks", async () => {
+  const siteDir = mkdtempSync(join(tmpdir(), "oss-skill-site-"));
+  const outDir = mkdtempSync(join(tmpdir(), "oss-skill-out-"));
+  writeFileSync(
+    join(siteDir, "index.html"),
+    readFileSync(join(ROOT, "tests/fixtures/good.html"), "utf8"),
+    "utf8",
+  );
+  writeFileSync(
+    join(siteDir, "robots.txt"),
+    "User-agent: GPTBot\nDisallow: /\nUser-agent: ClaudeBot\nDisallow: /\n",
+    "utf8",
+  );
+  writeFileSync(
+    join(siteDir, "llms.txt"),
+    "# Example Site\n\n> Curated AI guide\n\n- [Home](https://example.com/)\n",
+    "utf8",
+  );
+
+  const r = await runCli([
+    "audit",
+    siteDir,
+    "--pages",
+    "1",
+    "--offline",
+    "--skills",
+    "llms-txt",
+    "--out",
+    outDir,
+  ]);
+  assert.equal(r.code, 0, r.stderr);
+  const report = JSON.parse(readFileSync(join(outDir, "report.json"), "utf8"));
+  const g02 = report.findings.find((/** @type {any} */ f) => f.id === "G02-ai-blocked");
+  assert.ok(g02, "G02-ai-blocked finding must be present");
+  assert.equal(g02.severity, "P1");
+  assert.equal(g02.evidence, "Disallow: / for gptbot, claudebot");
+  const g01 = report.findings.find((/** @type {any} */ f) => f.id === "G01-llms");
+  assert.ok(g01, "G01-llms finding must be present");
+  assert.equal(g01.severity, "pass");
+});

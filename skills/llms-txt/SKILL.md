@@ -18,7 +18,7 @@ Activate `llms-txt` when the user wants to:
 - **Target**: Live `http(s)` URL (for `one-step-seo llms <url>`) or local directory containing `llms.txt` and `robots.txt`.
 - **`/llms.txt` Quality Requirements (`G05-llms-quality`)**:
   - Must be non-empty plain text / Markdown served at `<origin>/llms.txt` with HTTP `200`.
-  - Must include at least one Markdown heading (`# Title` or `## Section`) **and** at least one Markdown link (`[Page Title](https://...)`) or URL.
+  - Must include at least one Markdown heading (`# Title` or `## Section`) or Markdown link (`[Page Title](https://...)`) to pass `G05-llms-quality` (best practice is to include both headings and curated Markdown links).
 
 ## 3. Step-by-Step Workflow
 
@@ -27,10 +27,10 @@ Activate `llms-txt` when the user wants to:
    - Inspect `llmsFound`, `llmsBytes`, `starter`, and `robotsSnippet`.
 2. **Audit existing `/llms.txt` structure (`G01-llms`, `G05-llms-quality`)**:
    - If `G01-llms` (`P2`) fires, `/llms.txt` returned 404 or was empty.
-   - If `G05-llms-quality` (`P3`) fires, `/llms.txt` exists but lacks Markdown headings (`#`) or links (`[title](url)`), making it harder for LLM agents to navigate.
+   - If `G05-llms-quality` (`P3`) fires, `/llms.txt` exists but lacks both Markdown headings (`#`) and Markdown links (`[title](https://...)`), making it harder for LLM agents to navigate.
 3. **Audit AI crawler rules in `/robots.txt` (`G02-ai-blocked`)**:
    - Run `npx one-step-seo page <url> --skills llms-txt --out ./seo-report`.
-   - If `G02-ai-blocked` (`P1`) fires, read the exact list of blocked user-agent tokens from the finding `evidence` (e.g., `robots.txt blocks AI crawler(s): gptbot, claudebot`).
+   - If `G02-ai-blocked` (`P1`) fires, read the exact list of blocked user-agent tokens from the finding `evidence` (e.g., `Disallow: / for gptbot, claudebot`).
 4. **Curate the `/llms.txt` draft**:
    - Refine the generated `starter` output by replacing placeholder descriptions with concise 1-sentence descriptions of the site's canonical documentation, product, and FAQ URLs.
 

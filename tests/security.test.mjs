@@ -589,3 +589,112 @@ test("hostile HTML in page details and site dashboard is strictly escaped", () =
   assert.ok(siteHtml.includes('tabindex="0" role="button" aria-sort="none"'));
   assert.ok(siteHtml.includes('role="status" aria-live="polite"'));
 });
+
+test("HTML reports verify attribute-context escaping, keyboard shortcuts, theme/executive toggles, print/PDF CSS, and 100% offline operation", () => {
+  const report = buildReport({
+    url: `https://example.com/path"onfocus="alert(1)'onclick='alert(2)`,
+    finalUrl: `https://example.com/path"onfocus="alert(1)'onclick='alert(2)`,
+    scores: { search: { score: 82, band: "B" }, ai: { score: 74, band: "C" } },
+    findings: [
+      {
+        id: "O01-title-short",
+        category: "onpage",
+        severity: "P1",
+        title: `Title with "double" and 'single' quotes & <tags>`,
+        evidence: `attr="breakout" 'single' </script><script>evil()</script>`,
+        fix: `Replace with <title>Clean & "Quoted" 'Title'</title>`,
+      },
+      {
+        id: "W01-social",
+        category: "social",
+        severity: "P3",
+        title: "Missing Twitter card",
+        evidence: "twitter:card absent",
+        fix: "Add twitter:card meta tag",
+      },
+    ],
+    parsed: {
+      title: `Hostile "Title" & 'Single' <script>evil()</script>`,
+      metaDescription: `Desc "with" 'quotes'`,
+      canonical: `https://example.com/canonical"onerror="alert(1)`,
+      h1s: [{ text: `H1 "quote" 'single'` }],
+      wordCount: 450,
+      internalLinkCount: 1,
+    },
+    siteFiles: siteFilesMock(),
+    meta: { version: "0.9.2" },
+    checkedAt: "2026-11-05T00:00:00.000Z",
+  });
+
+  const pageHtml = renderHtml(report, { indexHref: `index.html"onclick="evil()`, pageCount: 2 });
+  const siteHtml = renderSiteIndex([report]);
+
+  // 1. Single and double quote escaping in attribute contexts (data-search, data-copy, href, content, title)
+  assert.equal(esc(`"double" & 'single' <tag>`), `&quot;double&quot; &amp; &#39;single&#39; &lt;tag&gt;`);
+  assert.ok(
+    !pageHtml.includes(`"onfocus="alert(1)`),
+    "double-quote attribute breakout prevented in pageHtml",
+  );
+  assert.ok(
+    !pageHtml.includes(`'onclick='alert(2)`),
+    "single-quote attribute breakout prevented in pageHtml",
+  );
+  assert.ok(!pageHtml.includes(`"onclick="evil()`), "indexHref attribute breakout prevented");
+  assert.ok(
+    !siteHtml.includes(`"onfocus="alert(1)`),
+    "double-quote attribute breakout prevented in siteHtml",
+  );
+  assert.ok(!siteHtml.includes(`</script><script>evil()`), "script breakout prevented in findings");
+
+  // 2. Keyboard shortcuts (/ to focus search, Escape to clear and blur) in both page and site reports
+  for (const html of [pageHtml, siteHtml]) {
+    assert.match(html, /e\.key===['"]\/['"]/, "must bind '/' shortcut to focus search input");
+    assert.match(
+      html,
+      /e\.key===['"]Escape['"]/,
+      "must bind 'Escape' shortcut to clear and blur search input",
+    );
+    assert.match(html, /<kbd class="kbd-hint">\/<\/kbd>/, "must display keyboard shortcut hint");
+  }
+
+  // 3. Theme behavior (Auto -> Dark -> Light cycle, meta[name="color-scheme"] sync, localStorage cleanup on Auto)
+  for (const html of [pageHtml, siteHtml]) {
+    assert.match(html, /<meta name="color-scheme" content="light dark">/);
+    assert.match(html, /var modes=\['auto','dark','light'\];/);
+    assert.match(
+      html,
+      /localStorage\.removeItem\('oss-theme'\)/,
+      "returning to auto must remove stored override",
+    );
+    assert.match(
+      html,
+      /localStorage\.setItem\('oss-theme',m\)/,
+      "explicit theme override must persist in localStorage",
+    );
+    assert.match(
+      html,
+      /metaCs\.setAttribute\('content',m\)/,
+      "meta color-scheme must sync with theme toggle",
+    );
+  }
+
+  // 4. Executive mode behavior (page report)
+  assert.match(pageHtml, /id="exec-mode-btn"/);
+  assert.match(pageHtml, /document\.body\.classList\.toggle\('exec-mode'\)/);
+  assert.match(pageHtml, /body\.exec-mode \.tech-detail\{display:none!important\}/);
+
+  // 5. Print / PDF rendering rules (forces white background/dark text, reveals tech-detail even if exec-mode is active, hides interactive chrome)
+  for (const html of [pageHtml, siteHtml]) {
+    assert.match(html, /@media print\{\s*\.no-print,\.toc,\.masthead\{display:none!important\}/);
+    assert.match(html, /body\{background:#fff;color:#000\}/);
+  }
+  assert.match(pageHtml, /body\.exec-mode \.tech-detail\{display:block!important\}/);
+
+  // 6. 100% Offline operation (zero external stylesheets, scripts, images, fonts, or CSS url() calls)
+  for (const html of [pageHtml, siteHtml]) {
+    assert.doesNotMatch(html, /<script[^>]+src=/i, "must not load external scripts");
+    assert.doesNotMatch(html, /<link[^>]+href=/i, "must not load external stylesheets or fonts");
+    assert.doesNotMatch(html, /<img[^>]+src=["']https?:/i, "must not load external images");
+    assert.doesNotMatch(html, /url\(\s*["']?https?:/i, "CSS must not fetch remote assets");
+  }
+});

@@ -17,6 +17,7 @@ import {
   matchesSkillChecks,
 } from "../lib/skills.mjs";
 import { FINDING_META } from "../lib/finding-meta.mjs";
+import { THRESHOLDS } from "../lib/checks.mjs";
 import { validateSchema } from "../lib/schema.mjs";
 import { VALID_FORMATS, VALID_GENERATE, VALID_FAIL_ON, VALID_CRAWL, VALID_PROFILES } from "../lib/args.mjs";
 
@@ -355,4 +356,97 @@ test("Agent Skill contract validation: all 13 SKILL.md files reference canonical
       }
     }
   }
+});
+
+test("agent skill playbooks and SKILL_REGISTRY match exact severities and THRESHOLDS in lib/checks.mjs", () => {
+  const checksSrc = readFileSync(join(ROOT, "lib/checks.mjs"), "utf8");
+
+  // Extract all actionable severities emitted per check ID in lib/checks.mjs
+  /** @type {Map<string, Set<string>>} */
+  const checkSeverities = new Map();
+  const addSev = (/** @type {string} */ id, /** @type {string} */ sev) => {
+    if (!["P0", "P1", "P2", "P3"].includes(sev)) return;
+    if (!checkSeverities.has(id)) checkSeverities.set(id, new Set());
+    checkSeverities.get(id)?.add(sev);
+  };
+
+  for (const m of checksSrc.matchAll(
+    /\bF\(\s*["`']([A-Z]\d{2}-[a-z0-9-]*)["`']\s*,\s*["'][a-z]+["']\s*,\s*["'](P[0-3])["']/g,
+  )) {
+    if (m[1] && m[2]) addSev(m[1], m[2]);
+  }
+  for (const m of checksSrc.matchAll(
+    /id:\s*["`']([A-Z]\d{2}-[a-z0-9-]*)["`'][\s\S]{0,160}?severity:\s*["'](P[0-3])["']/g,
+  )) {
+    if (m[1] && m[2]) addSev(m[1], m[2]);
+  }
+  // Dynamic / profile-bumped severity checks in lib/checks.mjs
+  addSev("T13-mixed", "P1");
+  addSev("T13-mixed", "P2");
+  addSev("O10-internal", "P1");
+  addSev("C01-thin", "P1");
+  addSev("C04-faq", "P1");
+  addSev("C04-faq", "P2");
+  addSev("G01-llms", "P1");
+  addSev("G01-llms", "P2");
+  addSev("S02-", "P2");
+  addSev("P03-psi-lab", "P1");
+  addSev("P03-psi-lab", "P2");
+  addSev("P04-psi-field", "P1");
+  addSev("P04-psi-field", "P2");
+  addSev("P05-psi-error", "P3");
+
+  // 1. Every SKILL_REGISTRY entry's `severities` matches its checks in lib/checks.mjs
+  for (const skill of getSkills()) {
+    /** @type {Set<string>} */
+    const actualSevs = new Set();
+    for (const rule of skill.checks) {
+      for (const [cid, sevs] of checkSeverities.entries()) {
+        if (checkMatchesSkillRule(cid, rule)) {
+          for (const s of sevs) actualSevs.add(s);
+        }
+      }
+    }
+    for (const declared of skill.severities) {
+      assert.ok(
+        actualSevs.has(declared),
+        `skill "${skill.id}" declares severity ${declared}, but its checks (${skill.checks.join(", ")}) only emit [${[...actualSevs].join(", ")}]`,
+      );
+    }
+  }
+
+  // 2. Every explicit (`<ID>`, P0|P1|P2|P3) or `<ID>` P0|P1|P2|P3 claim in skills/*/SKILL.md matches lib/checks.mjs
+  for (const entry of getAgentSkills()) {
+    const content = readFileSync(join(ROOT, entry.path), "utf8");
+    const pairPatterns = [
+      /`([A-Z]\d{2}-[a-z0-9-]+)`\s*(?:\(\s*)?(P[0-3])/g,
+      /\(`([A-Z]\d{2}-[a-z0-9-]+)`,\s*(P[0-3])\)/g,
+    ];
+    for (const pat of pairPatterns) {
+      for (const m of content.matchAll(pat)) {
+        const cid = m[1] ?? "";
+        const sev = m[2] ?? "";
+        const allowed = checkSeverities.get(cid);
+        if (allowed) {
+          assert.ok(
+            allowed.has(sev),
+            `${entry.path} claims ${cid} is ${sev}, but lib/checks.mjs defines [${[...allowed].join(", ")}]`,
+          );
+        }
+      }
+    }
+  }
+
+  // 3. Verify calibrated THRESHOLDS constants in lib/checks.mjs match playbook documentation
+  assert.equal(THRESHOLDS.titleMin, 30);
+  assert.equal(THRESHOLDS.titleMax, 60);
+  assert.equal(THRESHOLDS.metaMin, 120);
+  assert.equal(THRESHOLDS.metaMax, 155);
+  assert.equal(THRESHOLDS.thinWords, 200);
+  assert.equal(THRESHOLDS.longWords, 3000);
+  assert.equal(THRESHOLDS.h2LongWords, 600);
+  assert.equal(THRESHOLDS.geoSubstantiveWords, 300);
+  assert.equal(THRESHOLDS.htmlBytesMax, 300_000);
+  assert.equal(THRESHOLDS.imgCountMax, 20);
+  assert.equal(THRESHOLDS.internalLinksMax, 200);
 });
