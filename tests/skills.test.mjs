@@ -23,9 +23,9 @@ import { VALID_FORMATS, VALID_GENERATE, VALID_FAIL_ON, VALID_CRAWL, VALID_PROFIL
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-test("skills registry has at least 14 comprehensive skills", () => {
+test("skills registry has at least 22 comprehensive skills", () => {
   const skills = getSkills();
-  assert.ok(skills.length >= 14, `expected >= 14 skills, got ${skills.length}`);
+  assert.ok(skills.length >= 22, `expected >= 22 skills, got ${skills.length}`);
   for (const skill of skills) {
     assert.ok(skill.id, "skill must have id");
     assert.ok(skill.name, "skill must have name");
@@ -46,9 +46,9 @@ test("skills registry has at least 14 comprehensive skills", () => {
   }
 });
 
-test("all 13 structured AGENT_SKILLS exist on disk with complete 9-section SKILL.md workflow", () => {
+test("all 24 structured AGENT_SKILLS exist on disk with complete 9-section SKILL.md workflow", () => {
   const agentSkills = getAgentSkills();
-  assert.equal(agentSkills.length, 13);
+  assert.equal(agentSkills.length, 24);
   assert.deepEqual(agentSkills, AGENT_SKILLS);
   const requiredSections = [
     "## 1. Description & Activation Criteria",
@@ -97,11 +97,21 @@ test("getSkill retrieves by case-insensitive id, alias, and handles misses", () 
   // Alias resolution
   assert.equal(getSkill("onpage-optimization")?.id, "onpage-seo");
   assert.equal(getSkill("schema-validation")?.id, "schema-structured-data");
-  assert.equal(getSkill("ecommerce-seo")?.id, "schema-structured-data");
+  assert.equal(getSkill("structured-data")?.id, "schema-structured-data");
   assert.equal(getSkill("geo-optimization")?.id, "geo-ai-search");
   assert.equal(getSkill("core-web-vitals")?.id, "performance-cwv");
-  assert.equal(getSkill("local-seo")?.id, "international-local");
+  assert.equal(getSkill("international-seo")?.id, "international-local");
+  assert.equal(getSkill("accessibility-seo")?.id, "accessibility-ux");
+  assert.equal(getSkill("security")?.id, "security-hygiene");
   assert.equal(getSkill("content-quality")?.id, "content-architecture");
+  assert.equal(getSkill("aeo")?.id, "answer-engine-optimization");
+  assert.equal(getSkill("eeat")?.id, "entity-optimization");
+  assert.equal(getSkill("js-seo")?.id, "javascript-seo");
+  assert.equal(getSkill("redirects")?.id, "http-status");
+  assert.equal(getSkill("open-graph")?.id, "social-metadata");
+  assert.equal(getSkill("images")?.id, "image-seo");
+  assert.equal(getSkill("ecommerce")?.id, "ecommerce-seo");
+  assert.equal(getSkill("local")?.id, "local-seo");
 
   // Focused skills
   assert.equal(getSkill("sitemap-robots")?.id, "sitemap-robots");
@@ -109,6 +119,14 @@ test("getSkill retrieves by case-insensitive id, alias, and handles misses", () 
   assert.equal(getSkill("duplicate-content")?.id, "duplicate-content");
   assert.equal(getSkill("llms-txt")?.id, "llms-txt");
   assert.equal(getSkill("seo-regression")?.id, "seo-regression");
+  assert.equal(getSkill("local-seo")?.id, "local-seo");
+  assert.equal(getSkill("ecommerce-seo")?.id, "ecommerce-seo");
+  assert.equal(getSkill("answer-engine-optimization")?.id, "answer-engine-optimization");
+  assert.equal(getSkill("entity-optimization")?.id, "entity-optimization");
+  assert.equal(getSkill("http-status")?.id, "http-status");
+  assert.equal(getSkill("javascript-seo")?.id, "javascript-seo");
+  assert.equal(getSkill("social-metadata")?.id, "social-metadata");
+  assert.equal(getSkill("image-seo")?.id, "image-seo");
 
   assert.equal(getSkill(""), undefined);
   assert.equal(getSkill("non-existent-skill"), undefined);
@@ -189,7 +207,7 @@ test("validateSchema enforces required properties for LocalBusiness, WebSite, Ho
   }
 });
 
-test("Agent Skill contract validation: all 13 SKILL.md files reference canonical report.json fields and valid CLI commands/flags/skills", () => {
+test("Agent Skill contract validation: all 24 SKILL.md files reference canonical report.json fields and valid CLI commands/flags/skills", () => {
   const schemaReport = JSON.parse(readFileSync(join(ROOT, "lib/schema-report.json"), "utf8"));
   const topLevelProps = new Set(Object.keys(schemaReport.properties));
   const pageProps = new Set(Object.keys(schemaReport.properties.page.properties));

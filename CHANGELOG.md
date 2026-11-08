@@ -4,6 +4,27 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/).
 
+## [0.9.3] - 2026-11-07
+
+### Added
+
+- **Full-Site Auto-Discovery & Consolidated All-Page Reporting (`bin/cli.mjs`, `lib/args.mjs`, `lib/report.mjs`, `lib/robots.mjs`).**
+  - Direct target shorthand: running `npx one-step-seo <url>` or `npx one-step-seo <dir>` automatically resolves as a full-site auto-discovery audit without requiring flags.
+  - Dedicated `one-step-seo site <url|dir>` subcommand and `--all` boolean flag (`--pages all` / `--pages max`) that upgrades crawl mode to `"auto"` and discovers all website pages up to `MAX_PAGES` (1,000 pages).
+  - Hybrid crawl mode (`--crawl auto`): combines declared sitemap URLs (`sitemap.xml`, fallback `sitemap_index.xml`) with recursive internal `<a href>` link discovery without artificial per-page link throttling.
+  - Consolidated `site-report.json` emitted for site-wide audits (`--all` / `site`), providing machine-readable site-wide summary scores, valid page counts, severity and category totals, recurring issues, duplicate titles, and page summaries.
+  - Interactive terminal mode (`npx one-step-seo` on TTY) now defaults to full-site auto-discovery and automatically opens `index.html` (falling back to `report.html`).
+- **11 New Agent Skill Playbooks (24 Total) across 7 Domains (`skills/*/SKILL.md`, `lib/skills.mjs`, `SKILL.md`, `README.md`, `docs/USAGE.md`).**
+  - Added production Agent Skill playbooks: `accessibility-seo`, `answer-engine-optimization`, `ecommerce-seo`, `entity-optimization`, `http-status`, `image-seo`, `international-seo`, `javascript-seo`, `local-seo`, `security-hygiene`, and `social-metadata`.
+  - Registered all new skills in `lib/skills.mjs` (`SKILL_REGISTRY`), fully tested against check IDs and severity levels.
+- **High-End Frontend Design System for HTML Reports & Multi-Page Dashboard (`lib/report.mjs`, `templates/report.html`, `examples/*`).**
+  - Modern glassmorphic aesthetic with comprehensive CSS custom property design system, smooth shadows, and refined typography.
+  - Interactive Theme switcher (System / Dark / Light) with persistent preference via `localStorage`.
+  - Executive Mode toggle to instantly filter out passed checks and technical noise for executive reviews.
+  - Interactive category and severity filter chips with live result counters and keyboard navigation.
+  - High-precision inline SVG circular score gauges with dynamic conic-gradient fills, calibrated for dark and light modes.
+  - 100% offline self-contained HTML (zero external CSS, fonts, or JavaScript dependencies).
+
 ## [0.9.2] - 2026-11-05
 
 ### Fixed

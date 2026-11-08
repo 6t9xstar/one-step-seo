@@ -4,17 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta name="text-scale" content="scale">
+<script data-theme-init>(function(){try{var s=localStorage.getItem('oss-theme');if(s==='dark'||s==='light'){document.documentElement.setAttribute('data-theme',s);var m=document.querySelector('meta[name="color-scheme"]');if(m)m.setAttribute('content',s);}}catch(e){}})();</script>
 <title>one-step-seo report &mdash; https://example.com/bad/</title>
 <meta name="description" content="Search SEO 0/100 (F) | AI Visibility 5/100 (F) — P0=0 P1=9 P2=11 P3=2.">
 <meta property="og:title" content="one-step-seo report &mdash; https://example.com/bad/">
 <meta property="og:description" content="Search SEO 0/100 (F) | AI Visibility 5/100 (F) — P0=0 P1=9 P2=11 P3=2.">
 <meta property="og:type" content="website">
 <style>
+@layer base, theme, layout, components, utilities;
+
+@layer theme {
 :root{
+  --font-sans:"Inter","Geist","Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-display:"Plus Jakarta Sans","Inter","Geist",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono","Geist Mono","Fira Code","Cascadia Code","SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --bg:#f8fafc;
   --fg:#0f172a;
   --muted:#475569;
   --card:#ffffff;
+  --surface-elevated:rgba(255,255,255,.86);
   --line:#e2e8f0;
   --line-subtle:#f1f5f9;
   --code:#f1f5f9;
@@ -31,11 +40,13 @@
   --accent-alt-subtle:rgba(124,58,237,.08);
   --accent-alt-border:rgba(124,58,237,.24);
   --accent-alt-glow:rgba(124,58,237,.22);
+  --mesh-a:rgba(37,99,235,.07);
+  --mesh-b:rgba(124,58,237,.06);
   --success:#059669;
   --success-border:rgba(5,150,105,.28);
-  --shadow-sm:0 1px 3px rgba(15,23,42,.05),0 1px 2px rgba(15,23,42,.03);
-  --shadow-md:0 6px 16px -3px rgba(15,23,42,.08),0 2px 6px -2px rgba(15,23,42,.04);
-  --shadow-lg:0 14px 30px -4px rgba(15,23,42,.12);
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04),0 2px 6px -1px rgba(15,23,42,.04);
+  --shadow-md:0 8px 20px -4px rgba(15,23,42,.08),0 2px 6px -2px rgba(15,23,42,.04);
+  --shadow-lg:0 16px 34px -6px rgba(15,23,42,.12);
   --radius-sm:6px;
   --radius-md:10px;
   --radius-lg:16px;
@@ -43,7 +54,10 @@
   --scrollbar-thumb:#94a3b8;
   --scrollbar-track:#f1f5f9;
   color-scheme:light dark;
+  accent-color:var(--accent);
+  scrollbar-width:thin;
   scrollbar-color:var(--scrollbar-thumb) var(--scrollbar-track);
+  interpolate-size:allow-keywords;
 }
 :root:has(> head > meta[name="color-scheme"][content="light"]){color-scheme:light}
 :root:has(> head > meta[name="color-scheme"][content="dark"]){color-scheme:dark}
@@ -53,6 +67,7 @@
     --fg:#f8fafc;
     --muted:#94a3b8;
     --card:#111726;
+    --surface-elevated:rgba(9,13,22,.86);
     --line:#1e293b;
     --line-subtle:#151d2e;
     --code:#172033;
@@ -69,11 +84,13 @@
     --accent-alt-subtle:rgba(139,92,246,.15);
     --accent-alt-border:rgba(139,92,246,.35);
     --accent-alt-glow:rgba(139,92,246,.3);
+    --mesh-a:rgba(59,130,246,.12);
+    --mesh-b:rgba(139,92,246,.1);
     --success:#10b981;
     --success-border:rgba(16,185,129,.35);
-    --shadow-sm:0 1px 3px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04);
-    --shadow-md:0 6px 18px -2px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);
-    --shadow-lg:0 16px 32px -4px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.04);
+    --shadow-md:0 8px 22px -2px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,255,255,.05);
+    --shadow-lg:0 18px 36px -4px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.06);
     --scrollbar-thumb:#475569;
     --scrollbar-track:#0f172a;
   }
@@ -83,6 +100,7 @@
   --fg:#f8fafc;
   --muted:#94a3b8;
   --card:#111726;
+  --surface-elevated:rgba(9,13,22,.86);
   --line:#1e293b;
   --line-subtle:#151d2e;
   --code:#172033;
@@ -99,11 +117,13 @@
   --accent-alt-subtle:rgba(139,92,246,.15);
   --accent-alt-border:rgba(139,92,246,.35);
   --accent-alt-glow:rgba(139,92,246,.3);
+  --mesh-a:rgba(59,130,246,.12);
+  --mesh-b:rgba(139,92,246,.1);
   --success:#10b981;
   --success-border:rgba(16,185,129,.35);
-  --shadow-sm:0 1px 3px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04);
-  --shadow-md:0 6px 18px -2px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);
-  --shadow-lg:0 16px 32px -4px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.04);
+  --shadow-md:0 8px 22px -2px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,255,255,.05);
+  --shadow-lg:0 18px 36px -4px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.06);
   --scrollbar-thumb:#475569;
   --scrollbar-track:#0f172a;
 }
@@ -113,10 +133,13 @@
     --fg:light-dark(#0f172a,#f8fafc);
     --muted:light-dark(#475569,#94a3b8);
     --card:light-dark(#ffffff,#111726);
+    --surface-elevated:light-dark(rgba(248,250,252,.88),rgba(9,13,22,.88));
     --line:light-dark(#e2e8f0,#1e293b);
     --line-subtle:light-dark(#f1f5f9,#151d2e);
     --code:light-dark(#f1f5f9,#172033);
     --code-fg:light-dark(#0f172a,#e2e8f0);
+    --scrollbar-thumb:light-dark(#94a3b8,#475569);
+    --scrollbar-track:light-dark(#f1f5f9,#0f172a);
   }
 }
 @supports not (scrollbar-color:auto){
@@ -124,171 +147,221 @@
   ::-webkit-scrollbar-track{background:var(--scrollbar-track)}
   ::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:5px}
 }
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:76px}
-body{margin:0;background:var(--bg);color:var(--fg);line-height:1.55;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
-body.exec-mode .tech-detail{display:none!important}
-.wrap{max-width:1200px;margin:0 auto;padding:0 20px 64px}
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.skip{position:absolute;left:-9999px;top:0;z-index:100;background:var(--accent);color:var(--accent-fg);padding:10px 18px;font-weight:700;border-radius:0 0 8px 0;text-decoration:none}
-.skip:focus{left:0;top:0}
+}
+
+@layer base {
+:where(html,body,div,header,main,section,article,footer,nav,ul,ol,li,dl,dt,dd,table,thead,tbody,tr,th,td,label,input,select,button,details,summary,pre,code,h1,h2,h3,h4,p){box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-block-start:4.75rem}
+body{margin:0;background-color:var(--bg);background-image:radial-gradient(54rem 26rem at 12% -5%,var(--mesh-a),transparent 70%),radial-gradient(46rem 24rem at 88% -4%,var(--mesh-b),transparent 70%);background-repeat:no-repeat;color:var(--fg);line-height:1.55;font-family:var(--font-sans);font-feature-settings:"cv02","cv03","cv04","cv11";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+::selection{background:var(--accent-subtle);color:var(--fg)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;background:var(--code);color:var(--code-fg);padding:2px 6px;border-radius:var(--radius-sm)}
-pre{background:var(--code);color:var(--code-fg);padding:14px;border-radius:var(--radius-md);overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:10px 0 0;font-size:12.5px;border:1px solid var(--line)}
-pre code{background:none;padding:0}
+code{font-family:var(--font-mono);font-size:.875em;background:var(--code);color:var(--code-fg);padding:.125rem .375rem;border-radius:var(--radius-sm)}
+pre{font-family:var(--font-mono);background:var(--code);color:var(--code-fg);padding:.875rem 1rem;border-radius:var(--radius-md);overflow-x:auto;white-space:pre-wrap;word-break:break-word;margin:.625rem 0 0;font-size:.78rem;line-height:1.55;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:inherit}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance}
+p,li,dd{text-wrap:pretty}
+.ico{flex:none;vertical-align:-.15em}
+}
+
+@layer layout {
+.wrap{max-width:75rem;margin-inline:auto;padding:0 1.25rem 4rem}
+.masthead{position:sticky;inset-block-start:0;z-index:50;background:var(--surface-elevated);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border-block-end:1px solid var(--line);box-shadow:0 1px 0 rgba(255,255,255,.04)}
+.masthead-in{max-width:75rem;margin-inline:auto;padding:.625rem 1.25rem;display:flex;gap:.875rem;align-items:center;flex-wrap:wrap}
+.hero{padding:1.85rem 0 .5rem}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-block-end:.5rem}
+.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,16.5rem),1fr));gap:1rem;margin:1.375rem 0}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,16.5rem),1fr));gap:.875rem}
+.cards{display:grid;gap:.875rem;grid-template-columns:repeat(auto-fill,minmax(min(100%,21rem),1fr))}
+section{margin:2.125rem 0;scroll-margin-block-start:5rem}
+footer.foot{margin-block-start:3rem;padding-block-start:1.25rem;border-block-start:1px solid var(--line);font-size:.75rem;color:var(--muted);display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap}
+footer.foot a{color:var(--accent);text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:.25rem}
+footer.foot a:hover{text-decoration:underline}
+}
+
+@layer components {
+.skip{position:absolute;inset-inline-start:-9999px;inset-block-start:0;z-index:100;background:var(--accent);color:var(--accent-fg);padding:.625rem 1.125rem;font-weight:700;border-radius:0 0 8px 0;text-decoration:none}
+.skip:focus{inset-inline-start:0;inset-block-start:0}
 .empty{color:var(--muted);font-style:italic}
 
-.masthead{position:sticky;top:0;z-index:50;background:rgba(248,250,252,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--line);transition:border-color .15s}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .masthead{background:rgba(9,13,22,.88)}}
-:root[data-theme="dark"] .masthead{background:rgba(9,13,22,.88)}
-.masthead-in{max-width:1200px;margin:0 auto;padding:10px 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.brand{font-weight:800;font-size:15px;letter-spacing:-.02em;white-space:nowrap;display:flex;align-items:center;gap:9px}
+.brand{font-family:var(--font-display);font-weight:800;font-size:.95rem;letter-spacing:-.02em;white-space:nowrap;display:flex;align-items:center;gap:.55rem}
 .brand-logo{flex:none}
-.brand span{font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);background:var(--accent-subtle);border:1px solid var(--accent-border);padding:2.5px 8px;border-radius:var(--radius-full)}
-.toolbar{display:flex;gap:8px;align-items:center;flex:1;flex-wrap:wrap;min-width:0}
-.search{flex:1;min-width:190px;position:relative;display:flex;align-items:center}
-.search input{width:100%;font:inherit;font-size:13.5px;padding:7px 36px 7px 32px;border-radius:var(--radius-md);border:1px solid var(--line);background:var(--bg);color:var(--fg);transition:border-color .15s ease,box-shadow .15s ease}
+.brand span{font-family:var(--font-sans);font-size:.68rem;font-weight:750;text-transform:uppercase;letter-spacing:.055em;color:var(--accent);background:var(--accent-subtle);border:1px solid var(--accent-border);padding:.16rem .5rem;border-radius:var(--radius-full)}
+.toolbar{display:flex;gap:.5rem;align-items:center;flex:1;flex-wrap:wrap;min-width:0}
+.search{flex:1;min-width:12rem;position:relative;display:flex;align-items:center}
+.search input{width:100%;font:inherit;font-size:.84rem;padding:.45rem 2.25rem .45rem 2rem;border-radius:var(--radius-md);border:1px solid var(--line);background:var(--bg);color:var(--fg);transition:border-color .15s ease,box-shadow .15s ease,background-color .15s ease}
 .search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-subtle);background:var(--card)}
-.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.5;pointer-events:none;transition:opacity .15s,color .15s}
-.search input:focus ~ svg,.search:focus-within svg{opacity:1;color:var(--accent)}
-.kbd-hint{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;font-weight:700;padding:1.5px 6px;border-radius:4px;background:var(--card);border:1px solid var(--line);color:var(--muted);pointer-events:none}
-.cat-select{font:inherit;font-size:12px;font-weight:700;padding:6px 10px;border-radius:var(--radius-md);border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
-.cat-select:hover{border-color:var(--accent)}
-.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.chip{font:inherit;font-size:12px;font-weight:700;padding:6px 11px;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:border-color .15s ease,background-color .15s ease,color .15s ease}
-.chip:hover{border-color:var(--accent);color:var(--fg);background:var(--bg)}
+.search svg{position:absolute;inset-inline-start:.625rem;inset-block-start:50%;transform:translateY(-50%);opacity:.55;pointer-events:none;transition:opacity .15s,color .15s}
+.search:focus-within svg{opacity:1;color:var(--accent)}
+.kbd-hint{position:absolute;inset-inline-end:.625rem;inset-block-start:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:.66rem;font-weight:700;padding:.1rem .38rem;border-radius:4px;background:var(--card);border:1px solid var(--line);color:var(--muted);pointer-events:none}
+.cat-select{font:inherit;font-size:.75rem;font-weight:700;padding:.4rem .65rem;border-radius:var(--radius-md);border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;transition:border-color .15s ease}
+.cat-select:hover:not(:disabled){border-color:var(--accent)}
+.chips{display:flex;gap:.375rem;flex-wrap:wrap;align-items:center}
+.chip{font:inherit;font-size:.75rem;font-weight:700;padding:.38rem .7rem;border-radius:var(--radius-full);border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:.375rem;transition:border-color .15s ease,background-color .15s ease,color .15s ease,box-shadow .15s ease}
+.chip:hover:not(:disabled){border-color:var(--accent);color:var(--fg);background:var(--bg)}
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);box-shadow:0 2px 8px var(--accent-glow)}
-.chip .n{font-size:11px;font-weight:600;opacity:.85;padding:1px 6px;border-radius:var(--radius-full);background:rgba(0,0,0,.15)}
+.chip .n{font-size:.68rem;font-weight:700;font-variant-numeric:tabular-nums;opacity:.9;padding:.06rem .38rem;border-radius:var(--radius-full);background:rgba(0,0,0,.16)}
 .chip[aria-pressed="false"] .n{background:var(--code);color:var(--fg)}
-.print-btn,.mode-btn{font-size:11.5px;padding:5px 11px;color:var(--muted)}
-.print-btn:hover,.mode-btn:hover{color:var(--fg);border-color:var(--accent)}
-.result-count{font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:600}
+.print-btn,.mode-btn{font-size:.72rem;padding:.34rem .68rem;color:var(--muted)}
+.print-btn:hover:not(:disabled),.mode-btn:hover:not(:disabled){color:var(--fg);border-color:var(--accent)}
+.result-count{font-size:.75rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:650}
 
-.hero{padding:28px 0 6px}
-.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
-h1{font-size:26px;font-weight:850;margin:0;letter-spacing:-.025em}
-.status-pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:4px 12px;border-radius:var(--radius-full);border:1px solid hsl(var(--hue) 65% 78%);background:hsl(var(--hue) 70% 93%);color:hsl(var(--hue) 70% 26%)}
+h1{font-size:clamp(1.5rem,1.25rem + 1vw,1.95rem);font-weight:850;margin:0;letter-spacing:-.028em;line-height:1.2}
+.status-pill{display:inline-flex;align-items:center;gap:.375rem;font-size:.72rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:.28rem .78rem;border-radius:var(--radius-full);border:1px solid hsl(var(--hue) 65% 78%);background:hsl(var(--hue) 70% 93%);color:hsl(var(--hue) 70% 25%)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .status-pill{color:hsl(var(--hue) 78% 84%);background:hsl(var(--hue) 45% 18%);border-color:hsl(var(--hue) 50% 32%)}}
 :root[data-theme="dark"] .status-pill{color:hsl(var(--hue) 78% 84%);background:hsl(var(--hue) 45% 18%);border-color:hsl(var(--hue) 50% 32%)}
-.url{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);word-break:break-all;margin:0;line-height:1.55}
-.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:22px 0}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:20px 22px;box-shadow:var(--shadow-sm);transition:box-shadow .18s cubic-bezier(.16,1,.3,1),border-color .18s ease}
-.panel:hover{box-shadow:var(--shadow-md)}
-.gauge-panel{display:flex;gap:18px;align-items:center}
-.gauge-panel.search-engine{border-top:3px solid var(--accent)}
-.gauge-panel.ai-engine{border-top:3px solid var(--accent-alt)}
+.url{font-family:var(--font-mono);font-size:.76rem;color:var(--muted);word-break:break-all;margin:0;line-height:1.6}
+
+.panel{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:1.25rem 1.375rem;box-shadow:var(--shadow-sm);transition:box-shadow .2s cubic-bezier(.16,1,.3,1),border-color .2s ease,transform .2s cubic-bezier(.16,1,.3,1)}
+.panel:hover{box-shadow:var(--shadow-md);border-color:var(--accent-border)}
+.gauge-panel{display:flex;gap:1.125rem;align-items:center;overflow:hidden}
+.gauge-panel.search-engine{border-block-start:3px solid var(--accent)}
+.gauge-panel.ai-engine{border-block-start:3px solid var(--accent-alt)}
+.gauge-panel.ai-engine:hover{border-color:var(--accent-alt-border);border-block-start-color:var(--accent-alt)}
 .gauge{position:relative;flex:none;color:var(--muted)}
 .gauge svg{display:block}
-.gauge-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;gap:3px}
-.gauge-score{font-size:25px;font-weight:850;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-.gauge-band{font-size:11px;font-weight:800;letter-spacing:.05em;padding:1.5px 7px;border-radius:var(--radius-full);color:hsl(var(--hue) 65% 32%);background:hsl(var(--hue) 70% 92%)}
+@keyframes oss-gauge-in{from{opacity:.25;transform:rotate(-98deg)}to{opacity:1;transform:rotate(-90deg)}}
+@media (prefers-reduced-motion:no-preference){
+  .gauge-fill{transform-origin:40px 40px;animation:oss-gauge-in .55s cubic-bezier(.16,1,.3,1)}
+}
+.gauge-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;gap:.2rem}
+.gauge-score{font-family:var(--font-display);font-size:1.55rem;font-weight:850;letter-spacing:-.035em;font-variant-numeric:tabular-nums;color:var(--fg)}
+.gauge-band{font-size:.68rem;font-weight:800;letter-spacing:.05em;padding:.12rem .45rem;border-radius:var(--radius-full);color:hsl(var(--hue) 65% 30%);background:hsl(var(--hue) 70% 92%)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .gauge-band{color:hsl(var(--hue) 75% 82%);background:hsl(var(--hue) 45% 20%)}}
 :root[data-theme="dark"] .gauge-band{color:hsl(var(--hue) 75% 82%);background:hsl(var(--hue) 45% 20%)}
-.axis{font-weight:750;font-size:15px;letter-spacing:-.01em}
-.axis-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
-.dist-title{font-weight:750;font-size:14.5px;margin-bottom:12px;letter-spacing:-.01em}
-.dist-stacked{display:flex;height:8px;border-radius:var(--radius-full);overflow:hidden;background:var(--code);margin-bottom:12px;gap:2px}
+.axis{display:flex;align-items:center;gap:.4rem;font-family:var(--font-display);font-weight:750;font-size:.95rem;letter-spacing:-.012em}
+.axis .ico{color:var(--accent)}
+.ai-engine .axis .ico{color:var(--accent-alt)}
+.axis-sub{font-size:.76rem;color:var(--muted);margin-block-start:.25rem;line-height:1.48}
+.dist-title{display:flex;align-items:center;gap:.45rem;font-family:var(--font-display);font-weight:750;font-size:.92rem;margin-block-end:.75rem;letter-spacing:-.01em}
+.dist-title .ico{color:var(--accent)}
+.dist-stacked{display:flex;height:.5rem;border-radius:var(--radius-full);overflow:hidden;background:var(--code);margin-block-end:.75rem;gap:2px}
 .dist-seg{display:block;height:100%;background:hsl(var(--hue) 70% 48%);border-radius:var(--radius-full);transition:width .3s ease}
-.dist-row{display:grid;grid-template-columns:36px 1fr 32px;gap:10px;align-items:center;margin:6px 0;font-size:12px}
+.dist-row{display:grid;grid-template-columns:2.25rem 1fr 2rem;gap:.625rem;align-items:center;margin:.375rem 0;font-size:.75rem}
 .dist-label{font-weight:750;color:var(--muted)}
-.dist-track{height:8px;border-radius:var(--radius-full);background:var(--code);overflow:hidden}
+.dist-track{height:.5rem;border-radius:var(--radius-full);background:var(--code);overflow:hidden}
 .dist-fill{display:block;height:100%;border-radius:var(--radius-full);background:hsl(var(--hue) 70% 48%)}
-.dist-count{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--fg)}
+.dist-count{text-align:end;font-weight:700;font-variant-numeric:tabular-nums;color:var(--fg)}
 
-.toc{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 8px;padding:0;list-style:none}
-.toc a{font-size:12.5px;font-weight:700;text-decoration:none;color:var(--muted);padding:6px 13px;border:1px solid var(--line);border-radius:var(--radius-full);background:var(--card);transition:all .15s ease}
-.toc a:hover{color:var(--fg);border-color:var(--accent);background:var(--accent-subtle)}
+.toc{display:flex;gap:.5rem;flex-wrap:wrap;margin:1.25rem 0 .5rem;padding:0;list-style:none}
+.toc a{font-size:.78rem;font-weight:700;text-decoration:none;color:var(--muted);padding:.38rem .82rem;border:1px solid var(--line);border-radius:var(--radius-full);background:var(--card);transition:color .15s ease,border-color .15s ease,background-color .15s ease,transform .15s ease}
+.toc a:hover{color:var(--fg);border-color:var(--accent);background:var(--accent-subtle);transform:translateY(-1px)}
 
-section{margin:34px 0;scroll-margin-top:80px}
-h2{font-size:19px;font-weight:800;margin:0 0 14px;letter-spacing:-.015em;padding-bottom:10px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:baseline;justify-content:space-between}
-h2 .n{font-size:12.5px;color:var(--muted);font-weight:650;font-variant-numeric:tabular-nums}
-.lede{color:var(--muted);margin:0 0 16px;font-size:14px;line-height:1.5}
+h2{font-size:1.18rem;font-weight:800;margin:0 0 .875rem;letter-spacing:-.018em;padding-block-end:.625rem;border-block-end:1px solid var(--line);display:flex;gap:.625rem;align-items:baseline;justify-content:space-between}
+h2 .n{font-family:var(--font-mono);font-size:.76rem;color:var(--muted);font-weight:650;font-variant-numeric:tabular-nums;background:var(--code);padding:.12rem .55rem;border-radius:var(--radius-full);border:1px solid var(--line-subtle)}
+.lede{color:var(--muted);margin:0 0 1rem;font-size:.88rem;line-height:1.55}
 
-.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
-.detail-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--shadow-sm)}
-.detail-card h3{margin:0 0 10px;font-size:13.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-.kv-list{margin:0;padding:0;display:grid;gap:8px;font-size:13px}
-.kv-row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed var(--line-subtle);padding-bottom:6px}
-.kv-row:last-child{border-bottom:none;padding-bottom:0}
+.detail-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:1rem 1.125rem;box-shadow:var(--shadow-sm)}
+.detail-card h3{display:flex;align-items:center;gap:.45rem;margin:0 0 .65rem;font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.045em;color:var(--muted)}
+.detail-card h3 .ico{color:var(--accent)}
+.kv-list{margin:0;padding:0;display:grid;gap:.5rem;font-size:.82rem}
+.kv-row{display:flex;justify-content:space-between;gap:.75rem;padding-block-end:.38rem}
+.kv-row:not(:last-child){border-block-end:1px dashed var(--line-subtle)}
+.kv-row:last-child{padding-block-end:0}
 .kv-row dt{color:var(--muted);font-weight:600}
-.kv-row dd{margin:0;font-weight:700;text-align:right;word-break:break-word}
+.kv-row dd{margin:0;font-weight:700;text-align:end;word-break:break-word;font-variant-numeric:tabular-nums}
+.kv-row dd a{color:var(--accent);text-decoration:none}
+.kv-row dd a:hover{text-decoration:underline}
 
-.topfix{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:tf}
-.topfix li{counter-increment:tf;position:relative;background:var(--card);border:1px solid var(--line);border-left:4px solid hsl(var(--hue) 68% 46%);border-radius:var(--radius-md);padding:16px 18px 16px 56px;box-shadow:var(--shadow-sm);transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease}
+.topfix{list-style:none;margin:0;padding:0;display:grid;gap:.75rem;counter-reset:tf}
+.topfix li{counter-increment:tf;position:relative;background:var(--card);border:1px solid var(--line);border-inline-start:4px solid hsl(var(--hue) 68% 46%);border-radius:var(--radius-md);padding:1rem 1.125rem 1rem 3.5rem;box-shadow:var(--shadow-sm);transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease}
 .topfix li:hover{border-color:var(--accent);transform:translateX(3px);box-shadow:var(--shadow-md)}
-.topfix li::before{content:counter(tf);position:absolute;left:18px;top:16px;width:26px;height:26px;border-radius:var(--radius-full);background:var(--accent);color:var(--accent-fg);font-size:12.5px;font-weight:800;display:grid;place-items:center;box-shadow:0 2px 6px var(--accent-glow)}
-.topfix-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px}
-.topfix-main{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
-.topfix-stat{display:inline-flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);font-weight:600}
+.topfix li::before{content:counter(tf);position:absolute;inset-inline-start:1.125rem;inset-block-start:1rem;width:1.625rem;height:1.625rem;border-radius:var(--radius-full);background:var(--accent);color:var(--accent-fg);font-size:.78rem;font-weight:800;display:grid;place-items:center;box-shadow:0 2px 6px var(--accent-glow)}
+.topfix-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-block-end:.38rem}
+.topfix-main{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem}
+.topfix-stat{display:inline-flex;align-items:center;gap:.625rem;font-size:.75rem;color:var(--muted);font-weight:600}
 .topfix-count{white-space:nowrap;font-variant-numeric:tabular-nums}
-.topfix li .finding-plain{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
+.topfix li .finding-plain{margin:0;font-size:.82rem;color:var(--muted);line-height:1.5}
 
-.badge{display:inline-flex;align-items:center;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:var(--radius-sm);color:hsl(var(--hue) 68% 27%);background:hsl(var(--hue) 70% 92%);vertical-align:1px;white-space:nowrap;border:1px solid hsl(var(--hue) 65% 82%)}
+.badge{display:inline-flex;align-items:center;gap:.28rem;font-size:.66rem;font-weight:800;letter-spacing:.055em;text-transform:uppercase;padding:.14rem .5rem;border-radius:var(--radius-sm);color:hsl(var(--hue) 68% 26%);background:hsl(var(--hue) 70% 92%);vertical-align:1px;white-space:nowrap;border:1px solid hsl(var(--hue) 65% 82%)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .badge{color:hsl(var(--hue) 78% 82%);background:hsl(var(--hue) 45% 20%);border-color:hsl(var(--hue) 50% 30%)}}
 :root[data-theme="dark"] .badge{color:hsl(var(--hue) 78% 82%);background:hsl(var(--hue) 45% 20%);border-color:hsl(var(--hue) 50% 30%)}
 
-.group h3{display:flex;align-items:center;gap:9px;font-size:15px;margin:26px 0 14px;color:var(--fg);font-weight:750;letter-spacing:-.01em}
-.group-count{font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--radius-full);background:var(--code);color:var(--muted)}
-.cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
-.finding{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-sm);transition:border-color .18s ease,transform .18s cubic-bezier(.16,1,.3,1),box-shadow .18s cubic-bezier(.16,1,.3,1)}
-.finding:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.group h3{display:flex;align-items:center;gap:.55rem;font-size:.95rem;margin:1.625rem 0 .875rem;color:var(--fg);font-weight:750;letter-spacing:-.01em}
+.group h3 .ico{color:var(--accent)}
+.group-count{font-family:var(--font-mono);font-size:.69rem;font-weight:700;padding:.12rem .5rem;border-radius:var(--radius-full);background:var(--code);color:var(--muted);font-variant-numeric:tabular-nums}
+
+.finding{container-type:inline-size;background:var(--card);border:1px solid var(--line);border-inline-start:3px solid hsl(var(--sev-hue,215) 68% 48%);border-radius:var(--radius-lg);padding:1.125rem 1.25rem;display:flex;flex-direction:column;gap:.75rem;box-shadow:var(--shadow-sm);transition:border-color .18s ease,transform .18s cubic-bezier(.16,1,.3,1),box-shadow .18s cubic-bezier(.16,1,.3,1)}
+.finding:hover{border-color:var(--accent);border-inline-start-color:hsl(var(--sev-hue,215) 72% 50%);transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .finding[hidden]{display:none}
-.finding-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.finding-head h4{font-size:14.5px;font-weight:750;margin:0;flex:1;min-width:200px;line-height:1.4;letter-spacing:-.015em}
-.finding-cat{display:inline-flex;align-items:center;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:2px 7px;background:var(--code);border-radius:var(--radius-sm);border:1px solid var(--line-subtle)}
-.finding-plain{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
-.finding-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0;padding:10px 12px;background:var(--code);border:1px solid var(--line-subtle);border-radius:var(--radius-md);font-size:11.5px}
-.finding-meta dt{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:750}
-.finding-meta dd{margin:2px 0 0;font-weight:750;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.finding-meta code{font-size:11px;padding:0;background:none}
-.finding-row{margin:0;font-size:13px;line-height:1.5}
-.finding-row strong{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px}
+.finding-head{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap}
+.finding-head h4{font-size:.92rem;font-weight:750;margin:0;flex:1;min-width:12rem;line-height:1.4;letter-spacing:-.015em}
+.finding-cat{display:inline-flex;align-items:center;gap:.28rem;font-size:.64rem;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:.14rem .45rem;background:var(--code);border-radius:var(--radius-sm);border:1px solid var(--line-subtle)}
+.finding-plain{margin:0;font-size:.82rem;color:var(--muted);line-height:1.5}
+.finding-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin:0;padding:.625rem .75rem;background:var(--code);border:1px solid var(--line-subtle);border-radius:var(--radius-md);font-size:.72rem}
+@container (width < 22rem){
+  .finding-meta{grid-template-columns:repeat(2,1fr)}
+}
+.finding-meta dt{font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:750}
+.finding-meta dd{margin:.12rem 0 0;font-weight:750;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.finding-meta code{font-size:.69rem;padding:0;background:none}
+.finding-row{margin:0;font-size:.82rem;line-height:1.5}
+.finding-row strong{display:block;font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-block-end:.18rem}
 .finding-row span{word-break:break-word}
-.finding-foot{display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
-button.copy-fix{font:inherit;font-size:12px;font-weight:700;padding:6px 14px;border-radius:var(--radius-md);border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s ease}
-button.copy-fix:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-subtle);box-shadow:0 0 0 2px var(--accent-subtle)}
-.copied{font-size:12px;color:var(--success);font-weight:750;display:inline-flex;align-items:center;gap:4px}
-details.snippet summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--accent)}
+.finding-foot{display:flex;align-items:center;gap:.625rem;margin-block-start:auto;padding-block-start:.625rem;border-block-start:1px solid var(--line)}
+button.copy-fix{font:inherit;font-size:.75rem;font-weight:700;padding:.38rem .85rem;border-radius:var(--radius-md);border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;display:inline-flex;align-items:center;gap:.38rem;transition:border-color .15s ease,color .15s ease,background-color .15s ease,box-shadow .15s ease}
+button.copy-fix:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:var(--accent-subtle);box-shadow:0 0 0 2px var(--accent-subtle)}
+.copied{font-size:.75rem;color:var(--success);font-weight:750;display:inline-flex;align-items:center;gap:.25rem}
+details.snippet summary{cursor:pointer;font-size:.75rem;font-weight:700;color:var(--accent);user-select:none}
+details::details-content{transition:block-size .24s ease,content-visibility .24s allow-discrete;overflow:hidden}
+details:not([open])::details-content{block-size:0}
+details[open]::details-content{block-size:auto}
 summary::marker{color:var(--muted)}
-.none-msg{grid-column:1/-1;color:var(--muted);font-style:italic;padding:24px;text-align:center;background:var(--card);border:1px dashed var(--line);border-radius:var(--radius-lg)}
+.none-msg{grid-column:1/-1;color:var(--muted);font-style:italic;padding:1.5rem;text-align:center;background:var(--card);border:1px dashed var(--line);border-radius:var(--radius-lg)}
 
-#summary{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:var(--radius-lg);padding:22px 24px;box-shadow:var(--shadow-sm)}
-#summary h2{border-bottom:none;padding-bottom:0;margin-bottom:10px}
-#summary .lede{margin-bottom:16px;font-size:14.5px}
-#copy-summary{font:inherit;font-size:12.5px;font-weight:700;padding:7px 16px;border-radius:var(--radius-full);border:1px solid var(--accent-border);background:var(--accent-subtle);color:var(--accent);cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;gap:6px}
-#copy-summary:hover{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);box-shadow:0 2px 10px var(--accent-glow)}
+#summary{background:var(--card);border:1px solid var(--line);border-inline-start:4px solid var(--accent);border-radius:var(--radius-lg);padding:1.375rem 1.5rem;box-shadow:var(--shadow-sm)}
+#summary h2{border-block-end:none;padding-block-end:0;margin-block-end:.625rem}
+#summary .lede{margin-block-end:1rem;font-size:.92rem}
+#copy-summary{font:inherit;font-size:.78rem;font-weight:700;padding:.44rem 1rem;border-radius:var(--radius-full);border:1px solid var(--accent-border);background:var(--accent-subtle);color:var(--accent);cursor:pointer;transition:background-color .15s ease,color .15s ease,border-color .15s ease,box-shadow .15s ease;display:inline-flex;align-items:center;gap:.4rem}
+#copy-summary:hover:not(:disabled){background:var(--accent);color:var(--accent-fg);border-color:var(--accent);box-shadow:0 2px 10px var(--accent-glow)}
 
-.checklist{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:9px}
-.checklist li{display:flex;gap:12px;align-items:center;font-size:13.5px;padding:10px 15px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);transition:border-color .15s ease}
-.checklist .box{font-weight:800;flex:none;width:1.2em;text-align:center}
+.checklist{list-style:none;margin:0 0 1.125rem;padding:0;display:grid;gap:.55rem}
+.checklist li{display:flex;gap:.75rem;align-items:center;font-size:.84rem;padding:.65rem .95rem;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);transition:border-color .15s ease}
+.checklist .box{font-weight:800;flex:none;display:inline-flex;align-items:center;justify-content:center}
 .checklist li[data-checked="yes"]{border-color:var(--success-border)}
 .checklist li[data-checked="yes"] .box{color:var(--success)}
 .checklist li[data-checked="no"]{border-style:dashed}
 .checklist li[data-checked="no"] .box{color:var(--muted)}
-.progress{height:9px;border-radius:var(--radius-full);background:var(--code);overflow:hidden;margin:0 0 18px;max-width:440px}
+.progress{height:.56rem;border-radius:var(--radius-full);background:var(--code);overflow:hidden;margin:0 0 1.125rem;max-width:28rem}
 .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-alt));border-radius:var(--radius-full);transition:width .4s ease}
 
-.cwv-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);margin-bottom:14px}
-.cwv-card h4{margin:0 0 12px;font-size:15px;font-weight:750;letter-spacing:-.015em}
-.cmd-box{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--code);border:1px solid var(--line);border-radius:var(--radius-md);padding:10px 14px;margin:8px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;overflow-x:auto}
+.cwv-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:1.125rem 1.25rem;box-shadow:var(--shadow-sm);margin-block-end:.875rem}
+.cwv-card h4{display:flex;align-items:center;gap:.45rem;margin:0 0 .75rem;font-size:.95rem;font-weight:750;letter-spacing:-.015em}
+.cwv-card h4 .ico{color:var(--accent)}
+.cmd-box{display:flex;align-items:center;justify-content:space-between;gap:.75rem;background:var(--code);border:1px solid var(--line);border-radius:var(--radius-md);padding:.625rem .875rem;margin:.5rem 0;font-family:var(--font-mono);font-size:.78rem;overflow-x:auto}
 
-details.passed summary{cursor:pointer;font-weight:700;font-size:13.5px;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
-details.passed ul{margin:12px 0 0;padding-left:24px;font-size:12.5px;columns:2;column-gap:30px}
-details.passed li{break-inside:avoid;margin:3.5px 0}
+details.passed summary{cursor:pointer;font-weight:700;font-size:.84rem;padding:.75rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);user-select:none}
+details.passed ul{margin:.75rem 0 0;padding-inline-start:1.5rem;font-size:.78rem;columns:2;column-gap:1.875rem}
+details.passed li{break-inside:avoid;margin:.25rem 0}
 
-.warn{border:1px solid #d97706;background:rgba(217,119,6,.1);border-radius:var(--radius-md);padding:12px 16px;font-size:13px}
-footer.foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
-footer.foot a{color:var(--accent);text-decoration:none;font-weight:600}
-footer.foot a:hover{text-decoration:underline}
+.warn{border:1px solid #d97706;background:rgba(217,119,6,.1);border-radius:var(--radius-md);padding:.75rem 1rem;font-size:.82rem}
+.crumbs{font-size:.82rem;margin:0 0 1rem}
+.crumbs a{color:var(--accent);text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:.35rem}
+.crumbs a:hover{text-decoration:underline}
+}
 
-@media (max-width:760px){
+@layer utilities {
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+body.exec-mode .tech-detail{display:none!important}
+@media (max-width:48em){
   .cards,.detail-grid{grid-template-columns:1fr}
   details.passed ul{columns:1}
-  .wrap,.masthead-in{padding-left:14px;padding-right:14px}
-  .gauge-panel{flex-direction:column;text-align:center;gap:14px}
+  .wrap,.masthead-in{padding-inline:0.875rem}
+  .gauge-panel{flex-direction:column;text-align:center;gap:.875rem}
+  .axis{justify-content:center}
   .finding-meta{grid-template-columns:repeat(2,1fr)}
-  .toolbar{gap:8px}
+  .toolbar{gap:.5rem}
   .search{min-width:100%}
+}
+@media (forced-colors:active){
+  .panel,.finding,.detail-card,.cwv-card,.checklist li,.topfix li,#summary,details.passed summary{border:1px solid CanvasText}
+  .badge,.status-pill,.gauge-band{border:1px solid CanvasText}
+  .chip[aria-pressed="true"]{outline:2px solid Highlight;background:Highlight;color:HighlightText}
+}
+@media (prefers-reduced-motion:reduce){
+  :root{interpolate-size:numeric-only}
+  html{scroll-behavior:auto}
+  .finding,.panel,.topfix li,.toc a,.chip,details::details-content{transition:none!important}
+}
 }
 @media print{
   .no-print,.toc,.masthead{display:none!important}
@@ -300,23 +373,15 @@ footer.foot a:hover{text-decoration:underline}
   .cards{grid-template-columns:1fr 1fr}
   a{color:#000;text-decoration:none}
 }
-
-.crumbs{font-size:13px;margin:0 0 16px}
-.crumbs a{color:var(--accent);text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:4px}
-.crumbs a:hover{text-decoration:underline}
-@media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
-  .finding,.panel,.topfix li{transition:none}
-}
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to report</a>
 
 <div class="masthead no-print"><div class="masthead-in">
-<div class="brand"><svg class="brand-logo" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="var(--accent)" opacity="0.35"/><path d="M12 3a9 9 0 0 1 9 9" stroke="var(--accent)"/><circle cx="12" cy="12" r="3.5" fill="var(--accent-alt)"/></svg>one-step-seo <span>report</span></div>
+<div class="brand"><svg class="brand-logo" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><defs><linearGradient id="oss-brand-g" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent-alt)"/></linearGradient></defs><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="url(#oss-brand-g)" opacity=".38"/><path d="M7.5 15.5 10.8 11l2.7 2.6L16.8 8" stroke="url(#oss-brand-g)"/><circle cx="16.8" cy="8" r="1.7" fill="var(--accent-alt)" stroke="none"/></svg>one-step-seo <span>report</span></div>
 <div class="toolbar">
-<label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg><input type="search" id="q" placeholder="Filter findings…" autocomplete="off" aria-label="Filter findings by text"><kbd class="kbd-hint">/</kbd></label>
+<label class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg><input type="search" id="q" placeholder="Filter findings…" autocomplete="off" aria-label="Filter findings by text"><kbd class="kbd-hint">/</kbd></label>
 <select id="cat-filter" class="cat-select" aria-label="Filter by category"><option value="all">All categories</option><option value="technical">Technical SEO (4)</option><option value="onpage">On-page (10)</option><option value="content">Content (4)</option><option value="schema">Schema (1)</option><option value="geo">AI visibility (3)</option></select>
 <div class="chips" role="group" aria-label="Filter by severity">
 <button type="button" class="chip" data-sev="all" aria-pressed="true">All</button>
@@ -324,45 +389,47 @@ footer.foot a:hover{text-decoration:underline}
 <button type="button" class="chip" data-sev="P1" aria-pressed="false">P1 <span class="n">9</span></button>
 <button type="button" class="chip" data-sev="P2" aria-pressed="false">P2 <span class="n">11</span></button>
 <button type="button" class="chip" data-sev="P3" aria-pressed="false">P3 <span class="n">2</span></button>
-<button type="button" class="chip mode-btn" id="exec-mode-btn" aria-pressed="false" title="Toggle Executive Mode (hide raw evidence &amp; code snippets)">Executive Mode</button>
+<button type="button" class="chip mode-btn" id="exec-mode-btn" aria-pressed="false" title="Toggle Executive Mode (hide raw evidence &amp; code snippets)"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="2" y1="14" x2="6" y2="14"/><line x1="10" y1="8" x2="14" y2="8"/><line x1="18" y1="16" x2="22" y2="16"/></svg>Executive Mode</button>
 <button type="button" class="chip mode-btn" id="theme-toggle" title="Switch color theme">Theme: Auto</button>
-<button type="button" class="chip print-btn" onclick="window.print()" title="Print or save as PDF">Print</button>
+<button type="button" class="chip print-btn" onclick="window.print()" title="Print or save as PDF"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print</button>
 </div>
 <span class="result-count" id="count" role="status" aria-live="polite">22 findings</span>
 </div></div></div>
 
 <div class="wrap"><main id="main">
 <header class="hero">
-<div class="hero-top"><h1>one-step-seo report</h1><span class="status-pill" style="--hue:25">Needs Attention</span></div>
-<p class="url">https://example.com/bad/<br>Checked 2026-10-08T00:00:00.000Z &bull; v0.9.2 &bull; Rules 2026.10</p>
+<div class="hero-top"><h1>one-step-seo report</h1><span class="status-pill" style="--hue:25"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Needs Attention</span></div>
+<p class="url">https://example.com/bad/<br>Checked 2026-10-08T00:00:00.000Z &bull; v0.9.3 &bull; Rules 2026.10</p>
 
 <div class="scores">
 <div class="panel gauge-panel search-engine"><div class="gauge gauge-search"><svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true" focusable="false">
-<circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" stroke-width="6.5" opacity=".12"/>
-<circle class="gauge-fill" cx="40" cy="40" r="34" fill="none" stroke="var(--accent)" stroke-width="6.5"
-  stroke-linecap="round" stroke-dasharray="0.0 213.6"
+<defs><linearGradient id="oss-g-search" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient></defs>
+<circle cx="40" cy="40" r="32" fill="none" stroke="currentColor" stroke-width="6.5" opacity=".11"/>
+<circle class="gauge-fill" cx="40" cy="40" r="32" fill="none" stroke="url(#oss-g-search)" stroke-width="6.5"
+  stroke-linecap="round" stroke-dasharray="0.0 201.1"
   transform="rotate(-90 40 40)"/></svg>
 <div class="gauge-text"><span class="gauge-score">0</span><span class="gauge-band" style="--hue:0">F</span></div></div>
 <p class="sr-only">Search SEO: 0 out of 100, band F.</p>
-<div><div class="axis">Search SEO</div><div class="axis-sub">Technical foundation, crawlability, indexability, metadata, and link architecture.</div></div></div>
+<div><div class="axis"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13.5 13.5 8.5 15.5 10.5 10.5 15.5 8.5"/></svg>Search SEO</div><div class="axis-sub">Technical foundation, crawlability, indexability, metadata, and link architecture.</div></div></div>
 <div class="panel gauge-panel ai-engine"><div class="gauge gauge-ai"><svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true" focusable="false">
-<circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" stroke-width="6.5" opacity=".12"/>
-<circle class="gauge-fill" cx="40" cy="40" r="34" fill="none" stroke="var(--accent-alt)" stroke-width="6.5"
-  stroke-linecap="round" stroke-dasharray="10.7 213.6"
+<defs><linearGradient id="oss-g-ai" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--accent-alt)"/><stop offset="100%" stop-color="#ec4899"/></linearGradient></defs>
+<circle cx="40" cy="40" r="32" fill="none" stroke="currentColor" stroke-width="6.5" opacity=".11"/>
+<circle class="gauge-fill" cx="40" cy="40" r="32" fill="none" stroke="url(#oss-g-ai)" stroke-width="6.5"
+  stroke-linecap="round" stroke-dasharray="10.1 201.1"
   transform="rotate(-90 40 40)"/></svg>
 <div class="gauge-text"><span class="gauge-score">5</span><span class="gauge-band" style="--hue:0">F</span></div></div>
 <p class="sr-only">AI Visibility: 5 out of 100, band F.</p>
-<div><div class="axis">AI Visibility</div><div class="axis-sub">Direct answers, structured facts, and bot accessibility for AI search engines.</div></div></div>
-<div class="panel"><div class="dist-title">Findings by severity</div><div class="dist-stacked" role="img" aria-label="Severity distribution bar"><span class="dist-seg" style="--hue:25;width:22.5%" title="P1: 9 (22.5%)"></span><span class="dist-seg" style="--hue:45;width:27.5%" title="P2: 11 (27.5%)"></span><span class="dist-seg" style="--hue:210;width:5.0%" title="P3: 2 (5.0%)"></span><span class="dist-seg" style="--hue:150;width:45.0%" title="pass: 18 (45.0%)"></span></div><div class="dist-row"><span class="dist-label">P0</span>
+<div><div class="axis"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"/></svg>AI Visibility</div><div class="axis-sub">Direct answers, structured facts, and bot accessibility for AI search engines.</div></div></div>
+<div class="panel"><div class="dist-title"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>Findings by severity</div><div class="dist-stacked" role="img" aria-label="Severity distribution bar"><span class="dist-seg" style="--hue:25;width:22.5%" title="P1: 9 (22.5%)"></span><span class="dist-seg" style="--hue:45;width:27.5%" title="P2: 11 (27.5%)"></span><span class="dist-seg" style="--hue:215;width:5.0%" title="P3: 2 (5.0%)"></span><span class="dist-seg" style="--hue:152;width:45.0%" title="pass: 18 (45.0%)"></span></div><div class="dist-row"><span class="dist-label">P0</span>
 <span class="dist-track"><span class="dist-fill" style="--hue:0;width:0.0%"></span></span>
 <span class="dist-count">0</span></div><div class="dist-row"><span class="dist-label">P1</span>
 <span class="dist-track"><span class="dist-fill" style="--hue:25;width:50.0%"></span></span>
 <span class="dist-count">9</span></div><div class="dist-row"><span class="dist-label">P2</span>
 <span class="dist-track"><span class="dist-fill" style="--hue:45;width:61.1%"></span></span>
 <span class="dist-count">11</span></div><div class="dist-row"><span class="dist-label">P3</span>
-<span class="dist-track"><span class="dist-fill" style="--hue:210;width:11.1%"></span></span>
+<span class="dist-track"><span class="dist-fill" style="--hue:215;width:11.1%"></span></span>
 <span class="dist-count">2</span></div><div class="dist-row"><span class="dist-label">pass</span>
-<span class="dist-track"><span class="dist-fill" style="--hue:150;width:100.0%"></span></span>
+<span class="dist-track"><span class="dist-fill" style="--hue:152;width:100.0%"></span></span>
 <span class="dist-count">18</span></div></div>
 </div>
 <ul class="toc">
@@ -375,22 +442,22 @@ footer.foot a:hover{text-decoration:underline}
 
 <section id="summary" aria-labelledby="summary-h"><h2 id="summary-h">Executive summary</h2>
 <p class="lede" id="exec-summary-text">Below par: Search SEO and AI Visibility are both under 60. Work through the P1 fixes first, this week. Search SEO 0/100 (F) · AI Visibility 5/100 (F). 22 actionable issues — fix P0 today, P1 this week, P2 this month.</p>
-<p class="no-print"><button type="button" class="chip" id="copy-summary">Copy summary</button></p></section>
+<p class="no-print"><button type="button" class="chip" id="copy-summary"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="btn-label">Copy summary</span></button></p></section>
 
 <section id="first" aria-labelledby="first-h"><h2 id="first-h">Fix this first</h2>
 <p class="lede">Highest impact per unit of effort, ranked by severity.</p><ol class="topfix">
-<li style="--hue:25"><div class="topfix-row"><div class="topfix-main"><span class="badge">P1</span> <strong>Viewport meta missing/odd</strong> <code>T11-viewport</code></div><div class="topfix-stat">Impact: medium &middot; Effort: minutes &middot; Owner: developer</div></div><p class="finding-plain">The mobile viewport tag is missing, so phones render a shrunken desktop layout. Most search traffic is mobile.</p></li>
-<li style="--hue:25"><div class="topfix-row"><div class="topfix-main"><span class="badge">P1</span> <strong>Title too short</strong> <code>O01-title-short</code></div><div class="topfix-stat">Impact: medium &middot; Effort: minutes &middot; Owner: content</div></div><p class="finding-plain">The title is too short to describe the page. Short titles waste the most influential on-page ranking slot.</p></li>
-<li style="--hue:25"><div class="topfix-row"><div class="topfix-main"><span class="badge">P1</span> <strong>Meta description missing</strong> <code>O02-meta-missing</code></div><div class="topfix-stat">Impact: medium &middot; Effort: minutes &middot; Owner: content</div></div><p class="finding-plain">There is no meta description, so Google invents the snippet text under your headline — usually badly. Good descriptions lift click-through.</p></li>
+<li style="--hue:25"><div class="topfix-row"><div class="topfix-main"><span class="badge"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span> <strong>Viewport meta missing/odd</strong> <code>T11-viewport</code></div><div class="topfix-stat">Impact: medium &middot; Effort: minutes &middot; Owner: developer</div></div><p class="finding-plain">The mobile viewport tag is missing, so phones render a shrunken desktop layout. Most search traffic is mobile.</p></li>
+<li style="--hue:25"><div class="topfix-row"><div class="topfix-main"><span class="badge"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span> <strong>Title too short</strong> <code>O01-title-short</code></div><div class="topfix-stat">Impact: medium &middot; Effort: minutes &middot; Owner: content</div></div><p class="finding-plain">The title is too short to describe the page. Short titles waste the most influential on-page ranking slot.</p></li>
+<li style="--hue:25"><div class="topfix-row"><div class="topfix-main"><span class="badge"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span> <strong>Meta description missing</strong> <code>O02-meta-missing</code></div><div class="topfix-stat">Impact: medium &middot; Effort: minutes &middot; Owner: content</div></div><p class="finding-plain">There is no meta description, so Google invents the snippet text under your headline — usually badly. Good descriptions lift click-through.</p></li>
 </ol></section>
 
 <section id="actions" aria-labelledby="actions-h"><h2 id="actions-h"><span>All findings</span><span class="n">22</span></h2>
 <p class="lede">Use the search box, category selector, and severity chips above to narrow this down. Every card has a one-click copy of its fix.</p>
 <section class="group" id="cat-technical" data-group-cat="technical" aria-labelledby="h-technical">
-<h3 id="h-technical">Technical SEO <span class="group-count">4</span></h3>
-<div class="cards"><article class="finding" data-sev="P1" data-cat="technical" data-search="viewport meta missing/odd t11-viewport (none) add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;. the mobile viewport tag is missing, so phones render a shrunken desktop layout. most search traffic is mobile. technical">
-<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
-<span class="finding-cat">technical</span>
+<h3 id="h-technical"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Technical SEO <span class="group-count">4</span></h3>
+<div class="cards"><article class="finding" style="--sev-hue:25" data-sev="P1" data-cat="technical" data-search="viewport meta missing/odd t11-viewport (none) add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;. the mobile viewport tag is missing, so phones render a shrunken desktop layout. most search traffic is mobile. technical">
+<header class="finding-head"><span class="badge" style="--hue:25"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>technical</span>
 <h4>Viewport meta missing/odd</h4></header>
 <p class="finding-plain">The mobile viewport tag is missing, so phones render a shrunken desktop layout. Most search traffic is mobile.</p>
 <dl class="finding-meta">
@@ -401,11 +468,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>(none)</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;.</span></p>
 <details class="snippet tech-detail"><summary>Copy-paste starting point</summary><pre><code>&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P2" data-cat="technical" data-search="canonical missing t08-canonical no rel=canonical found add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred url. the canonical tag — the page’s way of saying “this is my official url” — is missing or points somewhere unexpected. duplicates can then split ranking signal. technical">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">technical</span>
+<article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="technical" data-search="canonical missing t08-canonical no rel=canonical found add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred url. the canonical tag — the page’s way of saying “this is my official url” — is missing or points somewhere unexpected. duplicates can then split ranking signal. technical">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>technical</span>
 <h4>Canonical missing</h4></header>
 <p class="finding-plain">The canonical tag — the page’s way of saying “this is my official URL” — is missing or points somewhere unexpected. Duplicates can then split ranking signal.</p>
 <dl class="finding-meta">
@@ -416,11 +483,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>No rel=canonical found</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred URL.</span></p>
 <details class="snippet tech-detail"><summary>Copy-paste starting point</summary><pre><code>&lt;link rel=&quot;canonical&quot; href=&quot;https://example.com/page/&quot;&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred URL.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;link rel=canonical href=&quot;...&quot;&gt; with the absolute preferred URL."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P2" data-cat="technical" data-search="missing html lang t09-lang no &lt;html lang&gt; add lang, e.g. &lt;html lang=&quot;en&quot;&gt;. the page never declares its language. screen readers then mispronounce text and search engines can misclassify the audience. technical">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">technical</span>
+<article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="technical" data-search="missing html lang t09-lang no &lt;html lang&gt; add lang, e.g. &lt;html lang=&quot;en&quot;&gt;. the page never declares its language. screen readers then mispronounce text and search engines can misclassify the audience. technical">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>technical</span>
 <h4>Missing html lang</h4></header>
 <p class="finding-plain">The page never declares its language. Screen readers then mispronounce text and search engines can misclassify the audience.</p>
 <dl class="finding-meta">
@@ -431,11 +498,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>No &lt;html lang&gt;</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Add lang, e.g. &lt;html lang=&quot;en&quot;&gt;.</span></p>
 <details class="snippet tech-detail"><summary>Copy-paste starting point</summary><pre><code>&lt;html lang=&quot;en&quot;&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add lang, e.g. &lt;html lang=&quot;en&quot;&gt;.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add lang, e.g. &lt;html lang=&quot;en&quot;&gt;."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P2" data-cat="technical" data-search="charset not utf-8 t10-charset not-found declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;. no utf-8 charset is declared, so special characters (accents, symbols, emoji) can render as mojibake. technical">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">technical</span>
+<article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="technical" data-search="charset not utf-8 t10-charset not-found declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;. no utf-8 charset is declared, so special characters (accents, symbols, emoji) can render as mojibake. technical">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>technical</span>
 <h4>Charset not UTF-8</h4></header>
 <p class="finding-plain">No UTF-8 charset is declared, so special characters (accents, symbols, emoji) can render as mojibake.</p>
 <dl class="finding-meta">
@@ -446,13 +513,13 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>not-found</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;.</span></p>
 <details class="snippet tech-detail"><summary>Copy-paste starting point</summary><pre><code>&lt;meta charset=&quot;utf-8&quot;&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Declare &lt;meta charset=&quot;utf-8&quot;&gt; first in &lt;head&gt;."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article></div></section>
 <section class="group" id="cat-onpage" data-group-cat="onpage" aria-labelledby="h-onpage">
-<h3 id="h-onpage">On-page <span class="group-count">10</span></h3>
-<div class="cards"><article class="finding" data-sev="P1" data-cat="onpage" data-search="title too short o01-title-short &quot;hi&quot; (2ch) expand to 30-60 chars: primary topic | brand. the title is too short to describe the page. short titles waste the most influential on-page ranking slot. onpage">
-<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
-<span class="finding-cat">onpage</span>
+<h3 id="h-onpage"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>On-page <span class="group-count">10</span></h3>
+<div class="cards"><article class="finding" style="--sev-hue:25" data-sev="P1" data-cat="onpage" data-search="title too short o01-title-short &quot;hi&quot; (2ch) expand to 30-60 chars: primary topic | brand. the title is too short to describe the page. short titles waste the most influential on-page ranking slot. onpage">
+<header class="finding-head"><span class="badge" style="--hue:25"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>onpage</span>
 <h4>Title too short</h4></header>
 <p class="finding-plain">The title is too short to describe the page. Short titles waste the most influential on-page ranking slot.</p>
 <dl class="finding-meta">
@@ -463,11 +530,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>&quot;Hi&quot; (2ch)</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Expand to 30-60 chars: Primary Topic | Brand.</span></p>
 <details class="snippet tech-detail"><summary>Copy-paste starting point</summary><pre><code>&lt;title&gt;Primary Topic — Key Benefit | Brand Name&lt;/title&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Expand to 30-60 chars: Primary Topic | Brand.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Expand to 30-60 chars: Primary Topic | Brand."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P1" data-cat="onpage" data-search="meta description missing o02-meta-missing (empty) add a 120-155ch description with benefit + cta. one per page. there is no meta description, so google invents the snippet text under your headline — usually badly. good descriptions lift click-through. onpage">
-<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
-<span class="finding-cat">onpage</span>
+<article class="finding" style="--sev-hue:25" data-sev="P1" data-cat="onpage" data-search="meta description missing o02-meta-missing (empty) add a 120-155ch description with benefit + cta. one per page. there is no meta description, so google invents the snippet text under your headline — usually badly. good descriptions lift click-through. onpage">
+<header class="finding-head"><span class="badge" style="--hue:25"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>onpage</span>
 <h4>Meta description missing</h4></header>
 <p class="finding-plain">There is no meta description, so Google invents the snippet text under your headline — usually badly. Good descriptions lift click-through.</p>
 <dl class="finding-meta">
@@ -478,11 +545,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>(empty)</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Add a 120-155ch description with benefit + CTA. One per page.</span></p>
 <details class="snippet tech-detail"><summary>Copy-paste starting point</summary><pre><code>&lt;meta name=&quot;description&quot; content=&quot;What this page offers, who it is for, and what to do next (120–155 characters).&quot;&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add a 120-155ch description with benefit + CTA. One per page.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add a 120-155ch description with benefit + CTA. One per page."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P1" data-cat="onpage" data-search="multiple h1s o03-h1-multi 2 h1s keep one h1; demote the rest to h2. the page has several h1s, so nothing is clearly the main topic. keep one h1 and demote the rest to h2. onpage">
-<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
-<span class="finding-cat">onpage</span>
+<article class="finding" style="--sev-hue:25" data-sev="P1" data-cat="onpage" data-search="multiple h1s o03-h1-multi 2 h1s keep one h1; demote the rest to h2. the page has several h1s, so nothing is clearly the main topic. keep one h1 and demote the rest to h2. onpage">
+<header class="finding-head"><span class="badge" style="--hue:25"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>onpage</span>
 <h4>Multiple H1s</h4></header>
 <p class="finding-plain">The page has several H1s, so nothing is clearly the main topic. Keep one H1 and demote the rest to H2.</p>
 <dl class="finding-meta">
@@ -493,11 +560,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>2 H1s</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Keep one H1; demote the rest to H2.</span></p>
 
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Keep one H1; demote the rest to H2.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Keep one H1; demote the rest to H2."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P1" data-cat="onpage" data-search="2/2 images missing alt o08-alt empty/missing alt attributes write descriptive alt for informative images; alt=&quot;&quot; for decorative. some images have no alt text, so screen-reader users miss them and image search cannot understand them. onpage">
-<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
-<span class="finding-cat">onpage</span>
+<article class="finding" style="--sev-hue:25" data-sev="P1" data-cat="onpage" data-search="2/2 images missing alt o08-alt empty/missing alt attributes write descriptive alt for informative images; alt=&quot;&quot; for decorative. some images have no alt text, so screen-reader users miss them and image search cannot understand them. onpage">
+<header class="finding-head"><span class="badge" style="--hue:25"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>onpage</span>
 <h4>2/2 images missing alt</h4></header>
 <p class="finding-plain">Some images have no alt text, so screen-reader users miss them and image search cannot understand them.</p>
 <dl class="finding-meta">
@@ -508,11 +575,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>Empty/missing alt attributes</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Write descriptive alt for informative images; alt=&quot;&quot; for decorative.</span></p>
 <details class="snippet tech-detail"><summary>Copy-paste starting point</summary><pre><code>&lt;img src=&quot;/photo.jpg&quot; alt=&quot;Describe what the image shows&quot; width=&quot;800&quot; height=&quot;600&quot; loading=&quot;lazy&quot;&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Write descriptive alt for informative images; alt=&quot;&quot; for decorative.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Write descriptive alt for informative images; alt=&quot;&quot; for decorative."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P1" data-cat="onpage" data-search="no internal links detected o10-internal 0 internal links add 3-10 contextual internal links to related pages. the page links to nothing else on the site. internal links spread ranking signal and guide readers deeper. onpage">
-<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
-<span class="finding-cat">onpage</span>
+<article class="finding" style="--sev-hue:25" data-sev="P1" data-cat="onpage" data-search="no internal links detected o10-internal 0 internal links add 3-10 contextual internal links to related pages. the page links to nothing else on the site. internal links spread ranking signal and guide readers deeper. onpage">
+<header class="finding-head"><span class="badge" style="--hue:25"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>onpage</span>
 <h4>No internal links detected</h4></header>
 <p class="finding-plain">The page links to nothing else on the site. Internal links spread ranking signal and guide readers deeper.</p>
 <dl class="finding-meta">
@@ -523,11 +590,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>0 internal links</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Add 3-10 contextual internal links to related pages.</span></p>
 
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add 3-10 contextual internal links to related pages.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add 3-10 contextual internal links to related pages."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P2" data-cat="onpage" data-search="skipped heading level o04-headings e.g. h1 -&gt; h3 nest headings sequentially (h1&gt;h2&gt;h3). heading levels skip (e.g. h1 straight to h3). screen readers and ai parsers use heading order as the page outline. onpage">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">onpage</span>
+<article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="onpage" data-search="skipped heading level o04-headings e.g. h1 -&gt; h3 nest headings sequentially (h1&gt;h2&gt;h3). heading levels skip (e.g. h1 straight to h3). screen readers and ai parsers use heading order as the page outline. onpage">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>onpage</span>
 <h4>Skipped heading level</h4></header>
 <p class="finding-plain">Heading levels skip (e.g. H1 straight to H3). Screen readers and AI parsers use heading order as the page outline.</p>
 <dl class="finding-meta">
@@ -538,11 +605,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>e.g. H1 -&gt; H3</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Nest headings sequentially (H1&gt;H2&gt;H3).</span></p>
 
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Nest headings sequentially (H1&gt;H2&gt;H3).">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Nest headings sequentially (H1&gt;H2&gt;H3)."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P2" data-cat="onpage" data-search="open graph incomplete o06-og title:false desc:false img:false add og:title, og:description, og:image + twitter:card. open graph tags are incomplete, so shares on social and chat apps show a bare link instead of a rich preview card. onpage">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">onpage</span>
+<article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="onpage" data-search="open graph incomplete o06-og title:false desc:false img:false add og:title, og:description, og:image + twitter:card. open graph tags are incomplete, so shares on social and chat apps show a bare link instead of a rich preview card. onpage">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>onpage</span>
 <h4>Open Graph incomplete</h4></header>
 <p class="finding-plain">Open Graph tags are incomplete, so shares on social and chat apps show a bare link instead of a rich preview card.</p>
 <dl class="finding-meta">
@@ -557,11 +624,11 @@ footer.foot a:hover{text-decoration:underline}
 &lt;meta property=&quot;og:image&quot; content=&quot;https://example.com/og-image.png&quot;&gt;
 &lt;meta property=&quot;og:url&quot; content=&quot;https://example.com/page/&quot;&gt;
 &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add og:title, og:description, og:image + twitter:card.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add og:title, og:description, og:image + twitter:card."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P2" data-cat="onpage" data-search="favicon not detected o07-favicon no rel=icon link add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + svg variant. no favicon was detected. tabs and bookmarks show a generic icon, which looks unfinished and hurts brand recognition. onpage">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">onpage</span>
+<article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="onpage" data-search="favicon not detected o07-favicon no rel=icon link add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + svg variant. no favicon was detected. tabs and bookmarks show a generic icon, which looks unfinished and hurts brand recognition. onpage">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>onpage</span>
 <h4>Favicon not detected</h4></header>
 <p class="finding-plain">No favicon was detected. Tabs and bookmarks show a generic icon, which looks unfinished and hurts brand recognition.</p>
 <dl class="finding-meta">
@@ -573,11 +640,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row"><strong>Fix</strong><span>Add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + SVG variant.</span></p>
 <details class="snippet tech-detail"><summary>Copy-paste starting point</summary><pre><code>&lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot; sizes=&quot;any&quot;&gt;
 &lt;link rel=&quot;icon&quot; href=&quot;/favicon.svg&quot; type=&quot;image/svg+xml&quot;&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + SVG variant.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;link rel=&quot;icon&quot; href=&quot;/favicon.ico&quot;&gt; + SVG variant."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P2" data-cat="onpage" data-search="images missing dimensions (cls risk) o09-img-dims 2/2 without width+height add width/height or aspect-ratio to avoid layout shift. most images lack width/height, so the page layout jumps while loading (cls). declare dimensions or an aspect ratio. onpage">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">onpage</span>
+<article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="onpage" data-search="images missing dimensions (cls risk) o09-img-dims 2/2 without width+height add width/height or aspect-ratio to avoid layout shift. most images lack width/height, so the page layout jumps while loading (cls). declare dimensions or an aspect ratio. onpage">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>onpage</span>
 <h4>Images missing dimensions (CLS risk)</h4></header>
 <p class="finding-plain">Most images lack width/height, so the page layout jumps while loading (CLS). Declare dimensions or an aspect ratio.</p>
 <dl class="finding-meta">
@@ -588,11 +655,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>2/2 without width+height</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Add width/height or aspect-ratio to avoid layout shift.</span></p>
 <details class="snippet tech-detail"><summary>Copy-paste starting point</summary><pre><code>&lt;img src=&quot;/photo.jpg&quot; alt=&quot;Describe what the image shows&quot; width=&quot;800&quot; height=&quot;600&quot; loading=&quot;lazy&quot;&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add width/height or aspect-ratio to avoid layout shift.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add width/height or aspect-ratio to avoid layout shift."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P3" data-cat="onpage" data-search="twitter card missing w01-social no twitter:card meta add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;. no twitter/x card tag. link previews on x fall back to a plain card without it. onpage">
-<header class="finding-head"><span class="badge" style="--hue:210">P3</span>
-<span class="finding-cat">onpage</span>
+<article class="finding" style="--sev-hue:215" data-sev="P3" data-cat="onpage" data-search="twitter card missing w01-social no twitter:card meta add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;. no twitter/x card tag. link previews on x fall back to a plain card without it. onpage">
+<header class="finding-head"><span class="badge" style="--hue:215"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P3</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>onpage</span>
 <h4>Twitter card missing</h4></header>
 <p class="finding-plain">No Twitter/X card tag. Link previews on X fall back to a plain card without it.</p>
 <dl class="finding-meta">
@@ -603,13 +670,13 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>No twitter:card meta</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;.</span></p>
 <details class="snippet tech-detail"><summary>Copy-paste starting point</summary><pre><code>&lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article></div></section>
 <section class="group" id="cat-content" data-group-cat="content" aria-labelledby="h-content">
-<h3 id="h-content">Content <span class="group-count">4</span></h3>
-<div class="cards"><article class="finding" data-sev="P1" data-cat="content" data-search="thin content c01-thin 6 words expand to fully answer the query; add examples, steps, data. the page has very little text. thin pages rarely satisfy a query fully and give ai answers nothing to cite. content">
-<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
-<span class="finding-cat">content</span>
+<h3 id="h-content"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Content <span class="group-count">4</span></h3>
+<div class="cards"><article class="finding" style="--sev-hue:25" data-sev="P1" data-cat="content" data-search="thin content c01-thin 6 words expand to fully answer the query; add examples, steps, data. the page has very little text. thin pages rarely satisfy a query fully and give ai answers nothing to cite. content">
+<header class="finding-head"><span class="badge" style="--hue:25"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>content</span>
 <h4>Thin content</h4></header>
 <p class="finding-plain">The page has very little text. Thin pages rarely satisfy a query fully and give AI answers nothing to cite.</p>
 <dl class="finding-meta">
@@ -620,11 +687,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>6 words</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Expand to fully answer the query; add examples, steps, data.</span></p>
 
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Expand to fully answer the query; add examples, steps, data.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Expand to fully answer the query; add examples, steps, data."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P1" data-cat="content" data-search="no answer-first block c02-answer no direct answer in first ~150 words start with a 40-60 word direct answer, then explanation + evidence. the page never answers its own question up front. ai overviews and featured snippets quote pages that lead with a direct 40–60 word answer. content">
-<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
-<span class="finding-cat">content</span>
+<article class="finding" style="--sev-hue:25" data-sev="P1" data-cat="content" data-search="no answer-first block c02-answer no direct answer in first ~150 words start with a 40-60 word direct answer, then explanation + evidence. the page never answers its own question up front. ai overviews and featured snippets quote pages that lead with a direct 40–60 word answer. content">
+<header class="finding-head"><span class="badge" style="--hue:25"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>content</span>
 <h4>No answer-first block</h4></header>
 <p class="finding-plain">The page never answers its own question up front. AI overviews and featured snippets quote pages that lead with a direct 40–60 word answer.</p>
 <dl class="finding-meta">
@@ -635,11 +702,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>No direct answer in first ~150 words</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Start with a 40-60 word direct answer, then explanation + evidence.</span></p>
 
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Start with a 40-60 word direct answer, then explanation + evidence.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Start with a 40-60 word direct answer, then explanation + evidence."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P2" data-cat="content" data-search="no tables/lists (harder to cite) c03-extractable 0 tables/lists add a comparison table or steps list for key facts. no tables or lists were found. ai systems lift facts most easily from tables, steps, and bullet lists. content">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">content</span>
+<article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="content" data-search="no tables/lists (harder to cite) c03-extractable 0 tables/lists add a comparison table or steps list for key facts. no tables or lists were found. ai systems lift facts most easily from tables, steps, and bullet lists. content">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>content</span>
 <h4>No tables/lists (harder to cite)</h4></header>
 <p class="finding-plain">No tables or lists were found. AI systems lift facts most easily from tables, steps, and bullet lists.</p>
 <dl class="finding-meta">
@@ -650,11 +717,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>0 tables/lists</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Add a comparison table or steps list for key facts.</span></p>
 
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add a comparison table or steps list for key facts.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add a comparison table or steps list for key facts."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P2" data-cat="content" data-search="no faq coverage c04-faq no questions answered on page add 3-6 genuine user questions with concise answers where natural. no faq content was detected. a short set of genuine user questions with concise answers feeds both “people also ask” and ai answers. content">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">content</span>
+<article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="content" data-search="no faq coverage c04-faq no questions answered on page add 3-6 genuine user questions with concise answers where natural. no faq content was detected. a short set of genuine user questions with concise answers feeds both “people also ask” and ai answers. content">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>content</span>
 <h4>No FAQ coverage</h4></header>
 <p class="finding-plain">No FAQ content was detected. A short set of genuine user questions with concise answers feeds both “People also ask” and AI answers.</p>
 <dl class="finding-meta">
@@ -678,13 +745,13 @@ footer.foot a:hover{text-decoration:underline}
 }
 &lt;/script&gt;
 &lt;!-- Only mark up questions + answers that are visible on the page. --&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add 3-6 genuine user questions with concise answers where natural.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add 3-6 genuine user questions with concise answers where natural."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article></div></section>
 <section class="group" id="cat-schema" data-group-cat="schema" aria-labelledby="h-schema">
-<h3 id="h-schema">Schema <span class="group-count">1</span></h3>
-<div class="cards"><article class="finding" data-sev="P1" data-cat="schema" data-search="no json-ld structured data s01-none 0 schema nodes add organization/website + page-type markup (article/faq/breadcrumb). only mark up visible content. no structured data was found. schema markup is how you tell google — in its own language — what this page is. schema">
-<header class="finding-head"><span class="badge" style="--hue:25">P1</span>
-<span class="finding-cat">schema</span>
+<h3 id="h-schema"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></svg>Schema <span class="group-count">1</span></h3>
+<div class="cards"><article class="finding" style="--sev-hue:25" data-sev="P1" data-cat="schema" data-search="no json-ld structured data s01-none 0 schema nodes add organization/website + page-type markup (article/faq/breadcrumb). only mark up visible content. no structured data was found. schema markup is how you tell google — in its own language — what this page is. schema">
+<header class="finding-head"><span class="badge" style="--hue:25"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>P1</span>
+<span class="finding-cat"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></svg>schema</span>
 <h4>No JSON-LD structured data</h4></header>
 <p class="finding-plain">No structured data was found. Schema markup is how you tell Google — in its own language — what this page is.</p>
 <dl class="finding-meta">
@@ -702,13 +769,13 @@ footer.foot a:hover{text-decoration:underline}
   &quot;url&quot;: &quot;https://example.com&quot;
 }
 &lt;/script&gt;</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add Organization/WebSite + page-type markup (Article/FAQ/Breadcrumb). Only mark up visible content.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Add Organization/WebSite + page-type markup (Article/FAQ/Breadcrumb). Only mark up visible content."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article></div></section>
 <section class="group" id="cat-geo" data-group-cat="geo" aria-labelledby="h-geo">
-<h3 id="h-geo">AI visibility <span class="group-count">3</span></h3>
-<div class="cards"><article class="finding" data-sev="P2" data-cat="geo" data-search="llms.txt missing g01-llms get /llms.txt not found optional: add /llms.txt summarizing key pages for ai crawlers. there is no llms.txt file — a small machine-readable summary that chatgpt, perplexity, and claude measurably use (it has no measured effect on google ai overviews). it is optional, but cheap to add. geo">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">geo</span>
+<h3 id="h-geo"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"/></svg>AI visibility <span class="group-count">3</span></h3>
+<div class="cards"><article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="geo" data-search="llms.txt missing g01-llms get /llms.txt not found optional: add /llms.txt summarizing key pages for ai crawlers. there is no llms.txt file — a small machine-readable summary that chatgpt, perplexity, and claude measurably use (it has no measured effect on google ai overviews). it is optional, but cheap to add. geo">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"/></svg>geo</span>
 <h4>llms.txt missing</h4></header>
 <p class="finding-plain">There is no llms.txt file — a small machine-readable summary that ChatGPT, Perplexity, and Claude measurably use (it has no measured effect on Google AI Overviews). It is optional, but cheap to add.</p>
 <dl class="finding-meta">
@@ -730,11 +797,11 @@ footer.foot a:hover{text-decoration:underline}
 ## Optional
 
 - Replace the links above with your most-cited pages.</code></pre></details>
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Optional: add /llms.txt summarizing key pages for AI crawlers.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Optional: add /llms.txt summarizing key pages for AI crawlers."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P2" data-cat="geo" data-search="facts hard to extract g03-facts tables:0 lists:0 words:6 surface prices/specs/steps/dates in tables or bolded fact lines with sources. key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so ai systems struggle to extract and cite them. geo">
-<header class="finding-head"><span class="badge" style="--hue:45">P2</span>
-<span class="finding-cat">geo</span>
+<article class="finding" style="--sev-hue:45" data-sev="P2" data-cat="geo" data-search="facts hard to extract g03-facts tables:0 lists:0 words:6 surface prices/specs/steps/dates in tables or bolded fact lines with sources. key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so ai systems struggle to extract and cite them. geo">
+<header class="finding-head"><span class="badge" style="--hue:45"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P2</span>
+<span class="finding-cat"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"/></svg>geo</span>
 <h4>Facts hard to extract</h4></header>
 <p class="finding-plain">Key facts (prices, specs, steps, dates) are buried in prose instead of tables or highlighted fact lines, so AI systems struggle to extract and cite them.</p>
 <dl class="finding-meta">
@@ -745,11 +812,11 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>tables:0 lists:0 words:6</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Surface prices/specs/steps/dates in tables or bolded fact lines with sources.</span></p>
 
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Surface prices/specs/steps/dates in tables or bolded fact lines with sources.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Surface prices/specs/steps/dates in tables or bolded fact lines with sources."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article>
-<article class="finding" data-sev="P3" data-cat="geo" data-search="no freshness signals g06-freshness no publication or review dates found where content is date-sensitive, show a review date and keep datemodified current. no publication or review dates were found. dated content signals maintenance to both readers and ai systems — show a review date where freshness matters and keep it current. geo">
-<header class="finding-head"><span class="badge" style="--hue:210">P3</span>
-<span class="finding-cat">geo</span>
+<article class="finding" style="--sev-hue:215" data-sev="P3" data-cat="geo" data-search="no freshness signals g06-freshness no publication or review dates found where content is date-sensitive, show a review date and keep datemodified current. no publication or review dates were found. dated content signals maintenance to both readers and ai systems — show a review date where freshness matters and keep it current. geo">
+<header class="finding-head"><span class="badge" style="--hue:215"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P3</span>
+<span class="finding-cat"><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"/></svg>geo</span>
 <h4>No freshness signals</h4></header>
 <p class="finding-plain">No publication or review dates were found. Dated content signals maintenance to both readers and AI systems — show a review date where freshness matters and keep it current.</p>
 <dl class="finding-meta">
@@ -760,25 +827,25 @@ footer.foot a:hover{text-decoration:underline}
 <p class="finding-row tech-detail"><strong>Evidence</strong><span>No publication or review dates found</span></p>
 <p class="finding-row"><strong>Fix</strong><span>Where content is date-sensitive, show a review date and keep dateModified current.</span></p>
 
-<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Where content is date-sensitive, show a review date and keep dateModified current.">Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
+<footer class="finding-foot"><button type="button" class="copy-fix no-print" data-copy="Where content is date-sensitive, show a review date and keep dateModified current."><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy fix</button><span class="copied" role="status" aria-live="polite"></span></footer>
 </article></div></section>
 <p class="none-msg" id="no-matches" hidden>No findings match your current filter query. Try clearing the search or switching severity.</p>
 </section>
 
 <section id="seo-details" aria-labelledby="seo-details-h"><h2 id="seo-details-h"><span>SEO Details &amp; Page Signals</span><span class="n">6 words</span></h2>
 <div class="detail-grid">
-<div class="detail-card"><h3>Metadata &amp; Canonical</h3><dl class="kv-list">
+<div class="detail-card"><h3><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Metadata &amp; Canonical</h3><dl class="kv-list">
 <div class="kv-row"><dt>Title (2 chars)</dt><dd>Hi</dd></div>
 <div class="kv-row"><dt>Meta description (0 chars)</dt><dd><span class="empty">Missing</span></dd></div>
 <div class="kv-row"><dt>Canonical URL</dt><dd><span class="empty">Not set</span></dd></div>
 </dl></div>
-<div class="detail-card"><h3>Headings &amp; Content</h3><dl class="kv-list">
+<div class="detail-card"><h3><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>Headings &amp; Content</h3><dl class="kv-list">
 <div class="kv-row"><dt>H1 count (2)</dt><dd>First | Second</dd></div>
 <div class="kv-row"><dt>Word count</dt><dd>6</dd></div>
 <div class="kv-row"><dt>Images</dt><dd>2</dd></div>
 <div class="kv-row"><dt>Links</dt><dd>0 internal &middot; 1 external</dd></div>
 </dl></div>
-<div class="detail-card"><h3>Site Discovery Files</h3><dl class="kv-list">
+<div class="detail-card"><h3><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Site Discovery Files</h3><dl class="kv-list">
 <div class="kv-row"><dt>Origin</dt><dd><code>https://example.com</code></dd></div>
 <div class="kv-row"><dt>robots.txt</dt><dd>Found (200)</dd></div>
 <div class="kv-row"><dt>sitemap.xml</dt><dd>Found (~10 URLs)</dd></div>
@@ -790,19 +857,19 @@ footer.foot a:hover{text-decoration:underline}
 <p class="lede">AI Visibility readiness signals for generative search engines (ChatGPT Search, Claude, Perplexity, Google AI Overviews).</p>
 <div class="progress" role="img" aria-label="1 of 7 citability signals present"><i style="width:14%"></i></div>
 <ul class="checklist">
-<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>Answer-first opening (direct answer in the first ~150 words)</span></li>
-<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>Extractable structures (tables or lists for key facts)</span></li>
-<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>FAQ coverage (real questions with concise answers)</span></li>
-<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>Facts surfaced for extraction (prices, specs, steps, dates)</span></li>
-<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>Structured data present and valid</span></li>
-<li data-checked="no"><span class="box" aria-hidden="true">○</span><span>llms.txt present</span></li>
-<li data-checked="yes"><span class="box" aria-hidden="true">✓</span><span>AI crawlers allowed</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3.5"/></svg></span><span>Answer-first opening (direct answer in the first ~150 words)</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3.5"/></svg></span><span>Extractable structures (tables or lists for key facts)</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3.5"/></svg></span><span>FAQ coverage (real questions with concise answers)</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3.5"/></svg></span><span>Facts surfaced for extraction (prices, specs, steps, dates)</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3.5"/></svg></span><span>Structured data present and valid</span></li>
+<li data-checked="no"><span class="box" aria-hidden="true"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3.5"/></svg></span><span>llms.txt present</span></li>
+<li data-checked="yes"><span class="box" aria-hidden="true"><svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8.5 12.5 2.3 2.3 4.7-4.8"/></svg></span><span>AI crawlers allowed</span></li>
 </ul></section>
 
 <section id="psi" aria-labelledby="psi-h"><h2 id="psi-h"><span>Performance &amp; Core Web Vitals</span><span class="n">Not measured (opt-in)</span></h2>
 <p class="lede">Live Lighthouse Lab and Chrome UX Report (CrUX) Field metrics were not queried in this run. Unmeasured metrics are reported as unavailable, never zero.</p>
 <div class="cwv-card">
-<h4>Measure Live Core Web Vitals (LCP, INP, CLS)</h4>
+<h4><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Measure Live Core Web Vitals (LCP, INP, CLS)</h4>
 <p class="finding-plain">Set <code>PSI_API_KEY</code> in your environment and pass <code>--psi</code> to include Google PageSpeed Insights Lab and CrUX 75th-percentile Field data:</p>
 <div class="cmd-box"><code>PSI_API_KEY=your_key npx one-step-seo page https://example.com/bad/ --psi</code></div>
 </div>
@@ -811,13 +878,13 @@ footer.foot a:hover{text-decoration:underline}
 <section id="remediation" aria-labelledby="remediation-h"><h2 id="remediation-h"><span>Remediation &amp; Verification</span><span class="n">CLI workflow</span></h2>
 <p class="lede">Apply fixes in priority order (P0 blockers &rarr; P1 high-impact &rarr; P2 optimizations &rarr; P3 polish), then re-run the audit to verify score improvements.</p>
 <div class="detail-grid">
-<div class="detail-card"><h3>1. Verify After Changes</h3>
+<div class="detail-card"><h3><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>1. Verify After Changes</h3>
 <p class="finding-plain">Re-run the single-page audit to confirm findings are resolved:</p>
-<div class="cmd-box"><code>npx one-step-seo page https://example.com/bad/</code><button type="button" class="copy-fix no-print" data-copy="npx one-step-seo page https://example.com/bad/">Copy</button><span class="copied" role="status" aria-live="polite"></span></div>
+<div class="cmd-box"><code>npx one-step-seo page https://example.com/bad/</code><button type="button" class="copy-fix no-print" data-copy="npx one-step-seo page https://example.com/bad/"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button><span class="copied" role="status" aria-live="polite"></span></div>
 </div>
-<div class="detail-card"><h3>2. Safe Local Auto-Fix (Dry-Run First)</h3>
+<div class="detail-card"><h3><svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>2. Safe Local Auto-Fix (Dry-Run First)</h3>
 <p class="finding-plain">Preview additive HTML <code>&lt;head&gt;</code> fixes on local build files before applying:</p>
-<div class="cmd-box"><code>npx one-step-seo fix ./dist --url https://example.com/bad/</code><button type="button" class="copy-fix no-print" data-copy="npx one-step-seo fix ./dist --url https://example.com/bad/">Copy</button><span class="copied" role="status" aria-live="polite"></span></div>
+<div class="cmd-box"><code>npx one-step-seo fix ./dist --url https://example.com/bad/</code><button type="button" class="copy-fix no-print" data-copy="npx one-step-seo fix ./dist --url https://example.com/bad/"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button><span class="copied" role="status" aria-live="polite"></span></div>
 </div>
 </div></section>
 
@@ -843,11 +910,11 @@ footer.foot a:hover{text-decoration:underline}
 </ul></details></section>
 
 <section id="monitor" aria-labelledby="monitor-h"><h2 id="monitor-h"><span>What to monitor</span><span class="n">2</span></h2><ul>
-<li><span class="badge" style="--hue:210">P3</span> No freshness signals <code>G06-freshness</code> — Where content is date-sensitive, show a review date and keep dateModified current.</li>
-<li><span class="badge" style="--hue:210">P3</span> Twitter card missing <code>W01-social</code> — Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;.</li>
+<li><span class="badge" style="--hue:215"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P3</span> No freshness signals <code>G06-freshness</code> — Where content is date-sensitive, show a review date and keep dateModified current.</li>
+<li><span class="badge" style="--hue:215"><svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>P3</span> Twitter card missing <code>W01-social</code> — Add &lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot;&gt;.</li>
 </ul></section>
 
-<footer class="foot"><span>Generated by one-step-seo v0.9.2 (rules 2026.10) &mdash; two scores, never blended. <a href="https://github.com/6t9xstar/one-step-seo/blob/main/docs/CHECKS.md">Checks reference</a></span><span>https://example.com/bad/</span></footer>
+<footer class="foot"><span>Generated by one-step-seo v0.9.3 (rules 2026.10) &mdash; two scores, never blended. <a href="https://github.com/6t9xstar/one-step-seo/blob/main/docs/CHECKS.md">Checks reference <svg class="ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></span><span>https://example.com/bad/</span></footer>
 </main></div>
 
 <script>
@@ -919,6 +986,15 @@ footer.foot a:hover{text-decoration:underline}
     mIdx=(mIdx+1)%modes.length;
     setTheme(modes[mIdx]);
   });
+  if(globalThis.addEventListener){
+    globalThis.addEventListener('storage',function(ev){
+      if(ev&&ev.key==='oss-theme'){
+        var nv=ev.newValue==='dark'||ev.newValue==='light'?ev.newValue:'auto';
+        mIdx=modes.indexOf(nv);
+        setTheme(nv);
+      }
+    });
+  }
   document.addEventListener('keydown',function(e){
     if(e.key==='/'&&document.activeElement!==q&&!['input','textarea','select'].includes((document.activeElement&&document.activeElement.tagName||'').toLowerCase())){
       e.preventDefault();
@@ -953,9 +1029,10 @@ footer.foot a:hover{text-decoration:underline}
   if(cs) cs.addEventListener('click',function(){
     var t=document.getElementById('exec-summary-text');
     var s=(t&&(t.innerText||t.textContent))||'';
+    var lbl=cs.querySelector('.btn-label')||cs;
     var done=function(good){
-      cs.textContent=good?'Copied ✓':'Copy failed';
-      setTimeout(function(){ cs.textContent='Copy summary'; },2000);
+      lbl.textContent=good?'Copied ✓':'Copy failed';
+      setTimeout(function(){ lbl.textContent='Copy summary'; },2000);
     };
     copy.call(cs,s,function(){done(true);},function(){done(false);});
   });

@@ -231,3 +231,34 @@ test("getSitemapUrls drops cross-host index children and their pages", async () 
     await new Promise((resolve) => srv.close(() => resolve(undefined)));
   }
 });
+
+test("getSitemapUrls probes /sitemap_index.xml fallback when /sitemap.xml 404s without robots declaration", async () => {
+  const srv = http.createServer((req, res) => {
+    const path = (req.url ?? "/").split("?")[0];
+    const addr = srv.address();
+    const port = typeof addr === "object" && addr ? addr.port : 0;
+    const origin = `http://127.0.0.1:${port}`;
+    if (path === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("User-agent: *\nDisallow:\n");
+    } else if (path === "/sitemap.xml") {
+      res.writeHead(404);
+      res.end("not found");
+    } else if (path === "/sitemap_index.xml") {
+      res.writeHead(200, { "content-type": "application/xml" });
+      res.end(`<urlset><url><loc>${origin}/fallback-page</loc></url></urlset>`);
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+  await new Promise((resolve) => srv.listen(0, "127.0.0.1", () => resolve(undefined)));
+  try {
+    const addr = srv.address();
+    const port = typeof addr === "object" && addr ? addr.port : 0;
+    const urls = await getSitemapUrls(`http://127.0.0.1:${port}/x`);
+    assert.ok(urls.includes(`http://127.0.0.1:${port}/fallback-page`));
+  } finally {
+    await new Promise((resolve) => srv.close(() => resolve(undefined)));
+  }
+});

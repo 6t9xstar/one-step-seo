@@ -698,3 +698,90 @@ test("HTML reports verify attribute-context escaping, keyboard shortcuts, theme/
     assert.doesNotMatch(html, /url\(\s*["']?https?:/i, "CSS must not fetch remote assets");
   }
 });
+
+test("report design system: @layer cascade, OS text-scale, FOUC-free theme init, container queries, forced-colors, and inline SVG icons", () => {
+  const report = buildReport({
+    url: "https://example.com/design",
+    finalUrl: "https://example.com/design",
+    scores: { search: { score: 88, band: "B" }, ai: { score: 79, band: "C" } },
+    findings: [
+      {
+        id: "O01-title",
+        category: "onpage",
+        severity: "P1",
+        title: "Title length needs tuning",
+        evidence: "18 chars",
+        fix: "Expand title to 30-60 chars.",
+      },
+      {
+        id: "S01-jsonld",
+        category: "schema",
+        severity: "P2",
+        title: "Add JSON-LD",
+        evidence: "none",
+        fix: "Add WebPage JSON-LD.",
+      },
+      {
+        id: "G02-ai-crawlers",
+        category: "geo",
+        severity: "P1",
+        title: "AI crawlers blocked",
+        evidence: "GPTBot disallowed",
+        fix: "Allow GPTBot in robots.txt.",
+      },
+      {
+        id: "P01-html-weight",
+        category: "performance",
+        severity: "P3",
+        title: "Large HTML",
+        evidence: "520KB",
+        fix: "Trim inline payload.",
+      },
+      {
+        id: "T01-https",
+        category: "technical",
+        severity: "pass",
+        title: "HTTPS enabled",
+        evidence: "https://",
+        fix: "",
+      },
+    ],
+    parsed: { title: "Design", metaDescription: "Desc", h1: ["Heading"], wordCount: 420 },
+    siteFiles: { origin: "https://example.com", robots: true, sitemap: true, sitemapUrls: 12 },
+    meta: { version: "0.9.2" },
+    checkedAt: "2026-01-01T00:00:00.000Z",
+  });
+
+  const pageHtml = renderHtml(report, { indexHref: "index.html", pageCount: 2 });
+  const siteHtml = renderSiteIndex([report]);
+
+  for (const html of [pageHtml, siteHtml]) {
+    assert.match(html, /<meta name="text-scale" content="scale">/, "must opt into OS text-scale");
+    assert.doesNotMatch(
+      html,
+      /(?::root|html)\s*\{[^}]*font-size\s*:/,
+      "must not override root font-size when text-scale is enabled",
+    );
+    assert.match(
+      html,
+      /<script data-theme-init>/,
+      "must include synchronous FOUC-prevention theme init script in head",
+    );
+    assert.match(html, /@layer base, theme, layout, components, utilities;/);
+    assert.match(html, /--font-sans:/);
+    assert.match(html, /--font-display:/);
+    assert.match(html, /--font-mono:/);
+    assert.match(html, /interpolate-size:allow-keywords/);
+    assert.match(html, /light-dark\(/);
+    assert.match(html, /@media \(forced-colors:active\)/);
+    assert.match(html, /linearGradient id="oss-g-search"/);
+    assert.match(html, /linearGradient id="oss-g-ai"/);
+    assert.match(html, /<svg class="ico"/);
+  }
+
+  assert.match(pageHtml, /\.finding\{container-type:inline-size;/);
+  assert.match(pageHtml, /@container \(width < 22rem\)/);
+  assert.match(siteHtml, /@container \(width < 42rem\)/);
+  assert.match(siteHtml, /--col-2:"Search"/);
+  assert.match(siteHtml, /td:nth-child\(2\)::before/);
+});

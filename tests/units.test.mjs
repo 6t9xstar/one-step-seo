@@ -29,6 +29,8 @@ import {
   siteTopFindings,
   coverageLine,
   findDuplicateTitles,
+  summarizeAggregate,
+  buildSiteReport,
   verdictFor,
   topFixes,
   citableChecklist,
@@ -726,6 +728,57 @@ test("renderSiteIndex lists duplicate titles with page links", () => {
   const clean = renderSiteIndex([rep("One"), rep("Two")]);
   assert.match(clean, /No duplicate titles or meta descriptions/);
   assert.ok(!clean.includes("undefined"));
+});
+
+test("summarizeAggregate calculates unblended averages, minimums, and totals safely", () => {
+  const p1 = mkReport([mkFinding({ id: "T01-https", severity: "P0" })], { search: 80, ai: 90 });
+  const p2 = mkReport([mkFinding({ id: "O01-title-long", severity: "P2" })], { search: 60, ai: 70 });
+  const agg = summarizeAggregate([p1, p2]);
+  assert.equal(agg.avgSearch, 70);
+  assert.equal(agg.avgAi, 80);
+  assert.equal(agg.minSearch, 60);
+  assert.equal(agg.minAi, 70);
+  assert.equal(agg.searchValid, 2);
+  assert.equal(agg.aiValid, 2);
+  assert.equal(agg.totals.P0, 1);
+  assert.equal(agg.totals.P2, 1);
+
+  // Tolerates empty / malformed
+  assert.equal(summarizeAggregate([]).avgSearch, 0);
+  assert.equal(summarizeAggregate([]).searchValid, 0);
+});
+
+test("buildSiteReport produces consolidated site JSON report", () => {
+  const p1 = mkReport([mkFinding({ id: "T01-https", severity: "P0" })], { search: 85, ai: 95 });
+  p1.url = "https://example.com/";
+  p1.finalUrl = "https://example.com/";
+  p1.page = { title: "Home", metaDescription: "Welcome" };
+
+  const p2 = mkReport([mkFinding({ id: "O01-title-long", severity: "P2" })], { search: 75, ai: 85 });
+  p2.url = "https://example.com/about";
+  p2.finalUrl = "https://example.com/about";
+  p2.page = { title: "About", metaDescription: "Our story" };
+
+  const siteJson = buildSiteReport([p1, p2], { version: "0.9.3", origin: "https://example.com" });
+  assert.equal(siteJson.tool, "one-step-seo");
+  assert.equal(siteJson.reportType, "site");
+  assert.equal(siteJson.version, "0.9.3");
+  assert.equal(siteJson.origin, "https://example.com");
+  assert.equal(siteJson.pageCount, 2);
+  assert.equal(siteJson.scores.search.average, 80);
+  assert.equal(siteJson.scores.ai.average, 90);
+  assert.ok(Array.isArray(siteJson.pages));
+  assert.equal(siteJson.pages.length, 2);
+  assert.equal(siteJson.pages[0]?.url, "https://example.com/");
+  assert.equal(siteJson.pages[0]?.title, "Home");
+  assert.equal(siteJson.pages[1]?.title, "About");
+  assert.ok(Array.isArray(siteJson.topIssues));
+  assert.ok(Array.isArray(siteJson.duplicates));
+
+  // Handles empty pages array
+  const emptyJson = buildSiteReport([]);
+  assert.equal(emptyJson.pageCount, 0);
+  assert.equal(emptyJson.pages.length, 0);
 });
 
 // ---------- report-diff.mjs ----------

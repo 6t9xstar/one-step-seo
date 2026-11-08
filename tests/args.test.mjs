@@ -180,3 +180,25 @@ test("isLocalPath correctly identifies local file paths and file URIs", () => {
   assert.equal(isLocalPath("http://127.0.0.1:3000/"), false);
   assert.equal(isLocalPath("example.com"), false);
 });
+
+test("parseArgs handles --all, --pages all, and --crawl auto", () => {
+  const allFlag = parseArgs(["audit", "x", "--all"]);
+  assert.equal(allFlag.all, true);
+  assert.equal(allFlag.pages, MAX_PAGES);
+  assert.equal(allFlag.crawl, "auto");
+
+  const pagesAll = parseArgs(["audit", "x", "--pages", "all"]);
+  assert.equal(pagesAll.all, true);
+  assert.equal(pagesAll.pages, MAX_PAGES);
+  assert.equal(pagesAll.crawl, "auto");
+
+  const pagesMax = parseArgs(["audit", "x", "--pages=max"]);
+  assert.equal(pagesMax.all, true);
+  assert.equal(pagesMax.pages, MAX_PAGES);
+  assert.equal(pagesMax.crawl, "auto");
+
+  const crawlAuto = parseArgs(["audit", "x", "--crawl", "auto", "--pages", "5"]);
+  assert.equal(crawlAuto.crawl, "auto");
+  assert.equal(crawlAuto.pages, 5);
+  assert.equal(crawlAuto.all, false);
+});

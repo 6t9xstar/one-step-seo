@@ -47,6 +47,8 @@ import {
   renderCsv,
   siteBasename,
   siteTopFindings,
+  summarizeAggregate,
+  buildSiteReport,
   coverageLine,
   findDuplicateTitles,
   escMd,
@@ -289,7 +291,9 @@ async function checkPageLinks(r, pageReports, args, state, robotsText) {
 function usage(code = 0) {
   console.log(`one-step-seo v${VERSION} — one command SEO + AI-visibility audit
 Usage:
-  one-step-seo audit <url|dir> [--pages N] [--out DIR] [--format html,md,json] [--fail-on P0|P1|P2] [--crawl links|sitemap] [--skills S] [--offline]
+  one-step-seo [url|dir] (auto-find all website pages and provide full all-page report)
+  one-step-seo site <url|dir> [--pages N|all] [--out DIR] [--crawl auto|links|sitemap]
+  one-step-seo audit <url|dir> [--all] [--pages N|all] [--out DIR] [--format html,md,json] [--fail-on P0|P1|P2] [--crawl auto|links|sitemap] [--skills S] [--offline]
   one-step-seo page <url|file> [--out DIR] [--format html,md,json] [--skills S] [--offline]
   one-step-seo ai <url> [--out DIR] [--format html,md,json] [--json]
   one-step-seo quick <url|dir> [--pages N] [--out DIR]
@@ -303,12 +307,13 @@ Usage:
   one-step-seo (no command: interactive prompts when attached to a TTY)
 
 Options:
-  --pages N       pages to crawl for 'audit' (default 1, max 200; 'quick' defaults to 5)
+  --all           auto-discover and audit all pages across the website (hybrid sitemap + link crawl)
+  --pages N|all   pages to crawl (default 1, max 200, or 'all'; 'quick' defaults to 5; 'site' defaults to all)
   --out DIR       output directory (default ./seo-report)
   --format        comma list among html,md,json,sarif,csv (default html,md,json)
   --timeout MS    per-request timeout in ms (default 15000, 1000-120000)
   --fail-on SEV   exit 2 when any page has P0 (or P1/P2) findings — for CI gating
-  --crawl MODE    audit discovery: links (BFS over internal links) or sitemap (default links)
+  --crawl MODE    audit discovery: auto (hybrid sitemap + link BFS), links, or sitemap (default links)
   --concurrency N parallel page fetches 1-8 (default 4)
   --delay MS      politeness pause between crawl batches in ms (default 250, 0-10000)
   --skills LIST   comma list of skill IDs or categories (e.g. onpage,schema,technical-seo)
@@ -510,33 +515,6 @@ function writeOutputs(outDir, report, formats, basename = "report", htmlOpts) {
   return written;
 }
 
-/**
- * @param {import("../lib/report.mjs").Report[]} pageReports
- */
-function summarizeAggregate(pageReports) {
-  let searchSum = 0;
-  let aiSum = 0;
-  let searchMin = 100;
-  let aiMin = 100;
-  /** @type {Record<string, number>} */
-  const totals = { P0: 0, P1: 0, P2: 0, P3: 0, pass: 0 };
-  for (const r of pageReports) {
-    searchSum += r.scores.search.score;
-    aiSum += r.scores.ai.score;
-    searchMin = Math.min(searchMin, r.scores.search.score);
-    aiMin = Math.min(aiMin, r.scores.ai.score);
-    for (const k of Object.keys(totals)) totals[k] = (totals[k] ?? 0) + (r.counts[k] ?? 0);
-  }
-  const n = pageReports.length || 1;
-  return {
-    avgSearch: Math.round(searchSum / n),
-    avgAi: Math.round(aiSum / n),
-    minSearch: searchMin,
-    minAi: aiMin,
-    totals,
-  };
-}
-
 /** @param {string} severity @param {Record<string, number>} counts @returns {boolean} */
 function breachesFailOn(severity, counts) {
   if (!severity) return false;
@@ -613,7 +591,7 @@ async function cmdAudit(url, args) {
   // already in `queue`, so the cap must count only *extra* seeds — comparing
   // `queue.length >= args.pages` would break immediately at the default
   // --pages 1 and add nothing.
-  if (args.crawl === "sitemap") {
+  if (args.crawl === "sitemap" || args.crawl === "auto") {
     try {
       const seeds = await getSitemapUrls(url, {
         timeoutMs: args.timeout,
@@ -633,9 +611,9 @@ async function cmdAudit(url, args) {
         seen.add(key);
         added++;
       }
-      // Only warn when the sitemap genuinely yielded nothing. At --pages 1 the
-      // root is already queued, so an empty `seeds` is the real signal.
-      if (seeds.length === 0) {
+      // Only warn when the sitemap genuinely yielded nothing and mode was explicitly sitemap.
+      // At --pages 1 the root is already queued, so an empty `seeds` is the real signal.
+      if (seeds.length === 0 && args.crawl === "sitemap") {
         console.error("! sitemap has no usable URLs — falling back to link crawl.");
       }
     } catch {
@@ -729,7 +707,10 @@ async function cmdAudit(url, args) {
         // Slice-drops are only evidence of missed coverage when the dropped
         // links are genuinely new — nav menus repeat seen URLs, which would
         // cry wolf on every site.
-        const unseenDropped = r.parsed.internalLinks.slice(10).filter(
+        const isAuto = args.crawl === "auto" || args.all;
+        const linkLimit = isAuto ? r.parsed.internalLinks.length : 10;
+        const droppedCandidate = isAuto ? [] : r.parsed.internalLinks.slice(10);
+        const unseenDropped = droppedCandidate.filter(
           /** @param {string} link @returns {boolean} */ (link) => {
             const lk = canonicalizeUrl(link) || link;
             return !!lk && !seen.has(lk);
@@ -737,14 +718,14 @@ async function cmdAudit(url, args) {
         );
         if (unseenDropped.length > 0) capped = true;
         // Inlink accounting scans every discovered link (orphan detection),
-        // while queueing stays capped at 10 per page for crawl breadth.
+        // while queueing stays capped at 10 per page for crawl breadth (unless auto/all).
         // Credit lands before the seen-skip below so sitemap seeds linked
         // from crawled pages still count as linked.
         for (const link of r.parsed.internalLinks) {
           const lk = canonicalizeUrl(link) || link;
           if (lk) inlinkCounts.set(lk, (inlinkCounts.get(lk) ?? 0) + 1);
         }
-        for (const link of r.parsed.internalLinks.slice(0, 10)) {
+        for (const link of r.parsed.internalLinks.slice(0, linkLimit)) {
           const lk = canonicalizeUrl(link) || link;
           if (!lk || seen.has(lk)) continue;
           if (!allowedHosts.has(hostOf(link))) {
@@ -820,19 +801,31 @@ async function cmdAudit(url, args) {
         o.idx > 0 && (inlinkCounts.get(canonicalizeUrl(o.r.finalUrl) || o.r.finalUrl) ?? 0) === 0,
     );
   const dups = pageReports.length > 1 ? findDuplicateTitles(pageReports) : [];
+  const isSiteAudit = pageReports.length > 1 || args.all || args._[0] === "site";
   const siteOpts =
-    pageReports.length > 1 && withHtml
-      ? { indexHref: "index.html", pageCount: pageReports.length }
-      : undefined;
+    isSiteAudit && withHtml ? { indexHref: "index.html", pageCount: pageReports.length } : undefined;
   /** @type {string[]} */
   const written = [];
   pageReports.forEach((report, idx) => {
     const basename = siteBasename(idx);
     written.push(...writeOutputs(outDir, report, formats, basename, siteOpts));
   });
+  if (formats.includes("json") && (args.all || args._[0] === "site")) {
+    const siteReportPath = join(outDir, "site-report.json");
+    writeFileSync(
+      siteReportPath,
+      JSON.stringify(
+        buildSiteReport(pageReports, { version: VERSION, origin: pageReports[0]?.finalUrl || url }),
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+    written.push(siteReportPath);
+  }
   // Index linking all pages. Format links are conditional: with
   // `--format json` no .md files exist, so unconditional links would 404.
-  if (pageReports.length > 1) {
+  if (isSiteAudit) {
     const lines = [`# one-step-seo index`, ``, `Audited ${pageReports.length} pages.`, ``];
     if (withHtml) lines.push(`Browse the [site dashboard](./index.html).`, ``);
     pageReports.forEach((r, idx) => {
@@ -1893,6 +1886,15 @@ function auditLocalDirectory(rawTarget, args) {
       writeFileSync(idxPath, lines.join("\n"), "utf8");
       written.push(idxPath);
     }
+    if (args.formats.includes("json") && (args.all || args._[0] === "site")) {
+      const siteReportPath = join(outDir, "site-report.json");
+      writeFileSync(
+        siteReportPath,
+        JSON.stringify(buildSiteReport(pageReports, { version: VERSION, origin: rawTarget }), null, 2) + "\n",
+        "utf8",
+      );
+      written.push(siteReportPath);
+    }
     if (withHtml) {
       const idxHtml = join(outDir, "index.html");
       writeFileSync(idxHtml, renderSiteIndex(pageReports), "utf8");
@@ -2164,7 +2166,7 @@ async function openReport(file) {
 }
 
 /**
- * Beginner mode: ask four quick questions, then run a standard audit.
+ * Beginner mode: ask 4 quick questions, then auto-discover and audit the site.
  * Only on an interactive TTY — piped/CI usage falls back to usage(1).
  */
 async function cmdInteractive() {
@@ -2172,27 +2174,71 @@ async function cmdInteractive() {
   console.log("one-step-seo — answer 4 quick questions to audit a site.\n");
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    let url = "";
-    while (!url) {
-      const raw = ((await rl.question("Website URL (e.g. https://example.com): ")) ?? "").trim();
+    let target = "";
+    while (!target) {
+      const raw = (
+        (await rl.question("Website URL or local path (e.g. https://example.com or ./dist): ")) ?? ""
+      ).trim();
+      if (!raw) continue;
+      if (isLocalPath(raw)) {
+        target = raw;
+        break;
+      }
       const normalized = normalizeUrl(raw);
       if (!normalized) console.error("That URL did not parse — try again, e.g. https://example.com");
-      else url = normalized;
+      else target = normalized;
     }
-    let pages = 5;
-    const pagesRaw = ((await rl.question("Pages to audit, 1-20 (default 5): ")) ?? "").trim();
-    if (pagesRaw) {
+    let pages = MAX_PAGES;
+    let isAll = true;
+    const pagesRaw = (
+      (await rl.question(
+        `Pages to audit — "all" (auto-discover entire site) or 1-${MAX_PAGES} (default all): `,
+      )) ?? ""
+    )
+      .trim()
+      .toLowerCase();
+    if (pagesRaw && pagesRaw !== "all" && pagesRaw !== "max") {
       const n = Number(pagesRaw);
-      if (Number.isInteger(n) && n >= 1 && n <= 20) pages = n;
-      else console.error("Keeping the default of 5 pages.");
+      if (Number.isInteger(n) && n >= 1 && n <= MAX_PAGES) {
+        pages = n;
+        isAll = false;
+      } else {
+        console.error(`Invalid page count — auto-discovering all pages (up to ${MAX_PAGES}).`);
+      }
     }
     const outRaw = ((await rl.question("Output folder (default ./seo-report): ")) ?? "").trim();
     const out = outRaw || "./seo-report";
-    const openRaw = ((await rl.question("Open report.html when done? (y/N): ")) ?? "").trim().toLowerCase();
-    const open = openRaw === "y" || openRaw === "yes";
-    const interactiveArgs = parseArgs(["audit", url, "--pages", String(pages), "--out", out]);
-    await cmdAudit(url, interactiveArgs);
-    if (open) await openReport(join(resolve(out), "report.html"));
+    const openRaw = ((await rl.question("Open report when done? (Y/n): ")) ?? "").trim().toLowerCase();
+    const open = openRaw !== "n" && openRaw !== "no";
+
+    if (isLocalPath(target)) {
+      const interactiveArgs = parseArgs(["audit", target, "--pages", String(pages), "--out", out]);
+      if (isAll) interactiveArgs.all = true;
+      auditLocalDirectory(target, interactiveArgs);
+    } else {
+      const crawlMode = isAll ? "auto" : "links";
+      const interactiveArgs = parseArgs([
+        "audit",
+        target,
+        "--pages",
+        String(pages),
+        "--crawl",
+        crawlMode,
+        "--out",
+        out,
+      ]);
+      if (isAll) interactiveArgs.all = true;
+      await cmdAudit(target, interactiveArgs);
+    }
+    if (open) {
+      const indexFile = join(resolve(out), "index.html");
+      const reportFile = join(resolve(out), "report.html");
+      if (existsSync(indexFile)) {
+        await openReport(indexFile);
+      } else if (existsSync(reportFile)) {
+        await openReport(reportFile);
+      }
+    }
   } finally {
     rl.close();
   }
@@ -2306,6 +2352,71 @@ async function main() {
   if (cmd === "fix") return cmdFix(rawUrl ?? "", args);
   // `diff` compares local report.json files — also routes before URLs.
   if (cmd === "diff") return cmdDiff(args._.slice(1), args);
+
+  // Dedicated full-site audit command:
+  if (cmd === "site") {
+    if (!rawUrl) {
+      console.error("Provide a valid URL or local directory path: one-step-seo site https://example.com");
+      process.exit(1);
+    }
+    const argv = process.argv.slice(2);
+    const explicitPages = argv.some((a) => a === "--pages" || a.startsWith("--pages="));
+    if (!explicitPages) {
+      args.pages = MAX_PAGES;
+      args.all = true;
+    }
+    const explicitCrawl = argv.some((a) => a === "--crawl" || a.startsWith("--crawl="));
+    if (!explicitCrawl) {
+      args.crawl = "auto";
+    }
+    if (isLocalPath(rawUrl) || args.offline) {
+      return auditLocalDirectory(rawUrl, args);
+    }
+    const siteUrl = normalizeUrl(rawUrl);
+    if (!siteUrl) {
+      console.error(
+        `Provide a valid URL or local path, e.g. one-step-seo site https://example.com (got "${rawUrl}").`,
+      );
+      process.exit(1);
+    }
+    return cmdAudit(siteUrl, args);
+  }
+
+  // Direct target shorthand (e.g. `npx one-step-seo https://example.com` or `npx one-step-seo ./dist`):
+  if (args._.length === 1) {
+    const target = cmd.trim();
+    if (isLocalPath(target)) {
+      const argv = process.argv.slice(2);
+      const explicitPages = argv.some((a) => a === "--pages" || a.startsWith("--pages="));
+      if (!explicitPages) {
+        args.pages = MAX_PAGES;
+        args.all = true;
+      }
+      if (existsSync(target) && statSync(target).isFile()) {
+        return auditLocalFile(target, args);
+      }
+      return auditLocalDirectory(target, args);
+    }
+    const isHttp = /^https?:\/\//i.test(target);
+    const isDomain = /\.[a-z0-9]{2,}/i.test(target) && !target.startsWith("-");
+    const isLocalhost = /^localhost(:\d+)?$/i.test(target) || /^127\.0\.0\.1(:\d+)?$/i.test(target);
+    if (isHttp || isDomain || isLocalhost) {
+      const directUrl = normalizeUrl(target);
+      if (directUrl) {
+        const argv = process.argv.slice(2);
+        const explicitPages = argv.some((a) => a === "--pages" || a.startsWith("--pages="));
+        if (!explicitPages) {
+          args.pages = MAX_PAGES;
+          args.all = true;
+        }
+        const explicitCrawl = argv.some((a) => a === "--crawl" || a.startsWith("--crawl="));
+        if (!explicitCrawl) {
+          args.crawl = "auto";
+        }
+        return cmdAudit(directUrl, args);
+      }
+    }
+  }
 
   // Local file or directory targets (or explicit --offline):
   if (args.offline && rawUrl && /^https?:\/\//i.test(rawUrl.trim())) {

@@ -13,25 +13,37 @@ Requires Node 18+. Both `--flag value` and `--flag=value` forms are accepted.
 ## Quickstart
 
 ```bash
-# Easiest: one command, sensible defaults (5 pages, all formats)
-npx one-step-seo quick https://your-site.com
+# Easiest: direct URL shorthand auto-discovers all website pages and provides full site report
+npx one-step-seo https://your-site.com
 
-# Interactive: answer 4 questions (URL, pages, output folder, open report?)
+# Dedicated site command (hybrid sitemap + link auto-discovery across all pages)
+npx one-step-seo site https://your-site.com
+
+# Interactive: answer 4 questions (defaults to auto-discovering all pages)
 npx one-step-seo
 
-# Full control
-npx one-step-seo audit https://example.com --pages 5 --out ./seo-report
+# Quick shortcut: audit up to 5 pages with beginner defaults
+npx one-step-seo quick https://your-site.com
+
+# Full control: audit all pages with hybrid crawl into a custom folder
+npx one-step-seo audit https://example.com --all --out ./seo-report
 ```
 
 You get: Search SEO score + AI Visibility score (two separate 0–100 scores),
-`report.json` + `report.md` + `report.html`, and prioritized fixes with the
-top 3 printed in the terminal.
+`report.json` + `report.md` + `report.html` (for page 1), `report-N.*` (for each page),
+`index.html` (interactive site dashboard), `index.md`, and consolidated `site-report.json`,
+with prioritized fixes printed directly in the terminal.
 
 ## Commands
 
 ```bash
-# Full audit (crawl up to N pages over internal links)
-one-step-seo audit https://example.com --pages 5 --out ./seo-report --format html,md,json
+# Full site audit: auto-discover all pages via hybrid sitemap + link BFS crawl
+one-step-seo site https://example.com
+one-step-seo https://example.com
+
+# Full audit with explicit page limit and formats
+one-step-seo audit https://example.com --all --out ./seo-report --format html,md,json
+one-step-seo audit https://example.com --pages 10 --crawl auto --out ./seo-report
 
 # Calibrated for a page type (default|blog|product|docs|home)
 one-step-seo audit https://example.com/shop/widget --profile product
@@ -69,7 +81,7 @@ one-step-seo diff base-report.json seo-report/report.json --fail-on P1
 one-step-seo doctor
 one-step-seo doctor --json
 
-# Skills inspection (14 executable CLI skills + 13 Agent Skill playbooks)
+# Skills inspection (22 executable CLI skills + 24 Agent Skill playbooks)
 one-step-seo skills
 one-step-seo skills onpage-optimization
 one-step-seo skills --json
@@ -192,39 +204,40 @@ review — `fix` closes the mechanical loop, judgment stays with you.
 
 ## Flags
 
-| Flag                  | Default        | Meaning                                                                                                                                                                                                                                                                                  |
-| --------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--pages N`           | `1`            | Pages to crawl for `audit` (integer 1–200, BFS over same-host links). The terminal reports whether all discovered pages were audited or the cap cut the crawl short (re-run higher, max 200)                                                                                             |
-| `--out DIR`           | `./seo-report` | Output directory (created with `mkdir -p`, existing files overwritten)                                                                                                                                                                                                                   |
-| `--format`            | `html,md,json` | Which reports to write (`html`, `md`, `json`, `sarif`, `csv` only — anything else exits 1)                                                                                                                                                                                               |
-| `--timeout MS`        | `15000`        | Per-request timeout in ms (integer 1000–120000; applies to pages + robots/sitemap/llms)                                                                                                                                                                                                  |
-| `--generate KIND`     | —              | `organization\|website\|article\|faq\|breadcrumb\|product\|event\|localbusiness\|howto\|video\|job\|course\|review\|recipe`                                                                                                                                                              |
-| `--fail-on SEV`       | —              | `P0\|P1\|P2` — exit 2 when any audited page has that severity or higher (CI gating). For `diff`: exit 2 only on _new or escalated_ findings at the threshold                                                                                                                             |
-| `--profile NAME`      | `default`      | Page-type calibration: `default` (reference), `blog` (same calibration, explicit), `product` (thin threshold 120, skips answer-first), `docs` (FAQ + llms.txt bumped to P1), `home` (thin threshold 100, skips answer-first). The AI checklist is identical across profiles              |
-| `--psi`               | —              | Measure Core Web Vitals via Google PageSpeed Insights (lab + CrUX field metrics). Reads `PSI_API_KEY` from the environment.                                                                                                                                                              |
-| `--psi-strategy`      | `mobile`       | Strategy for `--psi`: `mobile` or `desktop`                                                                                                                                                                                                                                              |
-| `--crawl MODE`        | `links`        | `links` (BFS over internal links) or `sitemap` (seeds from `sitemap.xml`, or the `Sitemap:` URL declared in `robots.txt`; follows up to 5 child sitemaps of a `<sitemapindex>`, caps seeds at 500, drops cross-host seeds, and warns + falls back to `links` when no sitemap URLs exist) |
-| `--concurrency N`     | `4`            | Parallel page fetches for `audit` (integer 1–8)                                                                                                                                                                                                                                          |
-| `--delay MS`          | `250`          | Politeness pause between crawl batches in ms (integer 0–10000)                                                                                                                                                                                                                           |
-| `--debug`             | —              | Verbose diagnostics: parsed audit parameters, `robots.txt` status, per-page timings (implies `--verbose` stacks)                                                                                                                                                                         |
-| `--force`             | —              | Crawl even when `robots.txt` disallows the URL — use only on sites you own or are allowed to test; the refusal is otherwise reported as `T05-robots-disallow`                                                                                                                            |
-| `--check-links`       | —              | Verify same-host link targets (P1 `T16-broken-links` for 4xx/5xx/failures; capped at 100 checks per run, off by default; skips already-audited and robots-disallowed targets)                                                                                                            |
-| `--quiet, -q`         | —              | Suppress informational banners and progress chatter in CI and automated scripts                                                                                                                                                                                                          |
-| `--block-private-ips` | —              | Block SSRF requests targeting private, loopback, or cloud metadata IP addresses (IPv4 RFC 1918, IPv6 ULA, IMDSv2, Oracle Cloud)                                                                                                                                                          |
-| `--check-config`      | —              | `doctor`: validate CLI options, defaults, and environment health                                                                                                                                                                                                                         |
-| `--skills LIST`       | —              | Comma list of executable CLI skill IDs, category names, or aliases to include (e.g., `onpage,schema,technical-seo`)                                                                                                                                                                      |
-| `--exclude-skills L`  | —              | Comma list of executable CLI skill IDs, category names, or aliases to exclude                                                                                                                                                                                                            |
-| `--offline`           | —              | Audit local HTML files or build directories offline with zero network requests                                                                                                                                                                                                           |
-| `--json`              | —              | JSON to stdout (`sitemap`, `llms`, `doctor`, `fix`, `diff`, `ai`, `skills`)                                                                                                                                                                                                              |
-| `--verbose`           | —              | Print error stacks on runtime failures (`VERBOSE=1` also works)                                                                                                                                                                                                                          |
-| `--apply`             | —              | `fix`: write fixes to disk (default is a dry-run diff; creates `<file>.bak` unless `--no-backup`)                                                                                                                                                                                        |
-| `--only NAMES`        | —              | `fix`: comma list restricting which fixers run (`charset,viewport,lang,title,description,canonical,og,og-url,twitter-card,favicon`)                                                                                                                                                      |
-| `--url URL`           | —              | `fix`: absolute http(s) URL used for `canonical` / `og-url` fixes                                                                                                                                                                                                                        |
-| `--title TEXT`        | —              | `fix`: `<title>` content when missing (else derived from the first `<h1>`)                                                                                                                                                                                                               |
-| `--description T`     | —              | `fix`: meta description when missing (else derived from page text, ≥40ch)                                                                                                                                                                                                                |
-| `--lang LANG`         | —              | `fix`: `<html lang>` value when missing (never guessed)                                                                                                                                                                                                                                  |
-| `--og-image URL`      | —              | `fix`: absolute image URL for `og:image`                                                                                                                                                                                                                                                 |
-| `--no-backup`         | —              | `fix`: skip the `.bak` copy on `--apply`                                                                                                                                                                                                                                                 |
+| Flag                  | Default        | Meaning                                                                                                                                                                                                                                                                                                                                         |
+| --------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--all`               | —              | Auto-discover and audit all pages across the website (hybrid sitemap + link BFS crawl up to 200 pages)                                                                                                                                                                                                                                          |
+| `--pages N`           | `1`            | Pages to crawl for `audit` (integer 1–200, or `all`/`max`; `quick` defaults to 5; `site` and direct URL shorthand default to all). The terminal reports whether all discovered pages were audited or the cap cut the crawl short (re-run higher, max 200)                                                                                       |
+| `--out DIR`           | `./seo-report` | Output directory (created with `mkdir -p`, existing files overwritten)                                                                                                                                                                                                                                                                          |
+| `--format`            | `html,md,json` | Which reports to write (`html`, `md`, `json`, `sarif`, `csv` only — anything else exits 1)                                                                                                                                                                                                                                                      |
+| `--timeout MS`        | `15000`        | Per-request timeout in ms (integer 1000–120000; applies to pages + robots/sitemap/llms)                                                                                                                                                                                                                                                         |
+| `--generate KIND`     | —              | `organization\|website\|article\|faq\|breadcrumb\|product\|event\|localbusiness\|howto\|video\|job\|course\|review\|recipe`                                                                                                                                                                                                                     |
+| `--fail-on SEV`       | —              | `P0\|P1\|P2` — exit 2 when any audited page has that severity or higher (CI gating). For `diff`: exit 2 only on _new or escalated_ findings at the threshold                                                                                                                                                                                    |
+| `--profile NAME`      | `default`      | Page-type calibration: `default` (reference), `blog` (same calibration, explicit), `product` (thin threshold 120, skips answer-first), `docs` (FAQ + llms.txt bumped to P1), `home` (thin threshold 100, skips answer-first). The AI checklist is identical across profiles                                                                     |
+| `--psi`               | —              | Measure Core Web Vitals via Google PageSpeed Insights (lab + CrUX field metrics). Reads `PSI_API_KEY` from the environment.                                                                                                                                                                                                                     |
+| `--psi-strategy`      | `mobile`       | Strategy for `--psi`: `mobile` or `desktop`                                                                                                                                                                                                                                                                                                     |
+| `--crawl MODE`        | `links`        | `auto` (hybrid sitemap + internal link BFS discovery), `links` (BFS over internal links) or `sitemap` (seeds from `sitemap.xml`, or the `Sitemap:` URL declared in `robots.txt`; follows up to 5 child sitemaps of a `<sitemapindex>`, caps seeds at 500, drops cross-host seeds, and warns + falls back to `links` when no sitemap URLs exist) |
+| `--concurrency N`     | `4`            | Parallel page fetches for `audit` (integer 1–8)                                                                                                                                                                                                                                                                                                 |
+| `--delay MS`          | `250`          | Politeness pause between crawl batches in ms (integer 0–10000)                                                                                                                                                                                                                                                                                  |
+| `--debug`             | —              | Verbose diagnostics: parsed audit parameters, `robots.txt` status, per-page timings (implies `--verbose` stacks)                                                                                                                                                                                                                                |
+| `--force`             | —              | Crawl even when `robots.txt` disallows the URL — use only on sites you own or are allowed to test; the refusal is otherwise reported as `T05-robots-disallow`                                                                                                                                                                                   |
+| `--check-links`       | —              | Verify same-host link targets (P1 `T16-broken-links` for 4xx/5xx/failures; capped at 100 checks per run, off by default; skips already-audited and robots-disallowed targets)                                                                                                                                                                   |
+| `--quiet, -q`         | —              | Suppress informational banners and progress chatter in CI and automated scripts                                                                                                                                                                                                                                                                 |
+| `--block-private-ips` | —              | Block SSRF requests targeting private, loopback, or cloud metadata IP addresses (IPv4 RFC 1918, IPv6 ULA, IMDSv2, Oracle Cloud)                                                                                                                                                                                                                 |
+| `--check-config`      | —              | `doctor`: validate CLI options, defaults, and environment health                                                                                                                                                                                                                                                                                |
+| `--skills LIST`       | —              | Comma list of executable CLI skill IDs, category names, or aliases to include (e.g., `onpage,schema,technical-seo`)                                                                                                                                                                                                                             |
+| `--exclude-skills L`  | —              | Comma list of executable CLI skill IDs, category names, or aliases to exclude                                                                                                                                                                                                                                                                   |
+| `--offline`           | —              | Audit local HTML files or build directories offline with zero network requests                                                                                                                                                                                                                                                                  |
+| `--json`              | —              | JSON to stdout (`sitemap`, `llms`, `doctor`, `fix`, `diff`, `ai`, `skills`)                                                                                                                                                                                                                                                                     |
+| `--verbose`           | —              | Print error stacks on runtime failures (`VERBOSE=1` also works)                                                                                                                                                                                                                                                                                 |
+| `--apply`             | —              | `fix`: write fixes to disk (default is a dry-run diff; creates `<file>.bak` unless `--no-backup`)                                                                                                                                                                                                                                               |
+| `--only NAMES`        | —              | `fix`: comma list restricting which fixers run (`charset,viewport,lang,title,description,canonical,og,og-url,twitter-card,favicon`)                                                                                                                                                                                                             |
+| `--url URL`           | —              | `fix`: absolute http(s) URL used for `canonical` / `og-url` fixes                                                                                                                                                                                                                                                                               |
+| `--title TEXT`        | —              | `fix`: `<title>` content when missing (else derived from the first `<h1>`)                                                                                                                                                                                                                                                                      |
+| `--description T`     | —              | `fix`: meta description when missing (else derived from page text, ≥40ch)                                                                                                                                                                                                                                                                       |
+| `--lang LANG`         | —              | `fix`: `<html lang>` value when missing (never guessed)                                                                                                                                                                                                                                                                                         |
+| `--og-image URL`      | —              | `fix`: absolute image URL for `og:image`                                                                                                                                                                                                                                                                                                        |
+| `--no-backup`         | —              | `fix`: skip the `.bak` copy on `--apply`                                                                                                                                                                                                                                                                                                        |
 
 ## Core Web Vitals (PageSpeed Insights)
 
@@ -255,13 +268,14 @@ PSI_API_KEY=your_key one-step-seo page https://example.com --psi --psi-strategy 
   button, print stylesheet, skip link, and labelled sections for screen
   readers. Runtime generator: `renderHtml()` in `lib/report.mjs` (`templates/report.html` is a design-system reference only).
 - Multi-page runs add `report-2.json/.md/.html`, etc. plus `index.md` linking all pages
+- `site-report.json` — consolidated full-site report written during multi-page audits, `--all`, and `site` commands when JSON format is enabled. Shape: `{ tool, reportType: "site", version, rulesVersion, origin, checkedAt, pageCount, scores: { search: { average, band, min }, ai: { average, band, min } }, counts, topIssues, duplicates, pages: [{ index, url, finalUrl, title, metaDescription, scores, counts, topFindings }] }`.
 - Multi-page runs with the `html` format also write `index.html` — a site-wide
   dashboard (`renderSiteIndex()` in `lib/report.mjs`: valid-page score aggregation with contributing page counts, `N/A` for unavailable scores, Lowest/Highest-Performing Page cards, filterable & sortable pages table, top recurring issues, category distribution, duplicate titles/descriptions, and internal linking / dead-end risk).
   Per-page reports link back to it with an “All N pages” breadcrumb.
 - `sitemap --json` shape: `{ origin, robotsFound, robotsSitemaps, sitemapFound, sitemapUrl, sitemapUrls, sitemapTruncated, llmsFound }`
 - `llms --json` shape: `{ tool, version, url, llmsFound, llmsBytes, starter, robotsSnippet }`
 - `ai --json` shape: `{ tool, version, url, aiScore, aiBand, searchScore, searchBand, signals: { robotsAiBlocked, blockedBots, llmsFound, llmsBytes, schemaTypes, hasAuthor, hasLandmarks, hasDirectAnswer }, findings, reports }`
-- `skills --json` shape: array of 14 `SkillDefinition` objects (or a single `SkillDefinition` when `<skill-id>` is provided).
+- `skills --json` shape: array of 22 `SkillDefinition` objects (or a single `SkillDefinition` when `<skill-id>` is provided).
 - `doctor --json` shape: `{ tool, version, node, nodeOk, fetch, terminal: { isTTY, color, noColor }, env: { PSI_API_KEY }, configCheck }`
 - `fix --json` shape: `{ tool, version, applied, files: [{ file, planned: [{ name, findingId, summary, partial }], skipped: [{ name, reason }], verified: [{ name, cleared }], changed, applied, error }] }`
 

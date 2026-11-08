@@ -967,3 +967,57 @@ test("cli: ai and schema commands work on local HTML files and --offline rejects
   assert.equal(rOfflineUrl.code, 1);
   assert.match(rOfflineUrl.stderr, /--offline requires a local file or directory path/);
 });
+
+test("cli: direct URL shorthand auto-discovers site and writes site dashboard + site-report.json", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-shorthand-"));
+    const r = await runCli([`http://127.0.0.1:${port}/`, "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(existsSync(join(out, "index.html")), "expected index.html dashboard");
+    assert.ok(existsSync(join(out, "index.md")), "expected index.md");
+    assert.ok(existsSync(join(out, "site-report.json")), "expected site-report.json");
+    assert.ok(existsSync(join(out, "report.json")), "expected report.json");
+    assert.ok(existsSync(join(out, "report-2.json")), "expected report-2.json");
+    const siteJson = JSON.parse(readFileSync(join(out, "site-report.json"), "utf8"));
+    assert.equal(siteJson.tool, "one-step-seo");
+    assert.equal(siteJson.reportType, "site");
+    assert.equal(siteJson.pageCount, 2);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: site command and --all flag auto-discover all pages via hybrid crawl", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    const out = mkdtempSync(join(tmpdir(), "oss-site-cmd-"));
+    const r = await runCli(["site", `http://127.0.0.1:${port}/`, "--out", out]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(existsSync(join(out, "site-report.json")));
+    assert.ok(existsSync(join(out, "index.html")));
+
+    const outAll = mkdtempSync(join(tmpdir(), "oss-all-flag-"));
+    const rAll = await runCli(["audit", `http://127.0.0.1:${port}/`, "--all", "--out", outAll]);
+    assert.equal(rAll.code, 0, rAll.stderr);
+    assert.ok(existsSync(join(outAll, "site-report.json")));
+    assert.ok(existsSync(join(outAll, "index.html")));
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("cli: site command audits local directory and writes site-report.json", async () => {
+  const out = mkdtempSync(join(tmpdir(), "oss-site-local-"));
+  const fixturesDir = join(ROOT, "tests/fixtures");
+  const r = await runCli(["site", fixturesDir, "--out", out]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.ok(existsSync(join(out, "index.html")));
+  assert.ok(existsSync(join(out, "site-report.json")));
+  const siteJson = JSON.parse(readFileSync(join(out, "site-report.json"), "utf8"));
+  assert.equal(siteJson.tool, "one-step-seo");
+  assert.equal(siteJson.reportType, "site");
+  assert.ok(siteJson.pageCount >= 2);
+});

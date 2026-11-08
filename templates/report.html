@@ -10,41 +10,79 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="text-scale" content="scale" />
+    <script data-theme-init>
+      (function () {
+        try {
+          var s = localStorage.getItem("oss-theme");
+          if (s === "dark" || s === "light") {
+            document.documentElement.setAttribute("data-theme", s);
+            var m = document.querySelector('meta[name="color-scheme"]');
+            if (m) m.setAttribute("content", s);
+          }
+        } catch (e) {}
+      })();
+    </script>
     <title>one-step-seo report — {{URL}}</title>
     <style>
-      :root {
-        --bg: #f8fafc;
-        --fg: #0f172a;
-        --muted: #475569;
-        --card: #ffffff;
-        --line: #e2e8f0;
-        --code: #f1f5f9;
-        --accent: #2563eb;
-        --accent-alt: #7c3aed;
-        color-scheme: light dark;
-      }
-      @media (prefers-color-scheme: dark) {
+      @layer base, theme, layout, components, utilities;
+      @layer theme {
         :root {
-          --bg: #090d16;
-          --fg: #f8fafc;
-          --muted: #94a3b8;
-          --card: #111726;
-          --line: #1e293b;
-          --code: #172033;
-          --accent: #3b82f6;
-          --accent-alt: #8b5cf6;
+          --font-sans:
+            "Inter", "Geist", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, sans-serif;
+          --font-display:
+            "Plus Jakarta Sans", "Inter", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            sans-serif;
+          --font-mono:
+            "JetBrains Mono", "Geist Mono", "Fira Code", "Cascadia Code", "SF Mono", ui-monospace,
+            SFMono-Regular, Menlo, Consolas, monospace;
+          --bg: #f8fafc;
+          --fg: #0f172a;
+          --muted: #475569;
+          --card: #ffffff;
+          --line: #e2e8f0;
+          --code: #f1f5f9;
+          --accent: #2563eb;
+          --accent-alt: #7c3aed;
+          color-scheme: light dark;
+          interpolate-size: allow-keywords;
+        }
+        @media (prefers-color-scheme: dark) {
+          :root:not([data-theme="light"]) {
+            --bg: #090d16;
+            --fg: #f8fafc;
+            --muted: #94a3b8;
+            --card: #111726;
+            --line: #1e293b;
+            --code: #172033;
+            --accent: #3b82f6;
+            --accent-alt: #8b5cf6;
+          }
+        }
+        @supports (color: light-dark(white, black)) {
+          :root {
+            --bg: light-dark(#f8fafc, #090d16);
+            --fg: light-dark(#0f172a, #f8fafc);
+            --muted: light-dark(#475569, #94a3b8);
+            --card: light-dark(#ffffff, #111726);
+            --line: light-dark(#e2e8f0, #1e293b);
+            --code: light-dark(#f1f5f9, #172033);
+          }
         }
       }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--fg);
-        font-family:
-          system-ui,
-          -apple-system,
-          "Segoe UI",
-          Roboto,
-          sans-serif;
+      @layer base {
+        body {
+          margin: 0;
+          background: var(--bg);
+          color: var(--fg);
+          line-height: 1.55;
+          font-family: var(--font-sans);
+        }
+        h1 {
+          font-family: var(--font-display);
+          font-size: clamp(1.5rem, 1.25rem + 1vw, 1.95rem);
+        }
       }
     </style>
   </head>
