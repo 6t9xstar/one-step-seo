@@ -8,6 +8,8 @@ npm i -g one-step-seo
 npx one-step-seo audit https://example.com
 ```
 
+For programmatic Node.js and TypeScript usage (`import { runChecks, buildReport } from "one-step-seo"`), see [**docs/API.md**](./API.md).
+
 Requires Node 18+. Both `--flag value` and `--flag=value` forms are accepted.
 
 ## Quickstart

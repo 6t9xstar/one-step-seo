@@ -4,6 +4,34 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/).
 
+## [0.11.0] - 2026-11-09
+
+### Added
+
+- **Real Consumer-Style Integration Testing (`tests/consumer.test.mjs`).**
+  - Added end-to-end consumer tests that run `npm pack` on the repository, install the generated `.tgz` archive into an isolated clean ESM + TypeScript project, and verify exports.
+  - Verifies root import and all 5 subpath imports (`./checks`, `./report`, `./schema`, `./skills`, `./robots`).
+  - Verifies type discovery and strict TypeScript compilation with `tsc` against `node_modules/one-step-seo/lib/index.d.ts`.
+  - Verifies local `node_modules/.bin/one-step-seo` and `npx one-step-seo` command execution.
+- **Crawl Engine Stress & Large-Scale 1,000-Page Performance Testing (`tests/crawl-engine.test.mjs`).**
+  - Added dedicated integration tests validating multi-sitemap parsing from `robots.txt`, `.xml.gz` transparent gzip decompression, and CDATA / XML entity unescaping.
+  - Added hop depth limit (`--max-depth`), path filtering (`--include`, `--exclude`), and query deduplication (`--strip-query`) validation.
+  - Added 1,000-page enterprise scale simulation and benchmark verifying < 50ms aggregation latency, zero memory leaks (heap delta < 50 MB), and clean table generation.
+- **Programmatic Library Documentation & Working Examples (`docs/API.md`, `examples/programmatic/*`, `README.md`, `docs/USAGE.md`).**
+  - Created [`docs/API.md`](./docs/API.md) with complete reference documentation, function signatures, TypeScript interfaces, and integration recipes.
+  - Created 4 standalone executable examples in `examples/programmatic/`: `audit-page.mjs`, `audit-site.mjs`, `custom-checks.mjs`, and `consumer.ts`.
+  - Added dedicated Node.js & TypeScript library section and navigation link in `README.md`.
+- **Workflow Dispatch & CI Trigger Hardening (`.github/workflows/ci.yml`).**
+  - Added `workflow_dispatch:` trigger to CI workflow to allow manual dispatch and automated external trigger execution.
+
+### Fixed
+
+- **Defensive Version Fallback in `buildReport` and `buildSiteReport` (`lib/report.mjs`).**
+  - Fixed a `TypeError` when `meta` or `meta.version` was omitted in programmatic calls to `buildReport`, gracefully falling back to package version.
+  - Made `finalUrl` default to `url` and `pageData` alias `parsed` for improved consumer ergonomics.
+- **GitHub Issue #1 Closure.**
+  - Verified public npm distribution and clean-machine `npx --yes one-step-seo@latest` execution, closing Issue #1 with acceptance proofs.
+
 ## [0.10.0] - 2026-11-09
 
 ### Added

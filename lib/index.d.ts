@@ -162,13 +162,9 @@ export interface AggregateSummary {
   avgAi: number | null;
   minSearch: number | null;
   minAi: number | null;
-  searchValidCount: number;
-  aiValidCount: number;
-  totalFindings: number;
-  totalP0: number;
-  totalP1: number;
-  totalP2: number;
-  totalP3: number;
+  searchValid: number;
+  aiValid: number;
+  totals: ReportCounts;
 }
 
 export interface CheckDefinition {
@@ -234,8 +230,22 @@ export class CliError extends Error {
   constructor(message: string, code?: 1 | 2);
 }
 
+export interface BuildReportOptions {
+  url: string;
+  finalUrl?: string;
+  scores?: Scores;
+  findings?: Finding[];
+  parsed?: unknown;
+  pageData?: unknown;
+  siteFiles?: unknown;
+  meta?: { version?: string };
+  truncated?: boolean;
+  checkedAt?: string;
+  psi?: unknown;
+}
+
 // Function signatures
-export function buildReport(input: unknown): Report;
+export function buildReport(input: BuildReportOptions): Report;
 export function renderMarkdown(report: Report): string;
 export function renderHtml(report: Report, opts?: unknown): string;
 export function renderSiteIndex(reports: Report[], opts?: unknown): string;
@@ -246,7 +256,15 @@ export function summarizeAggregate(reports: Report[]): AggregateSummary;
 export function isValidScore(value: unknown): value is number;
 export function verdictFor(report: Report): string;
 
-export function runChecks(ctx: unknown): Finding[];
+export function runChecks(pageData: unknown, siteFiles?: unknown, opts?: { profile?: string }): Finding[];
+export function geoDetails(
+  pageData: unknown,
+  siteFiles?: unknown,
+): { score: number; signals: { key: string; ok: boolean; weight: number }[] };
+export const FINDING_META: Record<
+  string,
+  { plain: string; impact: string; effort: string; owner: string; snippet?: string }
+>;
 export const CHECKS: CheckDefinition[];
 export const CATEGORIES: string[];
 export const SEVERITIES: string[];

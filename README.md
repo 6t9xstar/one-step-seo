@@ -21,6 +21,7 @@
   <a href="#-one-prompt-for-your-ai-agent-to-do-your-seo-for-you">AI Agent One-Prompt</a> •
   <a href="#-the-modern-search-paradox">Why Dual-Engine?</a> •
   <a href="#-quickstart">Quickstart</a> •
+  <a href="#-programmatic-api-nodejs--typescript">Node.js API</a> •
   <a href="#-system-architecture">Architecture</a> •
   <a href="#-the-dual-score-engine">Dual Scoring</a> •
   <a href="#-modular-skills-architecture--agent-skill-library">24 Agent Skills</a> •
@@ -326,7 +327,7 @@ flowchart TD
 
 ## 📦 Programmatic API (Node.js & TypeScript)
 
-`one-step-seo` is also a zero-dependency npm library with full TypeScript declarations (`lib/index.d.ts`) for custom CI scripts, web apps, and AI agents:
+`one-step-seo` is also a zero-dependency npm library with full TypeScript declarations (`lib/index.d.ts`) for custom CI scripts, web apps, static site generators, and AI agents. Complete guide: [**docs/API.md**](./docs/API.md).
 
 ```bash
 npm install one-step-seo
@@ -334,29 +335,55 @@ npm install one-step-seo
 
 ```typescript
 import {
+  runChecks,
+  geoDetails,
+  computeScores,
   buildReport,
   renderHtml,
-  renderMarkdown,
-  buildSiteReport,
-  runChecks,
-  computeScores,
   getSiteFiles,
   getSitemapUrls,
 } from "one-step-seo";
 
-// 1. Inspect robots.txt, sitemaps, and llms.txt
+// 1. Fetch site files & discover sitemap URLs (supports .xml.gz & CDATA)
 const siteFiles = await getSiteFiles("https://example.com");
+const sitemapUrls = await getSitemapUrls("https://example.com");
 
-// 2. Discover sitemap URLs (supports index sitemaps & .xml.gz decompression)
-const urls = await getSitemapUrls("https://example.com");
+// 2. Audit in-memory page signals
+const pageData = {
+  title: "Modern Technical SEO & AI Citations",
+  description: "Comprehensive guide to technical SEO and generative AI visibility.",
+  h1: ["Modern Technical SEO & AI Citations"],
+  canonical: "https://example.com/",
+  wordCount: 850,
+  hasViewport: true,
+  hasCharset: true,
+};
 
-// 3. Subpath exports:
-// import { CHECKS, THRESHOLDS } from "one-step-seo/checks";
-// import { renderSiteIndex, renderSarif, renderCsv } from "one-step-seo/report";
-// import { extractJsonLd, validateSchema } from "one-step-seo/schema";
-// import { getSkills, getSkill } from "one-step-seo/skills";
-// import { parseRobots, isDisallowed } from "one-step-seo/robots";
+const findings = runChecks(pageData, siteFiles, { profile: "standard" });
+const geo = geoDetails(pageData, siteFiles);
+const scores = computeScores(findings, geo);
+
+// 3. Build report & render 100% offline self-contained HTML
+const report = buildReport({ url: "https://example.com/", findings, scores, pageData });
+const html = renderHtml(report);
 ```
+
+#### Subpath Imports
+
+```typescript
+import { CHECKS, THRESHOLDS, PROFILES, runChecks } from "one-step-seo/checks";
+import { renderSiteIndex, renderSarif, renderCsv, buildSiteReport } from "one-step-seo/report";
+import { extractJsonLd, validateSchema, schemaSnippet } from "one-step-seo/schema";
+import { AGENT_SKILLS, getSkills, getSkill } from "one-step-seo/skills";
+import { parseRobots, getSitemapUrls, isDisallowed } from "one-step-seo/robots";
+```
+
+Working code examples are available in [**examples/programmatic/**](./examples/programmatic/):
+
+- [`audit-page.mjs`](./examples/programmatic/audit-page.mjs) — Single page audit & HTML report generation.
+- [`audit-site.mjs`](./examples/programmatic/audit-site.mjs) — Multi-page site audit & dashboard index.
+- [`custom-checks.mjs`](./examples/programmatic/custom-checks.mjs) — Custom profiles, thresholds & severity filtering.
+- [`consumer.ts`](./examples/programmatic/consumer.ts) — End-to-end typed TypeScript consumer.
 
 ---
 
@@ -709,6 +736,7 @@ Tested against standard modern production page audits:
 
 ## 📚 Documentation Index
 
+- [Programmatic Library API Reference (`docs/API.md`)](./docs/API.md)
 - [Command-Line Reference & Flags (`docs/USAGE.md`)](./docs/USAGE.md)
 - [Complete Check Definitions (`docs/CHECKS.md`)](./docs/CHECKS.md)
 - [Scoring Formula & Mathematics (`docs/SCORING.md`)](./docs/SCORING.md)
