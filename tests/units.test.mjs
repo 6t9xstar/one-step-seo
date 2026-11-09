@@ -759,10 +759,10 @@ test("buildSiteReport produces consolidated site JSON report", () => {
   p2.finalUrl = "https://example.com/about";
   p2.page = { title: "About", metaDescription: "Our story" };
 
-  const siteJson = buildSiteReport([p1, p2], { version: "0.9.3", origin: "https://example.com" });
+  const siteJson = buildSiteReport([p1, p2], { version: "0.10.0", origin: "https://example.com" });
   assert.equal(siteJson.tool, "one-step-seo");
   assert.equal(siteJson.reportType, "site");
-  assert.equal(siteJson.version, "0.9.3");
+  assert.equal(siteJson.version, "0.10.0");
   assert.equal(siteJson.origin, "https://example.com");
   assert.equal(siteJson.pageCount, 2);
   assert.equal(siteJson.scores.search.average, 80);

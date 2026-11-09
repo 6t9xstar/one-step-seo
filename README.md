@@ -309,8 +309,9 @@ flowchart TD
 
 | Command                  | Purpose                                                       | Primary Flags                                                                                                    |
 | :----------------------- | :------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------- |
+| `site <url\|dir>`        | Auto-discover and audit all pages across the website.         | `--all`, `--pages`, `--crawl`, `--out`, `--format`, `--max-depth`, `--include`, `--exclude`, `--strip-query`     |
 | `quick <url\|dir>`       | Fastest way to audit a site or local build directory.         | `--pages`, `--out`, `--quiet`                                                                                    |
-| `audit <url\|dir>`       | Comprehensive multi-page crawl or local directory audit.      | `--pages`, `--crawl`, `--profile`, `--psi`, `--fail-on`, `--format`, `--skills`, `--exclude-skills`, `--offline` |
+| `audit <url\|dir>`       | Comprehensive multi-page crawl or local directory audit.      | `--all`, `--pages`, `--crawl`, `--max-depth`, `--include`, `--exclude`, `--strip-query`, `--format`, `--fail-on` |
 | `page <url\|file>`       | Deep dive on a single page or offline HTML file.              | `--out`, `--format`, `--psi`, `--skills`, `--exclude-skills`, `--offline`, `--block-private-ips`                 |
 | `ai <url>`               | Dedicated AI Search Visibility and Citability audit.          | `--out`, `--format`, `--json`, `--skills`, `--exclude-skills`, `--block-private-ips`                             |
 | `skills [id]`            | Inspect modular auditing skills catalog and check rules.      | `--json`                                                                                                         |
@@ -320,6 +321,42 @@ flowchart TD
 | `fix <file\|dir>`        | Safe, dry-run diff patcher for local HTML files.              | `--apply`, `--url`, `--no-backup`                                                                                |
 | `diff <a.json> <b.json>` | Detect score drops and finding escalations between builds.    | `--fail-on (P0\|P1)`                                                                                             |
 | `doctor`                 | Verify environment, runtime config, and connectivity.         | `--json`, `--check-config`                                                                                       |
+
+---
+
+## 📦 Programmatic API (Node.js & TypeScript)
+
+`one-step-seo` is also a zero-dependency npm library with full TypeScript declarations (`lib/index.d.ts`) for custom CI scripts, web apps, and AI agents:
+
+```bash
+npm install one-step-seo
+```
+
+```typescript
+import {
+  buildReport,
+  renderHtml,
+  renderMarkdown,
+  buildSiteReport,
+  runChecks,
+  computeScores,
+  getSiteFiles,
+  getSitemapUrls,
+} from "one-step-seo";
+
+// 1. Inspect robots.txt, sitemaps, and llms.txt
+const siteFiles = await getSiteFiles("https://example.com");
+
+// 2. Discover sitemap URLs (supports index sitemaps & .xml.gz decompression)
+const urls = await getSitemapUrls("https://example.com");
+
+// 3. Subpath exports:
+// import { CHECKS, THRESHOLDS } from "one-step-seo/checks";
+// import { renderSiteIndex, renderSarif, renderCsv } from "one-step-seo/report";
+// import { extractJsonLd, validateSchema } from "one-step-seo/schema";
+// import { getSkills, getSkill } from "one-step-seo/skills";
+// import { parseRobots, isDisallowed } from "one-step-seo/robots";
+```
 
 ---
 

@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { parseHtml } from "../lib/html.mjs";
 import { runChecks } from "../lib/checks.mjs";
 import { extractJsonLd, validateSchema } from "../lib/schema.mjs";
+import { MAX_PAGES } from "../lib/args.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = join(ROOT, "bin/cli.mjs");
@@ -427,7 +428,7 @@ test("cli: reaching --pages with URLs left prints the cap note", async () => {
     const r = await runCli(["audit", `http://127.0.0.1:${port}/`, "--pages", "2", "--out", out]);
     assert.equal(r.code, 0, r.stderr);
     assert.match(r.stdout, /Stopped at the --pages 2 cap — the crawl saw more URLs\./);
-    assert.match(r.stdout, /max 200/);
+    assert.match(r.stdout, new RegExp(`max ${MAX_PAGES}`));
     assert.ok(existsSync(join(out, "report.json")));
     assert.ok(existsSync(join(out, "report-2.json")));
     assert.ok(!existsSync(join(out, "report-3.json")), "capped crawl must stop at 2 reports");

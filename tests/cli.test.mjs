@@ -1021,3 +1021,55 @@ test("cli: site command audits local directory and writes site-report.json", asy
   assert.equal(siteJson.reportType, "site");
   assert.ok(siteJson.pageCount >= 2);
 });
+
+test("cli: audit respects --max-depth, --include, --exclude, and --strip-query", async () => {
+  const server = await startFixtureServer();
+  const port = server.address()?.port;
+  try {
+    // 1. Audit with --max-depth 0 / 1 limits hops
+    const outDepth = mkdtempSync(join(tmpdir(), "oss-depth-"));
+    const rDepth = await runCli([
+      "audit",
+      `http://127.0.0.1:${port}/`,
+      "--pages",
+      "5",
+      "--max-depth",
+      "1",
+      "--out",
+      outDepth,
+    ]);
+    assert.equal(rDepth.code, 0, rDepth.stderr);
+
+    // 2. Audit with --exclude to skip specific paths
+    const outExclude = mkdtempSync(join(tmpdir(), "oss-exclude-"));
+    const rExclude = await runCli([
+      "audit",
+      `http://127.0.0.1:${port}/`,
+      "--pages",
+      "5",
+      "--exclude",
+      "/second",
+      "--out",
+      outExclude,
+    ]);
+    assert.equal(rExclude.code, 0, rExclude.stderr);
+    // Page /second should have been excluded, so report-2.json won't exist
+    assert.ok(!existsSync(join(outExclude, "report-2.json")));
+
+    // 3. Audit with --strip-query and --max-pages
+    const outStrip = mkdtempSync(join(tmpdir(), "oss-strip-"));
+    const rStrip = await runCli([
+      "audit",
+      `http://127.0.0.1:${port}/`,
+      "--max-pages",
+      "2",
+      "--strip-query",
+      "--out",
+      outStrip,
+    ]);
+    assert.equal(rStrip.code, 0, rStrip.stderr);
+    assert.ok(existsSync(join(outStrip, "report.json")));
+  } finally {
+    await closeServer(server);
+  }
+});

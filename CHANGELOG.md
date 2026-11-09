@@ -4,6 +4,33 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/).
 
+## [0.10.0] - 2026-11-09
+
+### Added
+
+- **First-Class Programmatic Library & TypeScript Typings (`lib/index.mjs`, `lib/index.d.ts`, `package.json`, `scripts/verify-package.mjs`).**
+  - Exported complete programmatic API from `lib/index.mjs`: `buildReport`, `renderHtml`, `renderMarkdown`, `renderSiteIndex`, `buildSiteReport`, `runChecks`, `computeScores`, `extractJsonLd`, `validateSchema`, `parseRobots`, `getSiteFiles`, `getSitemapUrls`, `fetchHtml`, `fetchText`, `getSkills`, and CLI utilities.
+  - Added full TypeScript definition file (`lib/index.d.ts`) defining types for `Report`, `Finding`, `SiteReport`, `Scores`, `ParsedPageData`, `SiteFilesData`, and function signatures.
+  - Added subpath exports in `package.json` (`"."`, `"./checks"`, `"./report"`, `"./schema"`, `"./skills"`, `"./robots"`).
+  - Added `scripts/verify-package.mjs` verifying export signatures, file references, and LF line endings.
+- **Large-Site Crawl Engine & Advanced Boundary Controls (`lib/args.mjs`, `bin/cli.mjs`).**
+  - Expanded `MAX_PAGES` to 1,000 pages for enterprise audits and catalogs.
+  - Added `--max-depth <n>` (1–50) to limit crawl link hops from seed URLs.
+  - Added `--include <pattern>` and `--exclude <pattern>` (path regex / substring filter) to target or skip specific directory trees during multi-page audits.
+  - Added `--strip-query` boolean flag to strip search parameters during crawl deduplication.
+  - Expanded `canonicalizeUrl` to automatically strip extended tracking parameters (`mc_cid`, `mc_eid`, `igshid`, `yclid`, `_ga`, `_gl`, `srsltid`).
+  - Added progressive TTY crawl status line displaying completed count, target cap, percentage, queue size, and current path.
+- **Sitemap Completeness & Native Gzip Decompression (`lib/robots.mjs`, `lib/fetch.mjs`).**
+  - Added transparent gzip decompression using `node:zlib` in `readCappedText` and `safePinnedFetch` (supporting magic bytes `0x1f 0x8b` and `Content-Encoding: gzip`, `deflate`, `br`).
+  - Added full CDATA section support and XML entity unescaping (`&amp;`, `&quot;`, `&apos;`, `&lt;`, `&gt;`) in `extractSitemapUrls`.
+  - Expanded child sitemap limit in sitemap indexes (`MAX_SITEMAP_CHILDREN`) from 5 to 20.
+  - Expanded sitemap seed cap (`MAX_SITEMAP_SEED_URLS`) from 500 to 1,000.
+  - Ingests all declared sitemaps from `robots.txt` rather than stopping at the first declared directive.
+- **Enforced Cross-Platform CI Matrix (`.github/workflows/ci.yml`).**
+  - Multi-OS matrix: executes on both `ubuntu-latest` and `windows-latest`.
+  - Node matrix: verifies Node 18, 20, 22, and 24.
+  - Enforces `test:coverage:gate` (85% lines, 80% branches, 85% functions), `verify-package.mjs`, and security audit.
+
 ## [0.9.3] - 2026-11-07
 
 ### Added

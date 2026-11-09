@@ -308,7 +308,11 @@ Usage:
 
 Options:
   --all           auto-discover and audit all pages across the website (hybrid sitemap + link crawl)
-  --pages N|all   pages to crawl (default 1, max 200, or 'all'; 'quick' defaults to 5; 'site' defaults to all)
+  --pages N|all   pages to crawl (default 1, max 1000, or 'all'; 'quick' defaults to 5; 'site' defaults to all)
+  --max-depth N   limit crawl depth from seed URL (1-50, default unlimited)
+  --include PAT   only crawl URL paths matching substring or regex pattern
+  --exclude PAT   skip URL paths matching substring or regex pattern
+  --strip-query   strip search query parameters during crawl deduplication
   --out DIR       output directory (default ./seo-report)
   --format        comma list among html,md,json,sarif,csv (default html,md,json)
   --timeout MS    per-request timeout in ms (default 15000, 1000-120000)
@@ -549,11 +553,29 @@ async function cmdAudit(url, args) {
   dbg(
     `audit ${url} pages=${args.pages} crawl=${args.crawl} concurrency=${concurrency} delay=${args.delay} timeout=${args.timeout} force=${args.force}`,
   );
-  const seen = new Set([canonicalizeUrl(url) || url]);
+  const canon = (/** @type {string} */ u) => canonicalizeUrl(u, Boolean(args.stripQuery));
+  const seen = new Set([canon(url) || url]);
   const crawled = new Set();
-  const queue = [url];
+  /** @type {{ url: string, depth: number }[]} */
+  const queue = [{ url, depth: 0 }];
   /** @type {import("../lib/report.mjs").Report[]} */
   const pageReports = [];
+
+  /**
+   * Test a path against include/exclude patterns (supports regex or substring).
+   * @param {string} p
+   * @param {string} pattern
+   * @returns {boolean}
+   */
+  const matchesPathPattern = (p, pattern) => {
+    if (!pattern) return true;
+    try {
+      const re = new RegExp(pattern, "i");
+      return re.test(p);
+    } catch {
+      return p.toLowerCase().includes(pattern.toLowerCase());
+    }
+  };
   // Pragmatic same-host policy: the start host plus the first landing host
   // (covers apex <-> www canonicalization), locked after that. Discovered
   // links and redirect landings outside the set are skipped, never crawled.
@@ -605,9 +627,12 @@ async function cmdAudit(url, args) {
           capped = true;
           break;
         }
-        const key = canonicalizeUrl(seed) || seed;
+        const key = canon(seed) || seed;
         if (seen.has(key)) continue;
-        queue.push(seed);
+        const seedPath = pathOf(seed);
+        if (args.include && !matchesPathPattern(seedPath, args.include)) continue;
+        if (args.exclude && matchesPathPattern(seedPath, args.exclude)) continue;
+        queue.push({ url: seed, depth: 1 });
         seen.add(key);
         added++;
       }
@@ -625,6 +650,7 @@ async function cmdAudit(url, args) {
   while (queue.length > 0 && pageReports.length < args.pages && !interrupted) {
     if (!firstBatch && args.delay > 0) await sleep(args.delay);
     firstBatch = false;
+    /** @type {{ url: string, depth: number }[]} */
     const batch = [];
     while (
       batch.length < concurrency &&
@@ -632,24 +658,35 @@ async function cmdAudit(url, args) {
       pageReports.length + batch.length < args.pages &&
       !interrupted
     ) {
-      const next = queue.shift();
-      if (next === undefined) break;
-      const key = canonicalizeUrl(next) || next;
+      const item = queue.shift();
+      if (item === undefined) break;
+      const key = canon(item.url) || item.url;
       if (crawled.has(key)) continue;
       crawled.add(key);
       seen.add(key);
-      batch.push(next);
+      batch.push(item);
     }
     if (batch.length === 0) break;
+
+    if (args.pages > 1 && (process.stderr.isTTY || args.verbose) && !args.quiet) {
+      const pct = Math.min(100, Math.round((pageReports.length / args.pages) * 100));
+      const cur = batch[0]?.url ? pathOf(batch[0].url) : "";
+      process.stderr.write(
+        `\r[${pageReports.length}/${args.pages} pages (${pct}%)] queue: ${queue.length} | crawling: ${cur || "/"}...    `,
+      );
+    }
+
     const results = await Promise.allSettled(
-      batch.map((u) =>
-        analyzeOne(u, args.timeout, UA, allowedHosts, args.profile, {
+      batch.map((item) =>
+        analyzeOne(item.url, args.timeout, UA, allowedHosts, args.profile, {
           blockPrivateIps: Boolean(args.blockPrivateIps),
         }),
       ),
     );
     for (let i = 0; i < batch.length; i++) {
-      const next = batch[i];
+      const item = batch[i];
+      const next = item ? item.url : "";
+      const currentDepth = item ? item.depth : 0;
       const settled = results[i];
       if (!next || !settled) continue;
       if (settled.status === "rejected") {
@@ -683,13 +720,13 @@ async function cmdAudit(url, args) {
         continue;
       }
       // Guard against redirect-alias duplicates (http<->https, trailing slash).
-      const finalKey = canonicalizeUrl(r.fetched.finalUrl) || r.fetched.finalUrl;
-      if (pageReports.some((pr) => (canonicalizeUrl(pr.finalUrl) || pr.finalUrl) === finalKey)) {
+      const finalKey = canon(r.fetched.finalUrl) || r.fetched.finalUrl;
+      if (pageReports.some((pr) => (canon(pr.finalUrl) || pr.finalUrl) === finalKey)) {
         continue;
       }
       // A redirect moves its discovery credit to the landing URL so the
       // orphan check below compares final URLs on both sides.
-      const requestedKey = canonicalizeUrl(next) || next;
+      const requestedKey = canon(next) || next;
       if (finalKey !== requestedKey) {
         inlinkCounts.set(finalKey, (inlinkCounts.get(finalKey) ?? 0) + (inlinkCounts.get(requestedKey) ?? 0));
       }
@@ -712,7 +749,7 @@ async function cmdAudit(url, args) {
         const droppedCandidate = isAuto ? [] : r.parsed.internalLinks.slice(10);
         const unseenDropped = droppedCandidate.filter(
           /** @param {string} link @returns {boolean} */ (link) => {
-            const lk = canonicalizeUrl(link) || link;
+            const lk = canon(link) || link;
             return !!lk && !seen.has(lk);
           },
         );
@@ -722,18 +759,34 @@ async function cmdAudit(url, args) {
         // Credit lands before the seen-skip below so sitemap seeds linked
         // from crawled pages still count as linked.
         for (const link of r.parsed.internalLinks) {
-          const lk = canonicalizeUrl(link) || link;
+          const lk = canon(link) || link;
           if (lk) inlinkCounts.set(lk, (inlinkCounts.get(lk) ?? 0) + 1);
         }
         for (const link of r.parsed.internalLinks.slice(0, linkLimit)) {
-          const lk = canonicalizeUrl(link) || link;
+          const lk = canon(link) || link;
           if (!lk || seen.has(lk)) continue;
           if (!allowedHosts.has(hostOf(link))) {
             dbg(`skip outside allowed hosts ${link}`);
             seen.add(lk);
             continue;
           }
-          if (!args.force && robotsText && isDisallowed(robotsText, UA_TOKEN, pathOf(link))) {
+          const lPath = pathOf(link);
+          if (args.include && !matchesPathPattern(lPath, args.include)) {
+            dbg(`skip not matching --include: ${link}`);
+            seen.add(lk);
+            continue;
+          }
+          if (args.exclude && matchesPathPattern(lPath, args.exclude)) {
+            dbg(`skip matching --exclude: ${link}`);
+            seen.add(lk);
+            continue;
+          }
+          const nextDepth = currentDepth + 1;
+          if (args.maxDepth > 0 && nextDepth > args.maxDepth) {
+            dbg(`skip exceeding --max-depth ${args.maxDepth}: ${link}`);
+            continue;
+          }
+          if (!args.force && robotsText && isDisallowed(robotsText, UA_TOKEN, lPath)) {
             dbg(`skip robots-disallowed ${link}`);
             seen.add(lk);
             continue;
@@ -742,11 +795,17 @@ async function cmdAudit(url, args) {
             capped = true;
             break;
           }
-          queue.push(link);
+          queue.push({ url: link, depth: nextDepth });
           seen.add(lk);
         }
       }
     }
+  }
+
+  if (args.pages > 1 && (process.stderr.isTTY || args.verbose) && !args.quiet) {
+    process.stderr.write(
+      "\r                                                                                \r",
+    );
   }
 
   if (pageReports.length === 0) {

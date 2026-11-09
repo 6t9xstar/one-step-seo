@@ -2,3 +2,4 @@
 *.png binary
 *.svg text
 *.html text
+bin/cli.mjs text eol=lf

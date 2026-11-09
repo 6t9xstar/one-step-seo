@@ -42,6 +42,20 @@ test("extractSitemapUrls tolerates whitespace and drops non-absolute URLs", () =
   );
 });
 
+test("extractSitemapUrls handles CDATA sections and XML entities", () => {
+  const xml = `<?xml version="1.0"?>
+<urlset>
+  <url><loc><![CDATA[https://a.com/cdata-path]]></loc></url>
+  <url><loc>https://a.com/query?p=1&amp;filter=all&quot;</loc></url>
+  <url><loc><![CDATA[https://a.com/special?item=foo&amp;bar=baz]]></loc></url>
+</urlset>`;
+  assert.deepEqual(extractSitemapUrls(xml), [
+    "https://a.com/cdata-path",
+    'https://a.com/query?p=1&filter=all"',
+    "https://a.com/special?item=foo&bar=baz",
+  ]);
+});
+
 test("extractSitemapUrls returns [] for empty, HTML and junk bodies", () => {
   for (const bad of [
     "",

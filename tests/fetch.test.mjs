@@ -1,7 +1,8 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
-import { fetchWithRedirects, fetchText, safePinnedFetch } from "../lib/fetch.mjs";
+import zlib from "node:zlib";
+import { fetchWithRedirects, fetchText, safePinnedFetch, readCappedText } from "../lib/fetch.mjs";
 
 /** @type {import("node:http").Server | null} */
 let server = null;
@@ -299,4 +300,40 @@ test("safePinnedFetch enforces socket-level DNS pinning and prevents requests re
     internalServer.closeAllConnections?.();
     await new Promise((r) => internalServer.close(r));
   }
+});
+
+test("readCappedText transparently decompresses gzipped responses and magic bytes", async () => {
+  const original =
+    "<html><head><title>Gzip Decompression Test</title></head><body>Uncompressed Content</body></html>";
+  const compressed = zlib.gzipSync(Buffer.from(original, "utf-8"));
+
+  // 1. Transparent decompression via gzip magic bytes (0x1f 0x8b)
+  const mockGzipRes = {
+    headers: new Headers({ "content-type": "application/x-gzip" }),
+    body: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(compressed));
+        controller.close();
+      },
+    }),
+  };
+
+  const res1 = await readCappedText(mockGzipRes, 1024 * 1024);
+  assert.equal(res1.text, original);
+  assert.equal(res1.truncated, false);
+
+  // 2. Transparent decompression via Content-Encoding: gzip header
+  const mockHeaderRes = {
+    headers: new Headers({ "content-encoding": "gzip" }),
+    body: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(compressed));
+        controller.close();
+      },
+    }),
+  };
+
+  const res2 = await readCappedText(mockHeaderRes, 1024 * 1024);
+  assert.equal(res2.text, original);
+  assert.equal(res2.truncated, false);
 });

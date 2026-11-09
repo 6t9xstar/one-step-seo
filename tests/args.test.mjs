@@ -202,3 +202,38 @@ test("parseArgs handles --all, --pages all, and --crawl auto", () => {
   assert.equal(crawlAuto.pages, 5);
   assert.equal(crawlAuto.all, false);
 });
+
+test("parseArgs handles --max-depth, --include, --exclude, --strip-query, and --max-pages", () => {
+  const parsed = parseArgs([
+    "audit",
+    "https://example.com",
+    "--max-depth",
+    "3",
+    "--include",
+    "/blog/.*",
+    "--exclude",
+    "/cart|/checkout",
+    "--strip-query",
+    "--max-pages",
+    "50",
+  ]);
+  assert.equal(parsed.maxDepth, 3);
+  assert.equal(parsed.include, "/blog/.*");
+  assert.equal(parsed.exclude, "/cart|/checkout");
+  assert.equal(parsed.stripQuery, true);
+  assert.equal(parsed.pages, 50);
+
+  // Rejects out-of-range max-depth
+  assert.throws(() => parseArgs(["audit", "x", "--max-depth", "0"]), /needs an integer 1-50/);
+  assert.throws(() => parseArgs(["audit", "x", "--max-depth", "51"]), /needs an integer 1-50/);
+});
+
+test("canonicalizeUrl strips extended marketing params and supports stripAllQuery", () => {
+  const urlWithParams =
+    "https://example.com/item/?utm_source=news&gclid=123&mc_cid=abc&mc_eid=def&igshid=xyz&_ga=1.2.3&srsltid=999&keep=true";
+  const cleaned = canonicalizeUrl(urlWithParams);
+  assert.equal(cleaned, "https://example.com/item?keep=true");
+
+  const fullyStripped = canonicalizeUrl(urlWithParams, true);
+  assert.equal(fullyStripped, "https://example.com/item");
+});

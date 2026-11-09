@@ -1,8 +1,22 @@
 {
   "name": "one-step-seo",
-  "version": "0.9.3",
+  "version": "0.10.0",
   "description": "One command to audit any website for SEO + GEO/AEO. Zero-config CLI + AI skill.",
   "type": "module",
+  "main": "lib/index.mjs",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.mjs"
+    },
+    "./checks": "./lib/checks.mjs",
+    "./report": "./lib/report.mjs",
+    "./schema": "./lib/schema.mjs",
+    "./skills": "./lib/skills.mjs",
+    "./robots": "./lib/robots.mjs",
+    "./package.json": "./package.json"
+  },
   "license": "MIT",
   "author": "one-step-seo contributors",
   "homepage": "https://github.com/6t9xstar/one-step-seo",
@@ -47,7 +61,8 @@
     "lint": "eslint bin lib scripts tests",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run package:verify && npm test",
+    "package:verify": "node scripts/verify-package.mjs",
     "examples": "node scripts/generate-examples.mjs",
     "examples:check": "node scripts/generate-examples.mjs --check",
     "audit": "node bin/cli.mjs audit",
