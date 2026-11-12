@@ -5,3 +5,4 @@ package-lock.json
 tests/fixtures/
 examples/
 .one-step-seo/
+dist-bin/

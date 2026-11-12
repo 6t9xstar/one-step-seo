@@ -678,6 +678,10 @@ async function cmdLlms(url, args) {
 async function cmdDoctor(args) {
   const nodeMajor = Number(process.version.slice(1).split(".")[0]);
   const nodeOk = nodeMajor >= 18;
+  // Under Bun (including the standalone executables) process.version is
+  // Bun's Node-compatibility level, not an installed Node — say which it is.
+  const bunVersion = process.versions.bun ?? "";
+  const runtime = bunVersion ? `bun ${bunVersion}` : `node ${process.version}`;
   const fetchOk = typeof fetch === "function";
   const psiKey = Boolean(process.env.PSI_API_KEY);
   const isTty = Boolean(process.stdout.isTTY);
@@ -700,6 +704,7 @@ async function cmdDoctor(args) {
     version: VERSION,
     node: process.version,
     nodeOk,
+    runtime,
     fetch: fetchOk,
     terminal: {
       isTTY: isTty,
@@ -723,7 +728,11 @@ async function cmdDoctor(args) {
   if (args.json) console.log(JSON.stringify(info, null, 2));
   else {
     console.log(`one-step-seo v${VERSION}`);
-    console.log(`node ${info.node} ${info.nodeOk ? "(ok)" : "(NEEDS >=18)"}`);
+    console.log(
+      bunVersion
+        ? `runtime: bun ${bunVersion} (Node API ${info.node}) (ok)`
+        : `node ${info.node} ${info.nodeOk ? "(ok)" : "(NEEDS >=18)"}`,
+    );
     console.log(`fetch: ${info.fetch ? "ok" : "missing"}`);
     console.log(
       `terminal: isTTY=${isTty}, color=${colorEnabled}${process.env.NO_COLOR ? " (NO_COLOR set)" : ""}`,

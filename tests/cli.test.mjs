@@ -767,7 +767,8 @@ test("cli: doctor --check-config prints configuration diagnostics", async () => 
     r.stdout,
     /configuration check: no one-step-seo\.config\.json found — built-in defaults in use \(ok\)/,
   );
-  assert.match(r.stdout, /node v/);
+  // Node prints its version; Bun (bun test, binaries) names itself.
+  assert.match(r.stdout, process.versions.bun ? /runtime: bun \d/ : /node v/);
   assert.match(r.stdout, /fetch: ok/);
 });
 

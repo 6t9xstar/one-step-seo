@@ -1625,3 +1625,22 @@ test("parseHtml ignores HTML comments, script/style bodies, and supports boolean
   const validated = validateSchema(extracted.items);
   assert.equal(validated.issues.length, 0);
 });
+
+test("version: npm layout reads package.json; a binary build's embedded version wins", async () => {
+  const { readFileSync } = await import("node:fs");
+  const pkgVersion = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+  const plain = await import("../lib/version.mjs");
+  assert.equal(plain.VERSION, pkgVersion);
+  assert.ok(plain.USER_AGENT.includes(`one-step-seo/${pkgVersion};`));
+
+  const g = /** @type {any} */ (globalThis);
+  g.__ONE_STEP_SEO_VERSION__ = "9.9.9-embedded";
+  try {
+    // A fresh module instance (query string) evaluates with the embedded value set.
+    const embedded = await import(`../lib/version.mjs?embedded=${Date.now()}`);
+    assert.equal(embedded.VERSION, "9.9.9-embedded");
+    assert.ok(embedded.USER_AGENT.includes("one-step-seo/9.9.9-embedded;"));
+  } finally {
+    delete g.__ONE_STEP_SEO_VERSION__;
+  }
+});

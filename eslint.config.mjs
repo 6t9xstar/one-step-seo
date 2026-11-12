@@ -5,7 +5,14 @@ import globals from "globals";
 export default [
   js.configs.recommended,
   {
-    ignores: ["node_modules/**", "seo-report/**", "examples/**", "package-lock.json", ".one-step-seo/**"],
+    ignores: [
+      "node_modules/**",
+      "seo-report/**",
+      "examples/**",
+      "package-lock.json",
+      ".one-step-seo/**",
+      "dist-bin/**",
+    ],
   },
   {
     files: ["**/*.mjs", "**/*.cjs"],

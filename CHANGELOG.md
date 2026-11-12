@@ -6,9 +6,19 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Bun support.** The CLI and library run unchanged on Bun 1.4+ (`bunx one-step-seo`). The full test suite also runs under `bun test` (`npm run test:bun`), and a new `bun` CI job runs it on Linux, Windows and macOS.
+- **Standalone executables.** `scripts/build-binaries.mjs` (`npm run build:bin`) uses `bun build --compile` to produce single-file executables that need no Node.js: Windows x64, Linux x64/arm64 and macOS arm64/x64, plus `SHA256SUMS.txt`. The binary for the build machine is smoke-tested (`--version` and an offline audit). The new `release-binaries.yml` workflow attaches them to each GitHub Release.
+- `doctor` reports the runtime in use: `runtime: bun …` under Bun, and a new `runtime` field in `--json` output.
+
 ### Changed
 
 - **`audit` explains a one-page crawl.** When a crawl allowed more pages (for example `--pages all`) but found only the start page, the summary now says why. Possible reasons are: the served HTML has no same-site links (with the app-shell cause from `T18-js-rendered`), `/sitemap.xml` is missing or returns an HTML page, the sitemap was not read, or the links and sitemap URLs found could not be audited. It also says that re-running with more pages will not find more. Previously the summary only printed `Pages audited: 1`.
+
+### Fixed
+
+- **Version in bundled builds.** A bundled or compiled build reported version `0.0.0`, both in `--version` and in the crawler User-Agent, because the version was read from `package.json` at runtime. The build now embeds the version. `lib/version.mjs` is the single source: `fetch.mjs` and `report.mjs` no longer read `package.json` themselves, and `report.mjs`'s hardcoded `"0.12.0"` fallback is gone.
 
 ## [0.12.0] - 2026-11-12
 
