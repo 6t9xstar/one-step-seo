@@ -4,6 +4,76 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/).
 
+## [0.12.0] - 2026-11-12
+
+One-step SEO platform: audit → fix → verify → report → monitor, built on three independent engines. Fully backward-compatible: every existing command, flag, output file and library export is unchanged.
+
+### Added
+
+- **SEO Intelligence engine** (`lib/crawl.mjs`, `lib/intelligence.mjs`)
+  - Reusable crawl engine that also feeds the existing `audit`.
+  - Site-wide issues `X01`–`X21`: broken links, redirect chains and links to redirects, orphans, deep pages, duplicate titles/descriptions/content, near-duplicates, sitemap vs. reality, canonical conflicts, hreflang, cannibalisation, thin/stale content, URL structure, slow responses, http:// internal links.
+  - Per-category scores with a stated method, content topics, internal-link suggestions and refresh briefs.
+  - `--competitors` comparison: lexical and structural only.
+- **SEO Auto-Fix engine** (`lib/autofix.mjs`)
+  - `fix <url>` writes a proposed-only fix plan, classifying each finding as safe, approval or manual. `--safe-only` limits the plan to safe fixes.
+  - Directory fixes give every page its own canonical URL.
+  - New fixers:
+    - `schema`: WebPage JSON-LD built from the page's own metadata;
+    - `sitemap`: create or append, never remove entries;
+    - `robots`: allow-all starter, or only adds a `Sitemap:` line.
+  - Every `--apply` is a recorded session. The file is backed up, written atomically, re-read from disk and verified, with the score recorded before and after.
+  - `fix --history` lists sessions. `fix --rollback [--session ID] [--force]` undoes one, and refuses to overwrite files edited since the fix.
+  - Alt-text suggestions are printed for review and never applied.
+- **SEO Monitoring engine** (`lib/monitor.mjs`, `monitor` command)
+  - Snapshots per run and levelled change detection (critical, warning, info).
+  - `--interval` loop, `--history`, `--keep` retention.
+  - Slack-compatible webhook via `--webhook` or `ONE_STEP_SEO_WEBHOOK`. The URL is never printed.
+  - Exit code 2 on critical changes.
+- **`verify` command**
+  - Re-audits a baseline and reports VERIFIED FIXED / NEW or WORSE / STILL OPEN / not re-checked.
+  - Writes `verification.json`. Exits 2 on regressions.
+- **`report` command and PDF output**
+  - `--format pdf` and site reports (`site-report.md/.pdf`, `site-issues.csv`, `site-intelligence.json`).
+  - `--audience client|developer`, `--brand`, `--client`.
+  - The PDF writer is built in and has no dependency.
+- **Audit modes**: `--deep`, `--technical`, `--on-page`.
+- **Project config file**
+  - `one-step-seo.config.json`, with `--config FILE` and `--no-config`.
+  - Credential-like keys are rejected.
+  - `doctor --check-config` really validates the file and exits 1 if it is invalid.
+- **State directory** `.one-step-seo/` (`--state-dir`, `ONE_STEP_SEO_STATE_DIR`) for fix history and snapshots.
+- **Library and packaging**
+  - Library exports and TypeScript types for all engines.
+  - Subpath exports `./crawl`, `./intelligence`, `./autofix`, `./monitor`, `./pdf`.
+- **Docs**: [`docs/PLATFORM.md`](./docs/PLATFORM.md) (workflow, integration status, limitations) and [`docs/OPERATIONS.md`](./docs/OPERATIONS.md) (deployment, scheduling, backup/restore, maintenance).
+- **Tests**: 55 new tests (intelligence, autofix, monitor, platform, in-process commands, CLI end-to-end) against a real local fixture site.
+
+### Fixed
+
+- **Security / robustness**
+  - **Decompression bomb**: gzip/deflate/brotli bodies are now decoded with a streaming output cap (5 MiB) instead of unbounded `*Sync` calls.
+  - **ReDoS**: robots.txt wildcard rules are matched in linear time instead of being compiled to backtracking regexes.
+  - **robots.txt compliance**: rules now match path + query (RFC 9309), so `Disallow: /*?sort=` is honoured. Sitemap-seeded URLs are now checked against robots.txt and the host lock (they bypassed both before).
+- **Crawl correctness**
+  - Non-HTML links (PDFs, images, downloads) are no longer audited as pages.
+  - Inlinks from the last crawled pages are counted, so those pages are no longer reported as false orphans.
+  - A URL that is both linked and in the sitemap is reported as one failure, not two.
+  - Redirect aliases of already-audited pages are recorded.
+  - Redirect de-duplication is O(1) instead of O(n²).
+- **Local audits**: nested pages read robots.txt, sitemap and llms.txt from the site root, not their own folder. Local links to missing files are reported as broken. A capped directory audit now says how many files were skipped.
+- **`fix` on a directory**: no longer sets one `--url` as the canonical of every page.
+- **`fix` og:title**: now mirrors the existing `<title>` instead of the H1 (it previously created a G04 "share title drifts" finding).
+- **Canonical checks on local files**: a `file://` page whose canonical path maps to the file is now accepted as self-referencing (T08/W02 false positive).
+- **`diff` / `verify`**: a finding whose check now passes (for example "Canonical missing" → pass) counts as resolved; before, only findings that disappeared did.
+- **`doctor --check-config`**: no longer prints "ok" without checking anything.
+- **User-Agent**: the version is read from `package.json` instead of a stale hardcoded string.
+
+### Changed
+
+- `bin/cli.mjs` reduced from ~2,500 to ~1,100 lines. Audit, fix, verify, report and monitor live in `lib/commands/*`, and the local-analysis code that was duplicated three times is now shared.
+- Tests that apply fixes use a temporary state directory, so the repository's own `.one-step-seo/` is never written.
+
 ## [0.11.0] - 2026-11-09
 
 ### Added

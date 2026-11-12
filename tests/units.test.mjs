@@ -820,16 +820,16 @@ test("diffReports finds new, resolved, and escalated findings plus deltas", () =
   assert.deepEqual(d.search, { old: 80, new: 86, delta: 6 });
   assert.deepEqual(d.ai, { old: 70, new: 70, delta: 0 });
   assert.equal(d.rulesVersionChanged, false);
-  // O02 fixed (absent from new) → resolved; C02 appeared → new.
+  // O02 fixed (absent from new) and T01 now passing → both resolved; C02 appeared → new.
   assert.deepEqual(
     d.resolvedFindings.map((x) => x.id),
-    ["O02-meta-missing"],
+    ["T01-https", "O02-meta-missing"],
   );
   assert.deepEqual(
     d.newFindings.map((x) => x.id),
     ["C02-answer"],
   );
-  // T01 went P0 → pass: improved, neither new nor escalated.
+  // T01 went P0 → pass: resolved, neither new nor escalated.
   assert.deepEqual(d.escalated, []);
   assert.equal(d.url, "https://a.com/");
 });

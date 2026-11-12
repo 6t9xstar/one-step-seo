@@ -62,6 +62,19 @@ const REQUIRED_EXPORTS = [
   "normalizeUrl",
   "canonicalizeUrl",
   "getFindingMeta",
+  // Platform engines (v0.12)
+  "crawlSite",
+  "analyzeSite",
+  "buildFixPlan",
+  "applyFixSession",
+  "rollbackFixSession",
+  "buildSnapshot",
+  "compareSnapshots",
+  "sendWebhook",
+  "renderSitePdf",
+  "renderPdf",
+  "loadConfig",
+  "VERSION",
 ];
 
 for (const exp of REQUIRED_EXPORTS) {

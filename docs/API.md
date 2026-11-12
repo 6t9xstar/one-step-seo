@@ -174,7 +174,83 @@ import { AGENT_SKILLS, getSkills, getSkill } from "one-step-seo/skills";
 
 // Robots.txt and sitemap parser
 import { parseRobots, getSitemapUrls, isDisallowed } from "one-step-seo/robots";
+
+// Platform engines (v0.12) — each usable on its own
+import { crawlSite } from "one-step-seo/crawl";
+import { analyzeSite } from "one-step-seo/intelligence";
+import { buildFixPlan, applyFixSession, rollbackFixSession } from "one-step-seo/autofix";
+import { buildSnapshot, compareSnapshots, sendWebhook } from "one-step-seo/monitor";
+import { renderPdf } from "one-step-seo/pdf";
 ```
+
+---
+
+### Platform engines (v0.12)
+
+The engines behind `audit --deep`, `fix`, `verify`, `report` and `monitor` are
+exported from the root entry point and from subpaths. For the CLI workflow, see
+[PLATFORM.md](./PLATFORM.md).
+
+#### Crawl + SEO Intelligence
+
+```javascript
+import { crawlSite, analyzeSite, canonicalizeUrl } from "one-step-seo";
+
+const crawl = await crawlSite("https://example.com/", {
+  pages: 200,
+  crawl: "auto",
+  all: true,
+  checkLinks: true,
+});
+const analysis = analyzeSite({
+  pages: crawl.pages, // PageFacts per audited page
+  failures: crawl.failures, // broken / off-site / skipped-asset URLs (one per URL)
+  redirects: crawl.redirects, // requested URLs that redirect (with referrers)
+  sitemapUrls: crawl.sitemapUrls,
+  capped: crawl.capped,
+  pageReports: crawl.pageReports, // the per-page Report objects
+  canon: (u) => canonicalizeUrl(u),
+});
+for (const issue of analysis.issues) console.log(issue.id, issue.severity, issue.fixType, issue.count);
+```
+
+`crawlSite` honours robots.txt (including query-string rules and sitemap
+entries), stays on the start host, and skips non-HTML assets. It never throws
+for per-page failures; they are returned in `failures`.
+
+#### Auto-Fix
+
+| Function                                                                      | Purpose                                                                          |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `buildFixPlan(pageReports, analysis?, { safeOnly? })`                         | Issue-by-issue plan; every entry `status: "proposed"`                            |
+| `planLocalFixes(target, { isDirectory, url, lang, ... })`                     | Pure planner for local files; writes nothing                                     |
+| `applyFixSession({ stateDir, target, siteRoot, changes })`                    | Backup, atomic write, on-disk verification, manifest                             |
+| `listFixSessions(stateDir)` / `rollbackFixSession(stateDir, id?, { force? })` | History and undo; refuses to overwrite files edited since the fix unless `force` |
+| `classifyFinding(finding, report)`                                            | `safe` / `approval` / `manual`                                                   |
+
+#### Monitoring
+
+```javascript
+import { crawlSite, buildSnapshot, compareSnapshots, summarizeChanges, sendWebhook } from "one-step-seo";
+
+const now = buildSnapshot(await crawlSite("https://example.com/", { pages: 25, crawl: "auto" }));
+const changes = compareSnapshots(previousSnapshot, now); // sorted critical → warning → info
+const summary = summarizeChanges(changes);
+if (summary.critical > 0)
+  await sendWebhook(process.env.ONE_STEP_SEO_WEBHOOK, {
+    site: now.startUrl,
+    takenAt: now.takenAt,
+    summary,
+    changes,
+  });
+```
+
+#### Reports
+
+`renderSiteMarkdown(model, opts)`, `renderSiteCsv(model)` and
+`renderSitePdf(model, opts)` take `{ origin, checkedAt, pageReports, analysis, competitors?, verification?, history?, fixSessions? }`
+and `{ audience: "full" | "client" | "developer", brand?, client? }`.
+`renderPdf(blocks, meta)` is the dependency-free PDF writer underneath.
 
 ---
 
