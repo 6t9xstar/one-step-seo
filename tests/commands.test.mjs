@@ -17,7 +17,12 @@ import { cmdFix } from "../lib/commands/fix.mjs";
 import { cmdVerify, loadBaselineReports } from "../lib/commands/verify.mjs";
 import { cmdReport } from "../lib/commands/report.mjs";
 import { cmdMonitor, snapshotHistory } from "../lib/commands/monitor.mjs";
-import { breachesFailOn, crawlOptionsFrom, stateDirOf } from "../lib/commands/shared.mjs";
+import {
+  breachesFailOn,
+  crawlOptionsFrom,
+  stateDirOf,
+  singlePageDiscoveryNote,
+} from "../lib/commands/shared.mjs";
 import { clearSiteFilesCache, clearSitemapUrlsCache } from "../lib/robots.mjs";
 import { startSite, siteRoutes, writeLocalSite } from "./helpers/site-fixture.mjs";
 
@@ -385,4 +390,88 @@ test("config-file style flags reach commands (stateDir via env)", async () => {
     else process.env.ONE_STEP_SEO_STATE_DIR = prev;
   }
   writeFileSync(join(work, "x.txt"), "");
+});
+
+/**
+ * @param {Array<{ id: string, severity: string, evidence?: string }>} findings
+ * @returns {any}
+ */
+const reportWith = (findings) => ({ findings });
+
+test("singlePageDiscoveryNote explains an app shell whose /sitemap.xml is HTML", () => {
+  const text = singlePageDiscoveryNote({
+    pageCount: 1,
+    requestedPages: 1000,
+    report: reportWith([
+      { id: "T18-js-rendered", severity: "P1" },
+      {
+        id: "T06-sitemap",
+        severity: "P1",
+        evidence: "GET /sitemap.xml -> 200, but the response is an HTML page, not XML",
+      },
+    ]),
+    facts: { links: [] },
+    sitemapUrls: [],
+    crawlMode: "auto",
+  }).join("\n");
+  assert.ok(text.includes("Why only 1 page"));
+  assert.ok(text.includes("empty app shell"));
+  assert.ok(text.includes("/sitemap.xml returns an HTML page"));
+  assert.ok(text.includes("Server-render or pre-render"));
+});
+
+test("singlePageDiscoveryNote stays quiet when the crawl was not limited this way", () => {
+  const base = { report: reportWith([]), facts: { links: [] }, sitemapUrls: [], crawlMode: "auto" };
+  assert.deepEqual(singlePageDiscoveryNote({ ...base, pageCount: 1, requestedPages: 1 }), []);
+  assert.deepEqual(singlePageDiscoveryNote({ ...base, pageCount: 3, requestedPages: 50 }), []);
+  assert.deepEqual(
+    singlePageDiscoveryNote({ ...base, pageCount: 1, requestedPages: 50, facts: undefined }),
+    [],
+  );
+});
+
+test("singlePageDiscoveryNote covers server-rendered pages, uncrawlable links and sitemap states", () => {
+  const missing = singlePageDiscoveryNote({
+    pageCount: 1,
+    requestedPages: 25,
+    report: reportWith([{ id: "T06-sitemap", severity: "P1", evidence: "GET /sitemap.xml -> 404" }]),
+    facts: { links: [] },
+    sitemapUrls: [],
+    crawlMode: "auto",
+  }).join("\n");
+  assert.ok(missing.includes("served HTML has no links to other pages on this site"));
+  assert.ok(!missing.includes("app shell"));
+  assert.ok(missing.includes("no XML sitemap was found"));
+  assert.ok(missing.includes("Add internal links or publish an XML sitemap"));
+
+  const linked = singlePageDiscoveryNote({
+    pageCount: 1,
+    requestedPages: 25,
+    report: reportWith([{ id: "T06-sitemap", severity: "pass" }]),
+    facts: { links: ["https://a.test/x", "https://a.test/y"] },
+    sitemapUrls: ["https://a.test/z"],
+    crawlMode: "auto",
+  }).join("\n");
+  assert.ok(linked.includes("links to 2 other URL(s)"));
+  assert.ok(linked.includes("the sitemap lists 1 URL(s), but none of them could be audited"));
+
+  const linksMode = singlePageDiscoveryNote({
+    pageCount: 1,
+    requestedPages: 25,
+    report: reportWith([]),
+    facts: { links: [] },
+    sitemapUrls: [],
+    crawlMode: "links",
+  }).join("\n");
+  assert.ok(linksMode.includes("the sitemap was not read (--crawl links)"));
+
+  const emptySitemap = singlePageDiscoveryNote({
+    pageCount: 1,
+    requestedPages: 25,
+    report: reportWith([]),
+    facts: { links: [] },
+    sitemapUrls: [],
+    crawlMode: "auto",
+  }).join("\n");
+  assert.ok(emptySitemap.includes("the sitemap lists no other URLs on this site"));
 });
