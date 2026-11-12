@@ -4,6 +4,7 @@ node_modules/
 # build output / reports (local runs)
 seo-report/
 runs/
+dist-bin/
 *.log
 
 # OS + editor

@@ -10,6 +10,28 @@ npx one-step-seo doctor       # or run without installing
 npm install one-step-seo      # as a library / project devDependency
 ```
 
+**Bun.** The CLI and library run unchanged on [Bun](https://bun.sh) 1.4 or later, and the full test suite runs under `bun test` in CI:
+
+```bash
+bunx one-step-seo doctor      # prints "runtime: bun …"
+bun add one-step-seo          # as a library
+```
+
+**Standalone executables.** Starting with the release after v0.12.0, each GitHub Release has these files:
+
+| File                                     | Platform                      |
+| ---------------------------------------- | ----------------------------- |
+| `one-step-seo-<version>-windows-x64.exe` | Windows x64                   |
+| `one-step-seo-<version>-linux-x64`       | Linux x64                     |
+| `one-step-seo-<version>-linux-arm64`     | Linux arm64                   |
+| `one-step-seo-<version>-macos-arm64`     | macOS Apple silicon           |
+| `one-step-seo-<version>-macos-x64`       | macOS Intel                   |
+| `SHA256SUMS.txt`                         | SHA-256 checksum of each file |
+
+Each is a single file (60–85 MB) with the Bun runtime built in, so nothing else needs to be installed. Download the one for your platform, check it against `SHA256SUMS.txt` (`sha256sum -c SHA256SUMS.txt --ignore-missing`), then on macOS/Linux run `chmod +x` on it. The macOS files are not code-signed, so Gatekeeper may block the first run; allow it in System Settings → Privacy & Security, or run `xattr -d com.apple.quarantine <file>`.
+
+To build them yourself (requires Bun): `npm run build:bin` builds this machine's binary into `dist-bin/` and smoke-tests it (`--version` plus an offline audit); `node scripts/build-binaries.mjs --all` cross-compiles every platform.
+
 `one-step-seo doctor` checks the following and prints a status for each:
 
 - Node version
@@ -136,5 +158,7 @@ Before a rollback overwrites anything, it compares each file's current hash with
 npm run check               # typecheck, lint, format, package verification, tests
 npm run test:coverage:gate  # lines ≥ 85 %, branches ≥ 80 %, functions ≥ 85 %
 npm run examples:check      # committed example reports match the generator
+npm run test:bun            # the full suite under Bun (needs Bun installed)
+npm run build:bin           # standalone binary for this machine + smoke test (needs Bun)
 npm pack --dry-run          # inspect the published file list
 ```

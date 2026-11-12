@@ -141,7 +141,7 @@ Execute this exact workflow without skipping steps:
 
 ## 🚀 Quickstart
 
-Run directly with `npx` (no install required) or install globally:
+Run directly with `npx` (no install required) or install globally. It also runs on [Bun](https://bun.sh): `bunx one-step-seo …`. Starting with the next release, each [GitHub Release](https://github.com/6t9xstar/one-step-seo/releases) also has standalone executables for Windows, macOS and Linux that need neither Node nor Bun (see [OPERATIONS.md](./docs/OPERATIONS.md#install)).
 
 ```bash
 # Instant beginner-friendly audit (sensible 5-page crawl, all report formats)
