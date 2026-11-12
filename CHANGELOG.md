@@ -4,6 +4,12 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **`audit` explains a one-page crawl.** When a crawl allowed more pages (for example `--pages all`) but found only the start page, the summary now says why. Possible reasons are: the served HTML has no same-site links (with the app-shell cause from `T18-js-rendered`), `/sitemap.xml` is missing or returns an HTML page, the sitemap was not read, or the links and sitemap URLs found could not be audited. It also says that re-running with more pages will not find more. Previously the summary only printed `Pages audited: 1`.
+
 ## [0.12.0] - 2026-11-12
 
 One-step SEO platform: audit → fix → verify → report → monitor, built on three independent engines. Fully backward-compatible: every existing command, flag, output file and library export is unchanged.
