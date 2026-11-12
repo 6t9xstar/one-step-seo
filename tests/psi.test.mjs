@@ -562,3 +562,51 @@ test("fetchPsi follows safe redirects and blocks dangerous redirect destinations
     await new Promise((r) => server.close(r));
   }
 });
+
+test("fetchPsi requests all Lighthouse categories and psiFindings reports each one", async () => {
+  /** @type {string[]} */
+  let requested = [];
+  const server = http.createServer((req, res) => {
+    requested = new URL(req.url || "/", "http://127.0.0.1").searchParams.getAll("category");
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        lighthouseResult: {
+          lighthouseVersion: "13.0.0",
+          categories: {
+            performance: { title: "Performance", score: 0.42 },
+            accessibility: { title: "Accessibility", score: 0.95 },
+            "best-practices": { title: "Best Practices", score: 0.78 },
+            seo: { title: "SEO", score: 0.3 },
+            "agentic-browsing": { title: "Agentic Browsing", score: 0.6 },
+          },
+          audits: { "largest-contentful-paint": { numericValue: 4100 } },
+        },
+      }),
+    );
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", () => r(null)));
+  const port = /** @type {any} */ (server.address()).port;
+  try {
+    const res = await fetchPsi("https://example.com/", { endpoint: `http://127.0.0.1:${port}/x`, key: "k" });
+    assert.deepEqual(requested, ["PERFORMANCE", "ACCESSIBILITY", "BEST_PRACTICES", "SEO"]);
+    assert.equal(res.ok, true);
+    assert.equal(res.data?.categories?.seo?.score, 30);
+    assert.equal(res.data?.lighthouseVersion, "13.0.0");
+    const f = psiFindings(res);
+    const byId = Object.fromEntries(f.filter((x) => x.id.startsWith("P06-")).map((x) => [x.id, x]));
+    assert.equal(byId["P06-lighthouse-accessibility"]?.severity, "pass");
+    assert.equal(byId["P06-lighthouse-best-practices"]?.severity, "P3");
+    assert.equal(byId["P06-lighthouse-seo"]?.severity, "P2");
+    assert.equal(
+      byId["P06-lighthouse-agentic-browsing"]?.category,
+      "geo",
+      "unknown newer categories are reported too",
+    );
+    assert.ok(!byId["P06-lighthouse-performance"], "performance stays in P03");
+    assert.match(byId["P06-lighthouse-seo"]?.evidence ?? "", /not a ranking score/);
+  } finally {
+    server.closeAllConnections?.();
+    await new Promise((r) => server.close(r));
+  }
+});

@@ -179,6 +179,6 @@ Without these providers, the tool reports only what it measures by crawling. It 
 ## Limitations
 
 - **CLI, not hosted.** This is a local, single-user CLI and library. Multi-user workspaces, roles, a database and a web dashboard are not part of this project. The state directory is per-machine.
-- **Raw HTML only.** Pages that render their content with client-side JavaScript are analysed as served.
+- **Raw HTML only.** Pages that render their content with client-side JavaScript are analysed as served. Such app shells are detected and reported as `T18-js-rendered` (P1), and an HTML page served at `/sitemap.xml` or `/llms.txt` is not mistaken for those files — but the rendered content itself is not audited.
 - **One location.** Response times are measured from the machine running the audit, not from real users. Use `--psi` for Core Web Vitals field data.
 - **Heuristics are labelled.** Near-duplicate, cannibalisation and term-gap analysis are text heuristics.

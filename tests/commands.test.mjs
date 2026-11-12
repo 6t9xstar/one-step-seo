@@ -357,7 +357,7 @@ test("cmdMonitor refuses a robots-blocked site and reports a failed webhook", as
     ),
   );
   // No changes -> no alert is sent at all; the URL is never printed either way.
-  assert.doesNotMatch(text, /127\.0\.0\.1:1/);
+  assert.ok(!text.includes("127.0.0.1:1/x"), "the webhook URL is never printed");
 });
 
 test("shared helpers: fail-on thresholds, crawl options and state dir", () => {

@@ -905,7 +905,7 @@ test("renderHtml renders SEO details, Remediation, Executive Mode toggle, Theme 
   assert.match(html, /Not measured \(opt-in\)/);
   assert.match(html, /Unmeasured metrics are reported as unavailable, never zero/);
   assert.match(html, /Enterprise Cloud Pricing Plans/);
-  assert.match(html, /Rules 2026\.10/);
+  assert.ok(html.includes(`Rules ${RULES_VERSION}`), "report shows the current rules version");
 });
 
 test("renderHtml renders partial PSI lab and field metrics as Unavailable, never zero", () => {

@@ -49,7 +49,16 @@ One-step SEO platform: audit → fix → verify → report → monitor, built on
 - **Docs**: [`docs/PLATFORM.md`](./docs/PLATFORM.md) (workflow, integration status, limitations) and [`docs/OPERATIONS.md`](./docs/OPERATIONS.md) (deployment, scheduling, backup/restore, maintenance).
 - **Tests**: 55 new tests (intelligence, autofix, monitor, platform, in-process commands, CLI end-to-end) against a real local fixture site.
 
+### Added (live-site testing)
+
+- **`T18-js-rendered` (P1)**: detects client-rendered app shells (React/Vue/Vite etc.) whose served HTML has almost no text, which most AI crawlers and link previews see as an empty page.
+- **Lighthouse categories via `--psi`**: Accessibility, Best Practices and SEO (plus any newer category Google returns, e.g. Agentic Browsing) are requested and reported as `P06-lighthouse-*`; Performance stays in P03/P04.
+- `verify` warns when the baseline was produced by different audit rules, and records `rulesVersionChanged` in `verification.json`. Rules version is now `2026.11`.
+
 ### Fixed
+
+- **Single-page apps**: a site that answers every path with its HTML shell (HTTP 200) was reported as having an `llms.txt`; T06 now says `/sitemap.xml` returned an HTML page instead of XML.
+- Flaky test: a webhook-URL assertion also matched random server ports starting with 1.
 
 - **Security / robustness**
   - **Decompression bomb**: gzip/deflate/brotli bodies are now decoded with a streaming output cap (5 MiB) instead of unbounded `*Sync` calls.
