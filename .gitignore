@@ -26,3 +26,6 @@ Thumbs.db
 # coverage
 coverage/
 *.tsbuildinfo
+
+# one-step-seo state (fix-session backups, monitor snapshots)
+.one-step-seo/

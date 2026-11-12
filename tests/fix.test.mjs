@@ -20,6 +20,8 @@ const HEALTHY_HEAD = [
   `<meta property="og:image" content="https://example.com/og.png">`,
   `<meta property="og:url" content="https://example.com/">`,
   `<meta name="twitter:card" content="summary_large_image">`,
+  // Structured data present: the `schema` fixer has nothing to add to a healthy page.
+  `<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Fixture","url":"https://example.com/"}</script>`,
 ].join("\n");
 
 const DEFAULT_BODY = `<h1>Home</h1>\n<p>${LONG_TEXT}</p>`;
@@ -290,6 +292,7 @@ test("fix: no <head> but a swappable og:url still proceeds (no head op needed)",
 <meta property="og:image" content="https://example.com/og.png">
 <meta property="og:url" content="https://old.example.com/x">
 <meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Fixture","url":"https://example.com/"}</script>
 <body><p>${LONG_TEXT}</p></body>
 </html>
 `;

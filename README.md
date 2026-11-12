@@ -308,20 +308,41 @@ flowchart TD
 
 ## 🛠️ CLI Command Suite
 
-| Command                  | Purpose                                                       | Primary Flags                                                                                                    |
-| :----------------------- | :------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------- |
-| `site <url\|dir>`        | Auto-discover and audit all pages across the website.         | `--all`, `--pages`, `--crawl`, `--out`, `--format`, `--max-depth`, `--include`, `--exclude`, `--strip-query`     |
-| `quick <url\|dir>`       | Fastest way to audit a site or local build directory.         | `--pages`, `--out`, `--quiet`                                                                                    |
-| `audit <url\|dir>`       | Comprehensive multi-page crawl or local directory audit.      | `--all`, `--pages`, `--crawl`, `--max-depth`, `--include`, `--exclude`, `--strip-query`, `--format`, `--fail-on` |
-| `page <url\|file>`       | Deep dive on a single page or offline HTML file.              | `--out`, `--format`, `--psi`, `--skills`, `--exclude-skills`, `--offline`, `--block-private-ips`                 |
-| `ai <url>`               | Dedicated AI Search Visibility and Citability audit.          | `--out`, `--format`, `--json`, `--skills`, `--exclude-skills`, `--block-private-ips`                             |
-| `skills [id]`            | Inspect modular auditing skills catalog and check rules.      | `--json`                                                                                                         |
-| `schema <url>`           | Validate JSON-LD and print copy-paste schema snippets.        | `--generate (video\|job\|course\|review\|recipe\|...)`                                                           |
-| `sitemap <url>`          | Audit sitemap index, robots.txt, and link seeds.              | `--json`, `--block-private-ips`                                                                                  |
-| `llms <url>`             | Audit `/llms.txt` and generate AI crawler `robots.txt` rules. | `--json`, `--block-private-ips`                                                                                  |
-| `fix <file\|dir>`        | Safe, dry-run diff patcher for local HTML files.              | `--apply`, `--url`, `--no-backup`                                                                                |
-| `diff <a.json> <b.json>` | Detect score drops and finding escalations between builds.    | `--fail-on (P0\|P1)`                                                                                             |
-| `doctor`                 | Verify environment, runtime config, and connectivity.         | `--json`, `--check-config`                                                                                       |
+| Command                  | Purpose                                                                       | Primary Flags                                                                                                    |
+| :----------------------- | :---------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- |
+| `site <url\|dir>`        | Auto-discover and audit all pages across the website.                         | `--all`, `--pages`, `--crawl`, `--out`, `--format`, `--max-depth`, `--include`, `--exclude`, `--strip-query`     |
+| `quick <url\|dir>`       | Fastest way to audit a site or local build directory.                         | `--pages`, `--out`, `--quiet`                                                                                    |
+| `audit <url\|dir>`       | Comprehensive multi-page crawl or local directory audit.                      | `--all`, `--pages`, `--crawl`, `--max-depth`, `--include`, `--exclude`, `--strip-query`, `--format`, `--fail-on` |
+| `page <url\|file>`       | Deep dive on a single page or offline HTML file.                              | `--out`, `--format`, `--psi`, `--skills`, `--exclude-skills`, `--offline`, `--block-private-ips`                 |
+| `ai <url>`               | Dedicated AI Search Visibility and Citability audit.                          | `--out`, `--format`, `--json`, `--skills`, `--exclude-skills`, `--block-private-ips`                             |
+| `skills [id]`            | Inspect modular auditing skills catalog and check rules.                      | `--json`                                                                                                         |
+| `schema <url>`           | Validate JSON-LD and print copy-paste schema snippets.                        | `--generate (video\|job\|course\|review\|recipe\|...)`                                                           |
+| `sitemap <url>`          | Audit sitemap index, robots.txt, and link seeds.                              | `--json`, `--block-private-ips`                                                                                  |
+| `llms <url>`             | Audit `/llms.txt` and generate AI crawler `robots.txt` rules.                 | `--json`, `--block-private-ips`                                                                                  |
+| `fix <file\|dir\|url>`   | Safe fixes for local HTML (backup, verify, rollback); fix plan for live URLs. | `--apply`, `--url`, `--safe-only`, `--history`, `--rollback`, `--no-backup`                                      |
+| `verify [url\|dir]`      | Re-audit after a fix: verified fixed / new / still open.                      | `--baseline`, `--fail-on`                                                                                        |
+| `report <src>`           | Client or developer report (PDF, Markdown, CSV).                              | `--format pdf,md,csv`, `--audience`, `--brand`, `--client`                                                       |
+| `monitor <url>`          | Snapshot + change detection with webhook alerts.                              | `--interval`, `--webhook`, `--history`, `--keep`, `--fail-on`                                                    |
+| `diff <a.json> <b.json>` | Detect score drops and finding escalations between builds.                    | `--fail-on (P0\|P1)`                                                                                             |
+| `doctor`                 | Verify environment, runtime config, and connectivity.                         | `--json`, `--check-config`                                                                                       |
+
+### One-step SEO platform (v0.12)
+
+```bash
+one-step-seo audit https://example.com --deep --format html,md,json,csv,pdf   # site-wide analysis (X01–X21)
+one-step-seo fix ./dist --url https://example.com --lang en --apply          # safe fixes: backup + verify
+one-step-seo verify https://example.com --baseline ./seo-report               # confirm after deploy
+one-step-seo report ./seo-report --client "Acme Ltd" --audience client       # PDF / MD / CSV
+one-step-seo monitor https://example.com --interval 1440 --webhook "$HOOK"   # change alerts
+```
+
+The platform has three engines: **SEO Intelligence**, **SEO Auto-Fix** and **SEO Monitoring**. Each one can be used on its own from the library.
+
+Risky changes are proposed for approval and never applied automatically. These include noindex, redirects, canonicals that point elsewhere, and content changes.
+
+Search volume, rankings, traffic and backlinks cannot be measured by a crawl, so they are never reported.
+
+Guides: [**docs/PLATFORM.md**](./docs/PLATFORM.md) · [**docs/OPERATIONS.md**](./docs/OPERATIONS.md) (scheduling, backups, CI).
 
 ---
 

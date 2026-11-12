@@ -5,7 +5,16 @@ nothing here is promised on a date — issues and PRs decide the pace.
 
 ## Completed Milestones
 
-### 0.9.0 (Current)
+### 0.12.0 (Current)
+
+- [x] SEO Intelligence engine: site-wide issues X01–X21, category scores, content topics, internal-link suggestions, lexical competitor comparison
+- [x] SEO Auto-Fix engine: fix plans for live URLs, safe/approval/manual classification, recorded fix sessions with on-disk verification, history and rollback
+- [x] SEO Monitoring engine: snapshots, levelled change detection, webhook alerts, interval mode
+- [x] `verify`, `report` (PDF/MD/CSV, client/developer audiences), `--deep` / `--technical` / `--on-page`
+- [x] Optional sitemap XML generation from audited crawl paths (`fix <dir>` sitemap fixer)
+- [x] Project config file (`one-step-seo.config.json`) and state directory
+
+### 0.9.0
 
 - [x] Expanded Agent Skill Library (`skills/*/SKILL.md` — 13 structured 9-section playbooks across 6 domains)
 - [x] Expanded CLI skills registry (`lib/skills.mjs` — 14 executable skill groups, alias resolution, prefix/pass-variant check matching)
@@ -44,12 +53,13 @@ nothing here is promised on a date — issues and PRs decide the pace.
 - [x] SARIF export (`--format sarif`) for GitHub Code Scanning
 - [x] Page-type calibrations (`--profile blog|product|docs|home`)
 
-## Next Candidates (0.9.x / 1.0)
+## Next Candidates (0.13 / 1.0)
 
 - [ ] Multi-lingual and i18n heading pattern matching for non-English answer extraction
 - [ ] Orphan page visualization graph in HTML site dashboard
 - [ ] Standalone offline schema validator tool (`schema --validate file.json`)
-- [ ] Optional sitemap XML generation from audited crawl paths
+- [ ] Search Console / GA4 connectors (opt-in, credentials via env; see GSC-INTEGRATION-DESIGN.md)
+- [ ] Pluggable keyword / backlink data providers (opt-in, user-supplied API keys — never estimated)
 
 ## Non-goals (staying small on purpose)
 

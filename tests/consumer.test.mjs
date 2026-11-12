@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync, readdirSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, readdirSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -69,6 +69,11 @@ test(
       import * as schema from 'one-step-seo/schema';
       import * as skills from 'one-step-seo/skills';
       import * as robots from 'one-step-seo/robots';
+      import * as crawl from 'one-step-seo/crawl';
+      import * as intelligence from 'one-step-seo/intelligence';
+      import * as autofix from 'one-step-seo/autofix';
+      import * as monitor from 'one-step-seo/monitor';
+      import * as pdf from 'one-step-seo/pdf';
 
       // Verify root API
       assert.equal(typeof root.buildReport, 'function', 'buildReport must be a function');
@@ -92,6 +97,12 @@ test(
       assert.equal(typeof schema.validateSchema, 'function', 'schema.validateSchema must exist');
       assert.ok(Array.isArray(skills.AGENT_SKILLS), 'skills.AGENT_SKILLS must be an array');
       assert.equal(typeof robots.parseRobots, 'function', 'robots.parseRobots must exist');
+      assert.equal(typeof crawl.crawlSite, 'function', 'crawl.crawlSite must exist');
+      assert.equal(typeof intelligence.analyzeSite, 'function', 'intelligence.analyzeSite must exist');
+      assert.equal(typeof autofix.buildFixPlan, 'function', 'autofix.buildFixPlan must exist');
+      assert.equal(typeof monitor.compareSnapshots, 'function', 'monitor.compareSnapshots must exist');
+      assert.equal(typeof root.applyFixSession, 'function', 'root.applyFixSession must exist');
+      assert.equal(String.fromCharCode(...pdf.renderPdf([{ text: 'x' }]).subarray(0, 5)), '%PDF-', 'pdf.renderPdf must produce a PDF');
 
       // Run end-to-end programmatic audit
       const pageData = {
@@ -230,7 +241,10 @@ test(
       })
         .toString()
         .trim();
-      assert.equal(cliOutput, "0.11.0", "Installed CLI binary must output correct version");
+      const pkgVersion = JSON.parse(
+        readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+      ).version;
+      assert.equal(cliOutput, pkgVersion, "Installed CLI binary must output correct version");
 
       const doctorOutput = execSync(`npx one-step-seo doctor`, {
         cwd: consumerDir,
@@ -238,7 +252,7 @@ test(
       })
         .toString()
         .trim();
-      assert.ok(doctorOutput.includes("one-step-seo v0.11.0"), "Doctor command must run successfully");
+      assert.ok(doctorOutput.includes(`one-step-seo v${pkgVersion}`), "Doctor command must run successfully");
     } finally {
       try {
         rmSync(packDir, { recursive: true, force: true });

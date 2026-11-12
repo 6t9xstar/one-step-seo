@@ -328,3 +328,365 @@ export function isLocalPath(input: string): boolean;
 export const MAX_PAGES: number;
 export const MAX_SITEMAP_CHILDREN: number;
 export const MAX_SITEMAP_SEED_URLS: number;
+
+// ---------------------------------------------------------------------------
+// Platform engines (v0.12)
+// ---------------------------------------------------------------------------
+
+export const VERSION: string;
+export const USER_AGENT: string;
+export function robotsPathOf(url: string): string;
+export function isAssetUrl(url: string): boolean;
+export const NON_HTML_EXTENSIONS: Set<string>;
+export function collectHtmlFiles(dir: string): string[];
+
+/** Facts about one crawled page, used by the site-level engines. */
+export interface PageFacts {
+  url: string;
+  finalUrl: string;
+  key: string;
+  status: number;
+  redirects: number;
+  ms: number;
+  bytes: number;
+  title: string;
+  metaDescription: string;
+  h1: string;
+  h1Count: number;
+  h2s: string[];
+  lang: string;
+  canonical: string;
+  canonicalKey: string;
+  noindex: boolean;
+  nofollow: boolean;
+  hreflangs: { lang: string; href: string }[];
+  links: string[];
+  externalLinks: number;
+  wordCount: number;
+  images: number;
+  imagesWithoutAlt: number;
+  schemaTypes: string[];
+  contentHash: string;
+  simhash: string;
+  terms: { term: string; count: number }[];
+  targetTerms: string[];
+  dateModified: string;
+}
+
+export interface CrawlFailure {
+  url: string;
+  status: number;
+  error: string;
+  kind: "fetch" | "offsite" | "asset";
+  referrers: string[];
+}
+
+export interface CrawlRedirect {
+  url: string;
+  finalUrl: string;
+  hops: number;
+  referrers: string[];
+}
+
+export interface CrawlOptions {
+  pages?: number;
+  crawl?: "links" | "sitemap" | "auto";
+  concurrency?: number;
+  delay?: number;
+  timeout?: number;
+  force?: boolean;
+  stripQuery?: boolean;
+  include?: string;
+  exclude?: string;
+  maxDepth?: number;
+  checkLinks?: boolean;
+  skills?: string;
+  excludeSkills?: string;
+  profile?: string;
+  blockPrivateIps?: boolean;
+  all?: boolean;
+  userAgent?: string;
+}
+
+export interface CrawlResult {
+  blocked: boolean;
+  robotsText: string;
+  pageReports: any[];
+  pages: PageFacts[];
+  failures: CrawlFailure[];
+  redirects: CrawlRedirect[];
+  failed: number;
+  capped: boolean;
+  sitemapUrls: string[];
+  orphanIndexes: number[];
+  startUrl: string;
+}
+
+export function crawlSite(
+  startUrl: string,
+  options?: CrawlOptions,
+  hooks?: {
+    warn?: (msg: string) => void;
+    debug?: (msg: string) => void;
+    progress?: (state: { done: number; total: number; queued: number; current: string }) => void;
+    isInterrupted?: () => boolean;
+  },
+): Promise<CrawlResult>;
+export function analyzeOne(
+  url: string,
+  timeoutMs: number,
+  userAgent: string,
+  allowedHosts: Set<string> | null,
+  profile?: string,
+  opts?: { blockPrivateIps?: boolean },
+): Promise<any>;
+export function analyzeLocalFile(filePath: string, opts?: { profile?: string; siteRoot?: string }): any;
+export function pageFacts(analyzed: any, requestedUrl: string, canon?: (u: string) => string): PageFacts;
+
+// ---- SEO Intelligence ----
+
+export type FixType = "safe" | "approval" | "manual";
+
+export interface SiteIssue {
+  id: string;
+  category: string;
+  severity: "P0" | "P1" | "P2" | "P3";
+  title: string;
+  description: string;
+  impact: string;
+  recommendation: string;
+  fixType: FixType;
+  heuristic: boolean;
+  count: number;
+  urls: { url: string; detail: string }[];
+}
+
+export interface SiteAnalysis {
+  summary: Record<string, unknown> & { pagesAnalyzed: number; issueCounts: Record<string, number> };
+  categoryScores: Record<string, { score: number | null; band: string; pages: number }>;
+  issues: SiteIssue[];
+  pageStats: unknown[];
+  content: { topics: unknown[]; linkSuggestions: unknown[]; underlinkedPages: unknown[]; briefs: unknown[] };
+  methodology: Record<string, string>;
+}
+
+export function analyzeSite(input: {
+  pages: PageFacts[];
+  failures?: CrawlFailure[];
+  redirects?: CrawlRedirect[];
+  sitemapUrls?: string[];
+  capped?: boolean;
+  pageReports?: any[];
+  canon?: (u: string) => string;
+  now?: number;
+}): SiteAnalysis;
+export function clickDepths(pages: PageFacts[]): Map<string, number>;
+export function categoryScores(
+  pageReports: any[],
+): Record<string, { score: number | null; band: string; pages: number }>;
+export function isValidHreflang(code: string): boolean;
+export function suggestInternalLinks(
+  pages: PageFacts[],
+  limit?: number,
+): { from: string; to: string; anchor: string; sharedTerms: string[]; similarity: number }[];
+export function contentBriefs(
+  pages: PageFacts[],
+  inlinks: Map<string, number>,
+  linkSuggestions: unknown[],
+  limit?: number,
+): unknown[];
+export function compareCompetitors(
+  own: PageFacts[],
+  competitors: { url: string; pages: PageFacts[] }[],
+): {
+  own: Record<string, unknown>;
+  competitors: {
+    url: string;
+    profile: Record<string, unknown>;
+    sharedTerms: number;
+    termGaps: { term: string; competitorPages: number }[];
+  }[];
+  note: string;
+};
+
+// ---- SEO Auto-Fix ----
+
+export interface FixPlanEntry {
+  issueId: string;
+  scope: "page" | "site";
+  url: string;
+  severity: string;
+  description: string;
+  impact: string;
+  recommendation: string;
+  proposedChange: string;
+  fixType: FixType;
+  status: "proposed";
+  verification: "not-applied";
+}
+
+export interface FixPlan {
+  tool: string;
+  version: string;
+  generatedAt: string;
+  mode: "plan";
+  summary: Record<string, number>;
+  entries: FixPlanEntry[];
+  note: string;
+}
+
+export interface FixSessionFile {
+  path: string;
+  backup: string;
+  created: boolean;
+  beforeSha: string;
+  afterSha: string;
+  fixes: string[];
+  verified: { name: string; cleared: boolean }[];
+  searchScore: { before: number; after: number } | null;
+  resolvedFindings: string[];
+}
+
+export interface FixSession {
+  tool: string;
+  version: string;
+  id: string;
+  createdAt: string;
+  target: string;
+  status: "applied" | "rolled-back";
+  rolledBackAt?: string;
+  files: FixSessionFile[];
+}
+
+export const APPROVAL_FINDINGS: string[];
+export const SITE_FIXER_NAMES: string[];
+export function classifyFinding(
+  finding: { id: string; title?: string },
+  report: unknown,
+): { fixType: FixType; proposedChange: string };
+export function buildFixPlan(
+  pageReports: any[],
+  analysis?: { issues?: SiteIssue[] } | null,
+  opts?: { safeOnly?: boolean; indexableUrls?: string[] },
+): FixPlan;
+export function renderFixPlanMarkdown(plan: FixPlan): string;
+export function buildSitemapXml(urls: string[]): string;
+export function buildRobotsTxt(sitemapUrl: string): string;
+export function suggestAltText(
+  images: { src?: string; hasAlt?: boolean }[],
+): { src: string; suggestedAlt: string }[];
+export function planSiteFixes(
+  rootDir: string,
+  htmlFiles: string[],
+  ctx?: { baseUrl?: string; only?: string[] | null },
+): {
+  planned: {
+    name: string;
+    findingId: string;
+    file: string;
+    summary: string;
+    content: string;
+    created: boolean;
+  }[];
+  skipped: { name: string; reason: string }[];
+};
+export function planLocalFixes(
+  target: string,
+  ctx?: Record<string, unknown> & { isDirectory?: boolean; url?: string },
+): any;
+export function applyFixSession(input: {
+  stateDir: string;
+  target: string;
+  siteRoot: string;
+  changes: {
+    file: string;
+    content: string;
+    created?: boolean;
+    fixes: string[];
+    verify?: (onDisk: string) => { name: string; cleared: boolean }[];
+  }[];
+  backup?: boolean;
+}): { session: FixSession | null; files: FixSessionFile[]; errors: { file: string; error: string }[] };
+export function listFixSessions(stateDir: string): FixSession[];
+export function rollbackFixSession(
+  stateDir: string,
+  sessionId?: string,
+  opts?: { force?: boolean },
+): {
+  ok: boolean;
+  error?: string;
+  session?: FixSession;
+  restored: string[];
+  removed: string[];
+  conflicts: string[];
+};
+
+// ---- SEO Monitoring ----
+
+export type ChangeLevel = "critical" | "warning" | "info";
+export interface MonitorChange {
+  type: string;
+  level: ChangeLevel;
+  url: string;
+  message: string;
+  before?: string;
+  after?: string;
+}
+export interface MonitorSnapshot {
+  tool: string;
+  version: string;
+  takenAt: string;
+  startUrl: string;
+  available: boolean;
+  site: Record<string, unknown>;
+  pages: Record<string, Record<string, unknown>>;
+  failures: { url: string; status: number; error: string }[];
+  sitemapUrls: string[];
+  averages: { search: number | null; ai: number | null };
+}
+export function buildSnapshot(crawl: CrawlResult, site?: Record<string, unknown>): MonitorSnapshot;
+export function compareSnapshots(prev: MonitorSnapshot, cur: MonitorSnapshot): MonitorChange[];
+export function summarizeChanges(changes: MonitorChange[]): Record<ChangeLevel, number>;
+export function monitorDir(stateDir: string, startUrl: string): string;
+export function saveSnapshot(dir: string, snapshot: MonitorSnapshot, keep?: number): string;
+export function loadLatestSnapshot(dir: string): MonitorSnapshot | null;
+export function listSnapshots(dir: string): string[];
+export function sendWebhook(
+  webhookUrl: string,
+  alert: { site: string; takenAt: string; summary: Record<ChangeLevel, number>; changes: MonitorChange[] },
+  opts?: { timeoutMs?: number; fetchImpl?: typeof fetch },
+): Promise<{ ok: boolean; status: number; error: string }>;
+
+// ---- Reporting, config, state ----
+
+export interface SiteReportModel {
+  origin: string;
+  checkedAt: string;
+  pageReports: any[];
+  analysis?: SiteAnalysis | null;
+  competitors?: unknown;
+  verification?: unknown;
+  history?: unknown[];
+  fixSessions?: unknown[];
+}
+export interface SiteReportOptions {
+  audience?: "full" | "client" | "developer";
+  brand?: string;
+  client?: string;
+}
+export function renderSiteMarkdown(model: SiteReportModel, opts?: SiteReportOptions): string;
+export function renderSiteCsv(model: SiteReportModel): string;
+export function renderSitePdf(model: SiteReportModel, opts?: SiteReportOptions): Uint8Array;
+export function siteReportOutline(model: SiteReportModel, opts?: SiteReportOptions): unknown[];
+export function renderPdf(
+  blocks: { text: string; style?: "title" | "h1" | "h2" | "body" | "bullet" | "small" | "space" }[],
+  meta?: { title?: string; footer?: string },
+): Uint8Array;
+
+export const CONFIG_FILE: string;
+export function validateConfig(config: unknown): string[];
+export function loadConfig(opts?: {
+  cwd?: string;
+  explicitPath?: string;
+}): { path: string; config: Record<string, unknown>; argv: string[] } | null;
+export function resolveStateDir(explicit?: string, env?: Record<string, string | undefined>): string;

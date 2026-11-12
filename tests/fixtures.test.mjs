@@ -476,7 +476,8 @@ test("cli: failures are counted and long file lists are condensed", async () => 
     assert.match(r.stdout, /Audited all 4 discovered pages\./);
     assert.ok(existsSync(join(out, "report-4.json")), "expected 4 reports (/gone 404s)");
     assert.ok(!existsSync(join(out, "report-5.json")));
-    assert.match(r.stdout, /Wrote 14 files into .* — start at .*index\.html\./);
+    // 4 pages x 3 formats + index.md + index.html + site-report.md + site-intelligence.json
+    assert.match(r.stdout, /Wrote 16 files into .* — start at .*index\.html\./);
   } finally {
     await closeServer(server);
   }

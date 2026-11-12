@@ -13,152 +13,49 @@
  *   one-step-seo doctor [--json]
  *   one-step-seo (no command → interactive prompts on a TTY)
  */
-import {
-  readFileSync,
-  mkdirSync,
-  writeFileSync,
-  copyFileSync,
-  readdirSync,
-  statSync,
-  existsSync,
-} from "node:fs";
-import { dirname, join, resolve, relative, extname } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { execFileSync, execFile } from "node:child_process";
+import { readFileSync, statSync, existsSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { execFile } from "node:child_process";
 import { createInterface } from "node:readline/promises";
-import { fetchWithRedirects, fetchText } from "../lib/fetch.mjs";
+import { fetchWithRedirects } from "../lib/fetch.mjs";
 import { parseHtml } from "../lib/html.mjs";
-import {
-  getSiteFiles,
-  getSitemapUrls,
-  isDisallowed,
-  parseRobots,
-  extractSitemapUrls,
-} from "../lib/robots.mjs";
-import { runChecks, MAX_LINK_CHECKS } from "../lib/checks.mjs";
-import { extractJsonLd, validateSchema, schemaSnippet } from "../lib/schema.mjs";
-import { geoDetails, computeScores, scoreBand } from "../lib/score.mjs";
-import {
-  buildReport,
-  renderMarkdown,
-  renderHtml,
-  renderSiteIndex,
-  renderSarif,
-  renderCsv,
-  siteBasename,
-  siteTopFindings,
-  summarizeAggregate,
-  buildSiteReport,
-  coverageLine,
-  findDuplicateTitles,
-  escMd,
-  SEV_RANK,
-} from "../lib/report.mjs";
+import { getSiteFiles, getSitemapUrls, isDisallowed } from "../lib/robots.mjs";
+import { MAX_LINK_CHECKS } from "../lib/checks.mjs";
+import { schemaSnippet } from "../lib/schema.mjs";
+import { computeScores } from "../lib/score.mjs";
+import { SEV_RANK } from "../lib/report.mjs";
 import { getFindingMeta, FINDING_META } from "../lib/finding-meta.mjs";
-import { parseArgs, normalizeUrl, canonicalizeUrl, isLocalPath, CliError, MAX_PAGES } from "../lib/args.mjs";
-import { planFixes, FIXER_NAMES } from "../lib/fix.mjs";
+import { parseArgs, normalizeUrl, isLocalPath, CliError, MAX_PAGES } from "../lib/args.mjs";
 import { diffReports, isReport } from "../lib/report-diff.mjs";
-import { unifiedDiff } from "../lib/diff.mjs";
 import { fetchPsi, psiFindings } from "../lib/psi.mjs";
 import { createColorHelper, c } from "../lib/colors.mjs";
-import { getSkills, getSkill, CATEGORIES, filterSkills, matchesSkillChecks } from "../lib/skills.mjs";
+import { getSkills, getSkill, CATEGORIES } from "../lib/skills.mjs";
+import {
+  analyzeOne,
+  analyzeLocalFile,
+  toReport,
+  blockedReport,
+  checkPageLinks,
+  applySkillsFilter,
+  robotsPathOf,
+  resolveLocalTarget,
+} from "../lib/crawl.mjs";
+import { VERSION, USER_AGENT as UA, UA_TOKEN } from "../lib/version.mjs";
+import { loadConfig, extractConfigFlag, CONFIG_FILE } from "../lib/config.mjs";
+import { resolveStateDir } from "../lib/state.mjs";
+import {
+  printTopFixes,
+  writeOutputs,
+  breachesFailOn,
+  installInterruptHandler,
+} from "../lib/commands/shared.mjs";
+import { cmdAudit, auditLocalFile, auditLocalDirectory, writeSiteArtifacts } from "../lib/commands/audit.mjs";
+import { cmdFix, ALL_FIXER_NAMES } from "../lib/commands/fix.mjs";
+import { cmdVerify } from "../lib/commands/verify.mjs";
+import { cmdMonitor } from "../lib/commands/monitor.mjs";
+import { cmdReport } from "../lib/commands/report.mjs";
 
-export { createColorHelper, c };
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-let VERSION = "0.0.0";
-try {
-  VERSION = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version ?? VERSION;
-} catch {
-  // Package layout without package.json (bundled) — keep fallback version.
-}
-
-/** Product token used for robots.txt group matching. */
-const UA_TOKEN = "one-step-seo";
-/** Clear User-Agent sent on every request (version follows package.json). */
-const UA = `Mozilla/5.0 (compatible; one-step-seo/${VERSION}; +https://github.com/6t9xstar/one-step-seo)`;
-
-/**
- * @param {number} ms
- * @returns {Promise<void>}
- */
-function sleep(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-/**
- * Path component of an absolute URL for robots matching; "/" on garbage.
- * @param {string} link
- * @returns {string}
- */
-function pathOf(link) {
-  try {
-    return new URL(link).pathname || "/";
-  } catch {
-    return "/";
-  }
-}
-
-/**
- * Lowercase host of an absolute URL; "" on garbage. Compared host-only
- * (not origin) so mixed http/https links on one host stay crawlable.
- * @param {string} link
- * @returns {string}
- */
-function hostOf(link) {
-  try {
-    return new URL(link).host.toLowerCase();
-  } catch {
-    return "";
-  }
-}
-
-/**
- * Print the top 3 urgent fixes with triage labels + the next command.
- * @param {import("../lib/report.mjs").Report} report
- * @param {string} rerun the exact command that reproduces this audit
- */
-function printTopFixes(report, rerun) {
-  const top = (report.findings ?? []).filter((f) => f && f.severity !== "pass").slice(0, 3);
-  if (top.length === 0) {
-    console.log("Top fixes: none — all checks passed.");
-  } else {
-    console.log(c.bold("Top fixes:"));
-    for (const f of top) {
-      const meta = getFindingMeta(String(f.id ?? ""));
-      const hint = String(f.fix || meta.plain).slice(0, 120);
-      console.log(`  ${c.severityBadge(f.severity)} ${f.title} (${f.id}) — ${hint}`);
-      console.log(`    Impact: ${meta.impact} · Effort: ${meta.effort} · Owner: ${meta.owner}`);
-    }
-  }
-  console.log(`Next: fix the items above, then re-run \`${rerun}\`.`);
-}
-
-/**
- * Top fixes across all audited pages: worst severity first, then most
- * widespread. Each finding counts once per page it appears on.
- * @param {import("../lib/report.mjs").Report[]} pageReports
- * @param {string} rerun the exact command that reproduces this audit
- */
-function printTopFixesSite(pageReports, rerun) {
-  const n = pageReports.length;
-  const top = siteTopFindings(pageReports, 3);
-  if (top.length === 0) {
-    console.log("Top fixes: none — all checks passed.");
-  } else {
-    console.log(c.bold(`Top fixes across ${n} page${n === 1 ? "" : "s"}:`));
-    for (const { finding: f, pages } of top) {
-      const meta = getFindingMeta(String(f.id ?? ""));
-      const hint = String(f.fix || meta.plain).slice(0, 120);
-      const scope = pages > 1 ? ` — on ${pages}/${n} pages` : "";
-      console.log(`  ${c.severityBadge(f.severity)} ${f.title} (${f.id})${scope} — ${hint}`);
-      console.log(`    Impact: ${meta.impact} · Effort: ${meta.effort} · Owner: ${meta.owner}`);
-    }
-  }
-  console.log(`Next: fix the items above, then re-run \`${rerun}\`.`);
-}
+export { createColorHelper, c, analyzeOne };
 
 /**
  * Check robots.txt for a crawl start URL. Warms the per-origin site-file
@@ -185,107 +82,27 @@ async function checkRobotsAllowed(url, args) {
     // Best-effort: without robots.txt there is nothing to enforce.
     text = "";
   }
-  const blocked = !args.force && text !== "" && isDisallowed(text, UA_TOKEN, pathOf(url));
+  const blocked = !args.force && text !== "" && isDisallowed(text, UA_TOKEN, robotsPathOf(url));
   return { blocked, robotsText: text };
 }
 
 /**
- * Minimal report for a robots-refused crawl: one P1 finding, no pages.
- * @param {string} url
- * @returns {import("../lib/report.mjs").Report}
- */
-function blockedReport(url) {
-  const findings = [
-    {
-      id: "T05-robots-disallow",
-      category: "technical",
-      severity: "P1",
-      title: "robots.txt disallows crawling this page",
-      evidence: `robots.txt Disallow matches ${url} — the crawl was skipped (re-run with --force to override).`,
-      fix: "If the block is intentional, nothing to do. Otherwise allow the path in robots.txt, then re-audit.",
-      seoImpact: "medium",
-      geoImpact: "-",
-    },
-  ];
-  const scores = computeScores(findings, geoDetails(null, null));
-  return buildReport({
-    url,
-    finalUrl: url,
-    scores,
-    findings,
-    parsed: {},
-    siteFiles: {},
-    meta: { version: VERSION },
-  });
-}
-
-/**
- * Verify a page's same-host link targets (`--check-links`). Appends one
- * aggregated T16 finding for broken targets. Shared budget + checked-set
- * bound total requests per run; already-audited (known-200) and
- * robots-disallowed targets are skipped, never fetched.
- * @param {any} r analyzeOne result (parsed non-null)
- * @param {import("../lib/report.mjs").Report[]} pageReports reports so far (known-good finals)
+ * Resolve and analyze a local HTML target (path or file:// URL), exiting with
+ * a usage error when it does not exist.
+ * @param {string} rawTarget
  * @param {import("../lib/args.mjs").ParsedArgs} args
- * @param {{ budget: number, checked: Set<string> }} state shared across pages
- * @param {string} robotsText robots.txt of the crawled origin ("" skips the policy check)
  */
-async function checkPageLinks(r, pageReports, args, state, robotsText) {
-  const knownGood = new Set(pageReports.map((pr) => canonicalizeUrl(pr.finalUrl) || pr.finalUrl));
-  knownGood.add(canonicalizeUrl(r.fetched.finalUrl) || r.fetched.finalUrl);
-  /** @type {string[]} */
-  const targets = [];
-  for (const link of r.parsed.internalLinks ?? []) {
-    if (state.budget <= 0) break;
-    const lk = canonicalizeUrl(link) || link;
-    if (!lk || !/^https?:\/\//i.test(lk) || state.checked.has(lk) || knownGood.has(lk)) continue;
-    if (robotsText && isDisallowed(robotsText, UA_TOKEN, pathOf(link))) continue;
-    state.checked.add(lk);
-    state.budget--;
-    targets.push(lk);
+function analyzeLocalTarget(rawTarget, args) {
+  const filePath = resolveLocalTarget(rawTarget);
+  if (!filePath) {
+    console.error(`Invalid file URL: ${rawTarget}`);
+    process.exit(1);
   }
-  if (targets.length === 0) return;
-  /** @type {{ url: string, status: string }[]} */
-  const broken = [];
-  for (let i = 0; i < targets.length; i += args.concurrency) {
-    const batch = targets.slice(i, i + args.concurrency);
-    const results = await Promise.allSettled(
-      batch.map((u) =>
-        fetchText(u, {
-          timeoutMs: args.timeout,
-          userAgent: UA,
-          blockPrivateIps: Boolean(args.blockPrivateIps),
-        }),
-      ),
-    );
-    results.forEach((settled, k) => {
-      const u = batch[k] ?? "";
-      if (settled.status === "rejected") {
-        broken.push({ url: u, status: "fetch failed" });
-        return;
-      }
-      const res = settled.value;
-      if (!res.ok || res.status < 200 || res.status >= 400) {
-        broken.push({ url: u, status: res.error || `http status ${res.status}` });
-      }
-    });
+  if (!existsSync(filePath) || !statSync(filePath).isFile()) {
+    console.error(`Local file not found: ${rawTarget}`);
+    process.exit(1);
   }
-  if (broken.length > 0) {
-    const shown = broken
-      .slice(0, 5)
-      .map((b) => `GET ${b.url} -> ${b.status}`)
-      .join("; ");
-    r.findings.push({
-      id: "T16-broken-links",
-      category: "technical",
-      severity: "P1",
-      title: `${broken.length} broken internal link${broken.length === 1 ? "" : "s"}`,
-      evidence: broken.length > 5 ? `${shown}; +${broken.length - 5} more` : shown,
-      fix: "Fix or remove the broken links; update inlinks that point at moved pages.",
-      seoImpact: "medium",
-      geoImpact: "-",
-    });
-  }
+  return analyzeLocalFile(filePath, { profile: args.profile });
 }
 
 function usage(code = 0) {
@@ -301,7 +118,13 @@ Usage:
   one-step-seo schema <url> [--generate organization|website|article|faq|breadcrumb|product|event|localbusiness|howto|video|job|course|review|recipe]
   one-step-seo sitemap <url> [--json]
   one-step-seo llms <url> [--json]
+  one-step-seo audit <url> --deep | --technical | --on-page | --competitors URL[,URL]
   one-step-seo fix <path> [--apply] [--only NAMES] [--url U] [--title T] [--description D] [--lang L] [--og-image U]
+  one-step-seo fix <url> [--safe-only] [--pages N|--all]   (fix plan: proposed changes, nothing modified)
+  one-step-seo fix --history | --rollback [--session ID] [--force]
+  one-step-seo verify [url|dir] [--baseline DIR] [--fail-on P0|P1|P2]
+  one-step-seo report <url|dir|audit-folder> [--format pdf,md,csv,json] [--brand NAME] [--client NAME] [--audience full|client|developer]
+  one-step-seo monitor <url> [--pages N] [--interval MIN] [--webhook URL] [--history] [--fail-on P0|P1|P2]
   one-step-seo diff <old-report.json> <new-report.json> [--json] [--fail-on P0|P1|P2]
   one-step-seo doctor [--json] [--check-config]
   one-step-seo (no command: interactive prompts when attached to a TTY)
@@ -314,7 +137,7 @@ Options:
   --exclude PAT   skip URL paths matching substring or regex pattern
   --strip-query   strip search query parameters during crawl deduplication
   --out DIR       output directory (default ./seo-report)
-  --format        comma list among html,md,json,sarif,csv (default html,md,json)
+  --format        comma list among html,md,json,sarif,csv,pdf (default html,md,json)
   --timeout MS    per-request timeout in ms (default 15000, 1000-120000)
   --fail-on SEV   exit 2 when any page has P0 (or P1/P2) findings — for CI gating
   --crawl MODE    audit discovery: auto (hybrid sitemap + link BFS), links, or sitemap (default links)
@@ -332,17 +155,40 @@ Options:
   --profile NAME  page-type calibration: default|blog|product|docs|home (default default)
   --psi           measure Core Web Vitals via Google PageSpeed Insights (reads PSI_API_KEY)
   --psi-strategy  performance strategy: mobile (default) or desktop
-  --json          print JSON to stdout (sitemap / llms / doctor / fix / diff / ai / skills)
+  --json          print JSON to stdout (sitemap / llms / doctor / fix / diff / ai / skills / verify / monitor)
+  --deep          full-site crawl + link verification + site-wide analysis (same as --all --check-links)
+  --technical     only technical checks (technical, security, performance skills)
+  --on-page       only on-page checks (on-page, schema, content architecture, accessibility skills)
+  --competitors L compare with up to 3 competitor sites (5 pages each; lexical, not search-volume data)
+  --config FILE   read flag defaults from a JSON file (default ./${CONFIG_FILE}; --no-config to ignore)
+  --state-dir DIR where fix history and monitoring snapshots are stored (default ./.one-step-seo)
+
+Verify / report / monitor options:
+  --baseline DIR  folder holding the earlier report*.json to verify against (default --out)
+  --brand NAME    agency or author name printed on site reports
+  --client NAME   client name printed on site reports
+  --audience A    full (default), client (plain-language summary) or developer (every URL + evidence)
+  --interval MIN  monitor: keep running and re-check every MIN minutes (1-10080)
+  --webhook URL   monitor: POST alerts as JSON (or set ONE_STEP_SEO_WEBHOOK; never stored in config)
+  --keep N        monitor: snapshots to retain per site (default 60)
+  --history       monitor: list stored snapshots · fix: list recorded fix sessions
 
 Fix options (fix is a dry-run unless --apply is given):
   --apply         write the fixes to disk (creates <file>.bak backups)
-  --only NAMES    comma list: ${FIXER_NAMES.join(",")}
-  --url URL       absolute URL used for canonical / og:url fixes
+  --only NAMES    comma list: ${ALL_FIXER_NAMES.join(",")}
+  --url URL       page URL for a single file; SITE BASE URL for a directory (each page gets its own URL)
+  --safe-only     fix <url>: list only safe, mechanical fixes in the plan
+  --rollback      undo the latest recorded fix session (or --session ID); --force overwrites later edits
+  --session ID    fix session to roll back
   --title TEXT    <title> value when missing (else derived from the first <h1>)
   --description T meta description when missing (else derived from page text)
   --lang LANG     <html lang> value when missing (never guessed)
   --og-image URL  absolute image URL used for og:image
-  --no-backup     skip the .bak copy on --apply
+  --no-backup     skip the .bak copy and the rollback session on --apply
+
+Exit codes:
+  0 success · 1 usage or configuration error · 2 runtime failure, --fail-on breach,
+  verify regression, or critical monitor change
 
 Notes:
   - Multi-page audits write report.json/md/html for page 1 plus
@@ -355,640 +201,15 @@ Notes:
     T05-robots-disallow report is written instead. schema warns only.
   - diff compares two report.json files (base vs. head) for CI regression
     gating; --fail-on trips on NEW or escalated findings only.
-  - fix accepts local .html/.htm files or directories; additive fixes only.
+  - fix accepts local .html/.htm files or directories; additive fixes only. Every --apply is
+    backed up, re-read from disk and verified; fix <url> writes a plan and changes nothing.
+  - verify re-audits the pages of an earlier audit and reports fixed / new / still-open issues.
+  - monitor stores a snapshot per run and reports changes against the previous one.
+  - Scores are this tool's health indicators, not Google ranking scores. Search volume,
+    rankings, traffic and backlinks are not measured by a crawl and are never reported.
   - Only audit sites you are allowed to crawl; respect robots.txt.
 `);
   process.exit(code);
-}
-
-/**
- * Fetch + parse + check a single URL into report-ready parts.
- * When `allowedHosts` is set, redirect landings outside the set return
- * early with `skipped: true` — before any robots/sitemap/llms discovery
- * fetches — so locked-out origins see only the single redirect-following
- * page request, never a report and never link harvesting.
- * @param {string} url
- * @param {number} timeoutMs
- * @param {string} [userAgent]
- * @param {Set<string> | null} [allowedHosts]
- * @param {string} [profile] page-type calibration (see PROFILES in lib/checks.mjs)
- * @param {{ blockPrivateIps?: boolean }} [options]
- */
-export async function analyzeOne(
-  url,
-  timeoutMs,
-  userAgent,
-  allowedHosts = null,
-  profile = "default",
-  options = {},
-) {
-  const blockPrivateIps = Boolean(options?.blockPrivateIps);
-  const fetched = await fetchWithRedirects(url, {
-    timeoutMs,
-    ...(userAgent ? { userAgent } : {}),
-    ...(blockPrivateIps ? { blockPrivateIps: true } : {}),
-  });
-  if (!fetched.ok || !fetched.html) {
-    return {
-      fetched,
-      parsed: null,
-      siteFiles: null,
-      findings: [],
-      scores: null,
-      geo: null,
-      schemaInfo: null,
-      truncated: false,
-      skipped: false,
-    };
-  }
-  if (allowedHosts) {
-    let finalHost = "";
-    try {
-      finalHost = new URL(fetched.finalUrl).host.toLowerCase();
-    } catch {
-      // Keep "" — treated as outside the set below.
-    }
-    if (!finalHost || !allowedHosts.has(finalHost)) {
-      return {
-        fetched,
-        parsed: null,
-        siteFiles: null,
-        findings: [],
-        scores: null,
-        geo: null,
-        schemaInfo: null,
-        truncated: false,
-        skipped: true,
-      };
-    }
-  }
-  const parsed = parseHtml(fetched.html, fetched.finalUrl);
-  const siteFiles = await getSiteFiles(fetched.finalUrl, {
-    timeoutMs,
-    ...(userAgent ? { userAgent } : {}),
-    ...(blockPrivateIps ? { blockPrivateIps: true } : {}),
-  });
-  const schemaRaw = extractJsonLd(parsed.jsonLdBlocks);
-  const validated = validateSchema(schemaRaw.items);
-  const schemaInfo = {
-    items: schemaRaw.items,
-    types: validated.types,
-    issues: validated.issues,
-    errors: schemaRaw.errors,
-  };
-  const findings = runChecks(parsed, siteFiles, fetched, schemaInfo, { profile });
-  if (fetched.truncated) {
-    findings.push({
-      id: "T00-truncated",
-      category: "technical",
-      severity: "P2",
-      title: "HTML truncated at 5MB cap",
-      evidence: `Body exceeded the 5MB audit cap; checks ran on the head portion only.`,
-      fix: "Reduce page weight (code-split, paginate) so the full page is auditable, then re-run.",
-      seoImpact: "low",
-      geoImpact: "low",
-    });
-  }
-  const geo = geoDetails(parsed, siteFiles);
-  const scores = computeScores(findings, geo);
-  return {
-    fetched,
-    parsed,
-    siteFiles,
-    findings,
-    scores,
-    geo,
-    schemaInfo,
-    truncated: fetched.truncated,
-    skipped: false,
-  };
-}
-
-/**
- * @param {any} r result of analyzeOne (with parsed non-null)
- * @param {string} url requested URL
- */
-function toReport(r, url) {
-  return buildReport({
-    url,
-    finalUrl: r.fetched.finalUrl,
-    scores: r.scores,
-    findings: r.findings,
-    parsed: r.parsed,
-    siteFiles: r.siteFiles,
-    meta: { version: VERSION },
-    truncated: r.truncated,
-  });
-}
-
-/**
- * @param {string} outDir
- * @param {import("../lib/report.mjs").Report} report
- * @param {string[]} formats
- * @param {string} [basename]
- * @param {{ indexHref?: string, pageCount?: number }} [htmlOpts] forwarded to renderHtml
- */
-function writeOutputs(outDir, report, formats, basename = "report", htmlOpts) {
-  mkdirSync(outDir, { recursive: true });
-  const written = [];
-  if (formats.includes("json")) {
-    const p = join(outDir, `${basename}.json`);
-    writeFileSync(p, JSON.stringify(report, null, 2) + "\n", "utf8");
-    written.push(p);
-  }
-  if (formats.includes("md")) {
-    const p = join(outDir, `${basename}.md`);
-    writeFileSync(p, renderMarkdown(report), "utf8");
-    written.push(p);
-  }
-  if (formats.includes("html")) {
-    const p = join(outDir, `${basename}.html`);
-    writeFileSync(p, renderHtml(report, htmlOpts), "utf8");
-    written.push(p);
-  }
-  if (formats.includes("sarif")) {
-    const p = join(outDir, `${basename}.sarif`);
-    writeFileSync(p, JSON.stringify(renderSarif(report), null, 2) + "\n", "utf8");
-    written.push(p);
-  }
-  if (formats.includes("csv")) {
-    const p = join(outDir, `${basename}.csv`);
-    writeFileSync(p, renderCsv(report), "utf8");
-    written.push(p);
-  }
-  return written;
-}
-
-/** @param {string} severity @param {Record<string, number>} counts @returns {boolean} */
-function breachesFailOn(severity, counts) {
-  if (!severity) return false;
-  /** @type {Record<string, number>} */
-  const rank = { P0: 0, P1: 1, P2: 2 };
-  const threshold = rank[severity];
-  if (threshold === undefined) return false;
-  for (const [sev, r] of Object.entries(rank)) {
-    if (r <= threshold && (counts[sev] ?? 0) > 0) return true;
-  }
-  return false;
-}
-
-/**
- * @param {string} url
- * @param {import("../lib/args.mjs").ParsedArgs} args
- */
-async function cmdAudit(url, args) {
-  const psiKey = process.env.PSI_API_KEY;
-  if (args.psi && !psiKey) {
-    throw new CliError(
-      `--psi requires the PSI_API_KEY environment variable.\nGet a free API key at https://developers.google.com/speed/docs/insights/v5/get-started and run:\n  PSI_API_KEY=your_key one-step-seo audit <url> --psi`,
-      1,
-    );
-  }
-  const formats = args.formats;
-  const concurrency = Math.max(1, Math.min(8, args.concurrency ?? 4));
-  /** @param {...unknown} m */
-  const dbg = (...m) => {
-    if (args.debug) console.error("debug:", ...m);
-  };
-  dbg(
-    `audit ${url} pages=${args.pages} crawl=${args.crawl} concurrency=${concurrency} delay=${args.delay} timeout=${args.timeout} force=${args.force}`,
-  );
-  const canon = (/** @type {string} */ u) => canonicalizeUrl(u, Boolean(args.stripQuery));
-  const seen = new Set([canon(url) || url]);
-  const crawled = new Set();
-  /** @type {{ url: string, depth: number }[]} */
-  const queue = [{ url, depth: 0 }];
-  /** @type {import("../lib/report.mjs").Report[]} */
-  const pageReports = [];
-
-  /**
-   * Test a path against include/exclude patterns (supports regex or substring).
-   * @param {string} p
-   * @param {string} pattern
-   * @returns {boolean}
-   */
-  const matchesPathPattern = (p, pattern) => {
-    if (!pattern) return true;
-    try {
-      const re = new RegExp(pattern, "i");
-      return re.test(p);
-    } catch {
-      return p.toLowerCase().includes(pattern.toLowerCase());
-    }
-  };
-  // Pragmatic same-host policy: the start host plus the first landing host
-  // (covers apex <-> www canonicalization), locked after that. Discovered
-  // links and redirect landings outside the set are skipped, never crawled.
-  const allowedHosts = new Set([hostOf(url)]);
-  let adoptedOnce = false;
-  let failed = 0;
-  // Inlink counts per canonical URL (orphan detection). Seeds start at zero:
-  // sitemap-only pages with no crawled inlinks count as orphaned for equity.
-  /** @type {Map<string, number>} */
-  const inlinkCounts = new Map();
-  // True when the crawl saw more URLs than the page cap could take
-  // (sitemap seeds cut, discovery queue full, or >10 links on a page).
-  let capped = false;
-  // Shared link-verification budget for --check-links (bounded total
-  // requests per run; targets already checked are never re-fetched).
-  /** @type {{ budget: number, checked: Set<string> }} */
-  const linkState = { budget: args.checkLinks ? MAX_LINK_CHECKS : 0, checked: new Set() };
-
-  const { blocked, robotsText } = await checkRobotsAllowed(url, args);
-  if (blocked) {
-    console.error(
-      `! robots.txt disallows auditing ${url} — crawl skipped (re-run with --force to override).`,
-    );
-    const report = blockedReport(url);
-    const written = writeOutputs(resolve(args.out), report, formats);
-    console.log(
-      `\nSearch SEO: ${c.scoreBadge(report.scores.search.score, report.scores.search.band)}  |  AI Visibility: ${c.scoreBadge(report.scores.ai.score, report.scores.ai.band)}`,
-    );
-    printTopFixes(report, `one-step-seo audit ${url} --pages ${args.pages} --force`);
-    console.log(`Wrote:\n  ${written.join("\n  ")}`);
-    return;
-  }
-
-  // Seed sitemap-mode queue from the sitemap discovery. The root URL is
-  // already in `queue`, so the cap must count only *extra* seeds — comparing
-  // `queue.length >= args.pages` would break immediately at the default
-  // --pages 1 and add nothing.
-  if (args.crawl === "sitemap" || args.crawl === "auto") {
-    try {
-      const seeds = await getSitemapUrls(url, {
-        timeoutMs: args.timeout,
-        userAgent: UA,
-        blockPrivateIps: Boolean(args.blockPrivateIps),
-      });
-      dbg(`sitemap seeds: ${seeds.length}`);
-      let added = 0;
-      for (const seed of seeds) {
-        if (added >= Math.max(0, args.pages - 1)) {
-          capped = true;
-          break;
-        }
-        const key = canon(seed) || seed;
-        if (seen.has(key)) continue;
-        const seedPath = pathOf(seed);
-        if (args.include && !matchesPathPattern(seedPath, args.include)) continue;
-        if (args.exclude && matchesPathPattern(seedPath, args.exclude)) continue;
-        queue.push({ url: seed, depth: 1 });
-        seen.add(key);
-        added++;
-      }
-      // Only warn when the sitemap genuinely yielded nothing and mode was explicitly sitemap.
-      // At --pages 1 the root is already queued, so an empty `seeds` is the real signal.
-      if (seeds.length === 0 && args.crawl === "sitemap") {
-        console.error("! sitemap has no usable URLs — falling back to link crawl.");
-      }
-    } catch {
-      // ignore — link crawl proceeds
-    }
-  }
-
-  let firstBatch = true;
-  while (queue.length > 0 && pageReports.length < args.pages && !interrupted) {
-    if (!firstBatch && args.delay > 0) await sleep(args.delay);
-    firstBatch = false;
-    /** @type {{ url: string, depth: number }[]} */
-    const batch = [];
-    while (
-      batch.length < concurrency &&
-      queue.length > 0 &&
-      pageReports.length + batch.length < args.pages &&
-      !interrupted
-    ) {
-      const item = queue.shift();
-      if (item === undefined) break;
-      const key = canon(item.url) || item.url;
-      if (crawled.has(key)) continue;
-      crawled.add(key);
-      seen.add(key);
-      batch.push(item);
-    }
-    if (batch.length === 0) break;
-
-    if (args.pages > 1 && (process.stderr.isTTY || args.verbose) && !args.quiet) {
-      const pct = Math.min(100, Math.round((pageReports.length / args.pages) * 100));
-      const cur = batch[0]?.url ? pathOf(batch[0].url) : "";
-      process.stderr.write(
-        `\r[${pageReports.length}/${args.pages} pages (${pct}%)] queue: ${queue.length} | crawling: ${cur || "/"}...    `,
-      );
-    }
-
-    const results = await Promise.allSettled(
-      batch.map((item) =>
-        analyzeOne(item.url, args.timeout, UA, allowedHosts, args.profile, {
-          blockPrivateIps: Boolean(args.blockPrivateIps),
-        }),
-      ),
-    );
-    for (let i = 0; i < batch.length; i++) {
-      const item = batch[i];
-      const next = item ? item.url : "";
-      const currentDepth = item ? item.depth : 0;
-      const settled = results[i];
-      if (!next || !settled) continue;
-      if (settled.status === "rejected") {
-        const reason = settled.reason;
-        console.error(`! ${next} -> ${reason instanceof Error ? reason.message : String(reason)}`);
-        failed++;
-        continue;
-      }
-      let r = settled.value;
-      if (r.skipped) {
-        const skipHost = hostOf(r.fetched.finalUrl);
-        if (pageReports.length === 0 && !adoptedOnce && skipHost) {
-          // Pragmatic redirect policy: the start URL itself may canonicalize
-          // across hosts (apex <-> www). Adopt the first landing host, then
-          // lock the set: re-analyze without the gate for the full report.
-          dbg(`adopted redirect host ${skipHost}`);
-          allowedHosts.add(skipHost);
-          adoptedOnce = true;
-          r = await analyzeOne(next, args.timeout, UA, null, args.profile, {
-            blockPrivateIps: Boolean(args.blockPrivateIps),
-          });
-        } else {
-          console.error(`! ${next} landed outside the allowed hosts (${skipHost || "unknown"}) — skipped.`);
-          failed++;
-          continue;
-        }
-      }
-      if (!r.parsed) {
-        console.error(`! ${next} -> ${r.fetched.error || r.fetched.status}`);
-        failed++;
-        continue;
-      }
-      // Guard against redirect-alias duplicates (http<->https, trailing slash).
-      const finalKey = canon(r.fetched.finalUrl) || r.fetched.finalUrl;
-      if (pageReports.some((pr) => (canon(pr.finalUrl) || pr.finalUrl) === finalKey)) {
-        continue;
-      }
-      // A redirect moves its discovery credit to the landing URL so the
-      // orphan check below compares final URLs on both sides.
-      const requestedKey = canon(next) || next;
-      if (finalKey !== requestedKey) {
-        inlinkCounts.set(finalKey, (inlinkCounts.get(finalKey) ?? 0) + (inlinkCounts.get(requestedKey) ?? 0));
-      }
-      if (args.checkLinks) {
-        await checkPageLinks(r, pageReports, args, linkState, robotsText);
-      }
-      if (args.skills || args.excludeSkills) {
-        r.findings = applySkillsFilter(r.findings, args.skills, args.excludeSkills);
-        r.scores = computeScores(r.findings, r.geo);
-      }
-      const pageReport = toReport(r, next);
-      pageReports.push(pageReport);
-      dbg(`page ${next} -> search ${pageReport.scores.search.score} ai ${pageReport.scores.ai.score}`);
-      if (pageReports.length < args.pages) {
-        // Slice-drops are only evidence of missed coverage when the dropped
-        // links are genuinely new — nav menus repeat seen URLs, which would
-        // cry wolf on every site.
-        const isAuto = args.crawl === "auto" || args.all;
-        const linkLimit = isAuto ? r.parsed.internalLinks.length : 10;
-        const droppedCandidate = isAuto ? [] : r.parsed.internalLinks.slice(10);
-        const unseenDropped = droppedCandidate.filter(
-          /** @param {string} link @returns {boolean} */ (link) => {
-            const lk = canon(link) || link;
-            return !!lk && !seen.has(lk);
-          },
-        );
-        if (unseenDropped.length > 0) capped = true;
-        // Inlink accounting scans every discovered link (orphan detection),
-        // while queueing stays capped at 10 per page for crawl breadth (unless auto/all).
-        // Credit lands before the seen-skip below so sitemap seeds linked
-        // from crawled pages still count as linked.
-        for (const link of r.parsed.internalLinks) {
-          const lk = canon(link) || link;
-          if (lk) inlinkCounts.set(lk, (inlinkCounts.get(lk) ?? 0) + 1);
-        }
-        for (const link of r.parsed.internalLinks.slice(0, linkLimit)) {
-          const lk = canon(link) || link;
-          if (!lk || seen.has(lk)) continue;
-          if (!allowedHosts.has(hostOf(link))) {
-            dbg(`skip outside allowed hosts ${link}`);
-            seen.add(lk);
-            continue;
-          }
-          const lPath = pathOf(link);
-          if (args.include && !matchesPathPattern(lPath, args.include)) {
-            dbg(`skip not matching --include: ${link}`);
-            seen.add(lk);
-            continue;
-          }
-          if (args.exclude && matchesPathPattern(lPath, args.exclude)) {
-            dbg(`skip matching --exclude: ${link}`);
-            seen.add(lk);
-            continue;
-          }
-          const nextDepth = currentDepth + 1;
-          if (args.maxDepth > 0 && nextDepth > args.maxDepth) {
-            dbg(`skip exceeding --max-depth ${args.maxDepth}: ${link}`);
-            continue;
-          }
-          if (!args.force && robotsText && isDisallowed(robotsText, UA_TOKEN, lPath)) {
-            dbg(`skip robots-disallowed ${link}`);
-            seen.add(lk);
-            continue;
-          }
-          if (pageReports.length + queue.length >= args.pages) {
-            capped = true;
-            break;
-          }
-          queue.push({ url: link, depth: nextDepth });
-          seen.add(lk);
-        }
-      }
-    }
-  }
-
-  if (args.pages > 1 && (process.stderr.isTTY || args.verbose) && !args.quiet) {
-    process.stderr.write(
-      "\r                                                                                \r",
-    );
-  }
-
-  if (pageReports.length === 0) {
-    console.error("Audit failed: no pages could be fetched.");
-    // Set exitCode instead of process.exit() so open fetch sockets can close
-    // gracefully (abrupt exit crashes on Windows/Node 24, UV_HANDLE_CLOSING).
-    process.exitCode = 2;
-    return;
-  }
-
-  if (args.psi && psiKey) {
-    let firstPsi = true;
-    for (const report of pageReports) {
-      if (interrupted) break;
-      if (!firstPsi && args.delay > 0) await sleep(args.delay);
-      firstPsi = false;
-      dbg(`fetching PSI for ${report.finalUrl} (${args.psiStrategy})...`);
-      const psiRes = await fetchPsi(report.finalUrl, {
-        key: psiKey,
-        strategy: args.psiStrategy,
-        timeoutMs: 25000,
-        userAgent: UA,
-        blockPrivateIps: Boolean(args.blockPrivateIps),
-      });
-      if (psiRes.data) {
-        report.page.psi = psiRes.data;
-      }
-      let extraFindings = psiFindings(psiRes);
-      if (args.skills || args.excludeSkills) {
-        extraFindings = applySkillsFilter(extraFindings, args.skills, args.excludeSkills);
-      }
-      if (extraFindings.length > 0) {
-        for (const ef of extraFindings) {
-          report.findings.push(ef);
-          report.counts[ef.severity] = (report.counts[ef.severity] ?? 0) + 1;
-        }
-        report.findings.sort((a, b) => (SEV_RANK[a.severity] ?? 5) - (SEV_RANK[b.severity] ?? 5));
-        const newScores = computeScores(report.findings, { score: report.scores.ai.score });
-        report.scores.search = newScores.search;
-      }
-    }
-  }
-
-  const outDir = resolve(args.out);
-  const withHtml = formats.includes("html");
-  // Possibly orphaned pages: crawled, but no crawled page links to them
-  // (the start page is exempt — the crawl begins there, not via a link).
-  const orphans = pageReports
-    .map((r, idx) => ({ r, idx }))
-    .filter(
-      /** @param {{ r: import("../lib/report.mjs").Report, idx: number }} o @returns {boolean} */ (o) =>
-        o.idx > 0 && (inlinkCounts.get(canonicalizeUrl(o.r.finalUrl) || o.r.finalUrl) ?? 0) === 0,
-    );
-  const dups = pageReports.length > 1 ? findDuplicateTitles(pageReports) : [];
-  const isSiteAudit = pageReports.length > 1 || args.all || args._[0] === "site";
-  const siteOpts =
-    isSiteAudit && withHtml ? { indexHref: "index.html", pageCount: pageReports.length } : undefined;
-  /** @type {string[]} */
-  const written = [];
-  pageReports.forEach((report, idx) => {
-    const basename = siteBasename(idx);
-    written.push(...writeOutputs(outDir, report, formats, basename, siteOpts));
-  });
-  if (formats.includes("json") && (args.all || args._[0] === "site")) {
-    const siteReportPath = join(outDir, "site-report.json");
-    writeFileSync(
-      siteReportPath,
-      JSON.stringify(
-        buildSiteReport(pageReports, { version: VERSION, origin: pageReports[0]?.finalUrl || url }),
-        null,
-        2,
-      ) + "\n",
-      "utf8",
-    );
-    written.push(siteReportPath);
-  }
-  // Index linking all pages. Format links are conditional: with
-  // `--format json` no .md files exist, so unconditional links would 404.
-  if (isSiteAudit) {
-    const lines = [`# one-step-seo index`, ``, `Audited ${pageReports.length} pages.`, ``];
-    if (withHtml) lines.push(`Browse the [site dashboard](./index.html).`, ``);
-    pageReports.forEach((r, idx) => {
-      const name = siteBasename(idx);
-      const links = [
-        ...(formats.includes("md") ? [`[md](./${name}.md)`] : []),
-        ...(formats.includes("json") ? [`[json](./${name}.json)`] : []),
-        ...(formats.includes("html") ? [`[html](./${name}.html)`] : []),
-        ...(formats.includes("sarif") ? [`[sarif](./${name}.sarif)`] : []),
-        ...(formats.includes("csv") ? [`[csv](./${name}.csv)`] : []),
-      ];
-      lines.push(
-        `- Page ${idx + 1}: ${r.finalUrl} — Search ${r.scores.search.score} (${r.scores.search.band}), AI ${r.scores.ai.score} (${r.scores.ai.band}) — ${links.join(" ")}`,
-      );
-    });
-    lines.push(``);
-    if (dups.length > 0) {
-      lines.push(`## Duplicate titles & descriptions`, ``);
-      for (const d of dups.slice(0, 10)) {
-        const refs = d.pages.map((i) => `page ${i + 1}`).join(", ");
-        lines.push(
-          `- Duplicate ${d.kind} on ${refs}: "${d.value.slice(0, 120)}" — give each page a unique ${d.kind}.`,
-        );
-      }
-      if (dups.length > 10) lines.push(`- …and ${dups.length - 10} more (see index.html).`);
-      lines.push(``);
-    }
-    if (orphans.length > 0) {
-      lines.push(`## Possibly orphaned pages`, ``);
-      for (const o of orphans.slice(0, 10)) {
-        lines.push(
-          `- ${o.r.finalUrl} — no crawled page links to it (sitemap-only counts too); add contextual internal links or confirm it is intentionally standalone.`,
-        );
-      }
-      if (orphans.length > 10) lines.push(`- …and ${orphans.length - 10} more (see index.html).`);
-      lines.push(``);
-    }
-    const indexPath = join(outDir, "index.md");
-    writeFileSync(indexPath, lines.join("\n") + "\n", "utf8");
-    written.push(indexPath);
-    if (withHtml) {
-      const dashboardPath = join(outDir, "index.html");
-      writeFileSync(dashboardPath, renderSiteIndex(pageReports), "utf8");
-      written.push(dashboardPath);
-    }
-  }
-
-  const primary = pageReports[0];
-  if (!primary) return;
-  const agg = summarizeAggregate(pageReports);
-  console.log(
-    `\nSearch SEO: ${c.scoreBadge(primary.scores.search.score, primary.scores.search.band)}  |  AI Visibility: ${c.scoreBadge(primary.scores.ai.score, primary.scores.ai.band)}`,
-  );
-  console.log(
-    `Pages audited: ${pageReports.length}${failed > 0 ? ` (${failed} failed or skipped — see warnings above)` : ""}`,
-  );
-  if (pageReports.length > 1) {
-    console.log(
-      `Aggregate: avg Search ${agg.avgSearch} / AI ${agg.avgAi} · min Search ${agg.minSearch} / AI ${agg.minAi}`,
-    );
-    console.log(
-      `Totals: P0=${agg.totals.P0} P1=${agg.totals.P1} P2=${agg.totals.P2} P3=${agg.totals.P3} pass=${agg.totals.pass}`,
-    );
-    const coverage = coverageLine(pageReports.length, args.pages, capped, MAX_PAGES);
-    if (coverage) console.log(coverage);
-    if (dups.length > 0) {
-      const dupTitles = dups.filter((d) => d.kind === "title").length;
-      const dupMetas = dups.length - dupTitles;
-      /** @type {string[]} */
-      const parts = [];
-      if (dupTitles > 0) parts.push(`${dupTitles} title${dupTitles === 1 ? "" : "s"}`);
-      if (dupMetas > 0) parts.push(`${dupMetas} description${dupMetas === 1 ? "" : "s"}`);
-      console.log(`Duplicates: shared ${parts.join(" + ")} across pages (see index.md).`);
-    }
-    if (orphans.length > 0) {
-      console.log(`Orphaned pages (no inlinks from crawled pages):`);
-      for (const o of orphans.slice(0, 5)) console.log(`  - ${o.r.finalUrl}`);
-      if (orphans.length > 5) console.log(`  …and ${orphans.length - 5} more (see index.md).`);
-    }
-  }
-  console.log(
-    `Counts: P0=${primary.counts.P0} P1=${primary.counts.P1} P2=${primary.counts.P2} P3=${primary.counts.P3} pass=${primary.counts.pass}`,
-  );
-  if (pageReports.length > 1) {
-    printTopFixesSite(pageReports, `one-step-seo audit ${url} --pages ${args.pages}`);
-  } else {
-    printTopFixes(primary, `one-step-seo audit ${url} --pages ${args.pages}`);
-  }
-  if (written.length > 12) {
-    const startHere =
-      pageReports.length > 1 && withHtml ? join(outDir, "index.html") : join(outDir, "index.md");
-    console.log(`Wrote ${written.length} files into ${outDir} — start at ${startHere}.`);
-  } else {
-    console.log(`Wrote:\n  ${written.join("\n  ")}`);
-  }
-
-  if (args.failOn) {
-    const breached = pageReports.some((r) => breachesFailOn(args.failOn, r.counts));
-    if (breached) {
-      console.error(`Fail-on threshold breached: found ${args.failOn} (or higher) findings.`);
-      process.exitCode = 2;
-      return;
-    }
-  }
 }
 
 /**
@@ -1028,7 +249,18 @@ async function cmdPage(url, args) {
   if (args.debug)
     console.error(`debug: page ${url} fetched in ${r.fetched.ms}ms (${r.fetched.html.length} chars)`);
   if (args.checkLinks) {
-    await checkPageLinks(r, [], args, { budget: MAX_LINK_CHECKS, checked: new Set() }, robotsText);
+    await checkPageLinks(
+      r,
+      new Set(),
+      {
+        timeout: args.timeout,
+        concurrency: args.concurrency,
+        blockPrivateIps: args.blockPrivateIps,
+        userAgent: UA,
+      },
+      { budget: MAX_LINK_CHECKS, checked: new Set() },
+      robotsText,
+    );
   }
   if (args.skills || args.excludeSkills) {
     r.findings = applySkillsFilter(r.findings, args.skills, args.excludeSkills);
@@ -1061,6 +293,21 @@ async function cmdPage(url, args) {
     }
   }
   const written = writeOutputs(resolve(args.out), report, args.formats);
+  if (args.formats.includes("pdf")) {
+    written.push(
+      ...writeSiteArtifacts(
+        resolve(args.out),
+        ["pdf"],
+        {
+          origin: report.site.origin || url,
+          checkedAt: report.checkedAt,
+          pageReports: [report],
+          analysis: null,
+        },
+        args,
+      ),
+    );
+  }
   console.log(
     `Search SEO: ${c.scoreBadge(report.scores.search.score, report.scores.search.band)}  |  AI Visibility: ${c.scoreBadge(report.scores.ai.score, report.scores.ai.band)}`,
   );
@@ -1098,7 +345,7 @@ async function cmdAi(url, args) {
     }
   }
   const r = local
-    ? analyzeLocalFile(url, args)
+    ? analyzeLocalTarget(url, args)
     : await analyzeOne(url, args.timeout, UA, null, args.profile, {
         blockPrivateIps: Boolean(args.blockPrivateIps),
       });
@@ -1222,7 +469,7 @@ async function cmdAi(url, args) {
 async function cmdSchema(url, args) {
   const local = isLocalPath(url);
   const r = local
-    ? analyzeLocalFile(url, args)
+    ? analyzeLocalTarget(url, args)
     : await analyzeOne(url, args.timeout, UA, null, args.profile, {
         blockPrivateIps: Boolean(args.blockPrivateIps),
       });
@@ -1234,7 +481,7 @@ async function cmdSchema(url, args) {
   if (!args.force && r.siteFiles) {
     try {
       const robotsText = String(r.siteFiles.robots?.text ?? "");
-      const p = pathOf(r.fetched.finalUrl);
+      const p = robotsPathOf(r.fetched.finalUrl);
       if (robotsText && isDisallowed(robotsText, UA_TOKEN, p)) {
         console.error(`! note: robots.txt disallows ${r.fetched.finalUrl} — results are diagnostic only.`);
       }
@@ -1436,6 +683,18 @@ async function cmdDoctor(args) {
   const isTty = Boolean(process.stdout.isTTY);
   const colorEnabled = Boolean(isTty && !process.env.NO_COLOR && process.env.TERM !== "dumb");
 
+  /** @type {{ path: string, ok: boolean, keys: string[], error: string }} */
+  const configStatus = { path: "", ok: true, keys: [], error: "" };
+  try {
+    const loaded = loadConfig({ explicitPath: CONFIG_PATH });
+    if (loaded) {
+      configStatus.path = loaded.path;
+      configStatus.keys = Object.keys(loaded.config).filter((k) => k !== "$schema");
+    }
+  } catch (err) {
+    configStatus.ok = false;
+    configStatus.error = err instanceof Error ? err.message : String(err);
+  }
   const info = {
     tool: "one-step-seo",
     version: VERSION,
@@ -1449,8 +708,17 @@ async function cmdDoctor(args) {
     },
     env: {
       PSI_API_KEY: psiKey ? "configured" : "not set (optional for --psi)",
+      ONE_STEP_SEO_WEBHOOK: process.env.ONE_STEP_SEO_WEBHOOK
+        ? "configured"
+        : "not set (optional for monitor alerts)",
     },
-    configCheck: "ok",
+    stateDir: resolveStateDir(args.stateDir),
+    config: configStatus.path
+      ? { file: configStatus.path, keys: configStatus.keys }
+      : configStatus.ok
+        ? null
+        : { error: configStatus.error },
+    configCheck: configStatus.ok ? "ok" : "invalid",
   };
   if (args.json) console.log(JSON.stringify(info, null, 2));
   else {
@@ -1461,163 +729,23 @@ async function cmdDoctor(args) {
       `terminal: isTTY=${isTty}, color=${colorEnabled}${process.env.NO_COLOR ? " (NO_COLOR set)" : ""}`,
     );
     console.log(`env PSI_API_KEY: ${info.env.PSI_API_KEY}`);
+    console.log(`env ONE_STEP_SEO_WEBHOOK: ${info.env.ONE_STEP_SEO_WEBHOOK}`);
+    console.log(`state dir: ${info.stateDir}`);
+    if (configStatus.path && !args.checkConfig) console.log(`config: ${configStatus.path}`);
     if (args.checkConfig) {
-      console.log(`configuration check: all defaults and environment valid (ok)`);
+      if (!configStatus.ok) {
+        console.log(`configuration check: INVALID — ${configStatus.error}`);
+      } else if (configStatus.path) {
+        console.log(
+          `configuration check: ${configStatus.path} is valid (${configStatus.keys.length} key(s): ${configStatus.keys.join(", ") || "none"}) (ok)`,
+        );
+      } else {
+        console.log(`configuration check: no ${CONFIG_FILE} found — built-in defaults in use (ok)`);
+      }
     }
   }
   if (!info.nodeOk || !info.fetch) process.exit(2);
-}
-
-const HTML_EXT = new Set([".html", ".htm"]);
-const SKIP_DIRS = new Set(["node_modules", ".git"]);
-
-/**
- * Recursively collect .html/.htm files under dir (deterministic order,
- * node_modules and .git skipped).
- * @param {string} dir
- * @returns {string[]}
- */
-function collectHtmlFiles(dir) {
-  /** @type {string[]} */
-  const out = [];
-  /** @param {string} d */
-  const walk = (d) => {
-    let entries;
-    try {
-      entries = readdirSync(d, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const e of entries) {
-      if (e.isDirectory()) {
-        if (SKIP_DIRS.has(e.name)) continue;
-        walk(join(d, e.name));
-      } else if (e.isFile() && HTML_EXT.has(extname(e.name).toLowerCase())) {
-        out.push(join(d, e.name));
-      }
-    }
-  };
-  walk(dir);
-  return out.sort();
-}
-
-/**
- * Filter finding checks based on --skills and --exclude-skills flags.
- * @param {any[]} findings
- * @param {string} skillsFilter
- * @param {string} excludeSkillsFilter
- * @returns {any[]}
- */
-function applySkillsFilter(findings, skillsFilter, excludeSkillsFilter) {
-  if (!skillsFilter && !excludeSkillsFilter) return findings;
-  /** @type {Set<string> | null} */
-  let allowedChecks = null;
-  if (skillsFilter) {
-    const included = skillsFilter
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean);
-    const active = filterSkills({ include: included });
-    allowedChecks = new Set(active.flatMap((s) => s.checks));
-  }
-  /** @type {Set<string> | null} */
-  let excludedChecks = null;
-  if (excludeSkillsFilter) {
-    const excluded = excludeSkillsFilter
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean);
-    const inactive = filterSkills({ include: excluded });
-    excludedChecks = new Set(inactive.flatMap((s) => s.checks));
-  }
-  return findings.filter((f) => {
-    if (allowedChecks && !matchesSkillChecks(f.id, allowedChecks)) return false;
-    if (excludedChecks && matchesSkillChecks(f.id, excludedChecks)) return false;
-    return true;
-  });
-}
-
-/**
- * Assemble local siteFiles from disk if robots.txt / sitemap.xml / llms.txt exist in dir.
- * @param {string} dir
- * @returns {any}
- */
-function getLocalSiteFiles(dir) {
-  let robots = {
-    found: true,
-    status: 200,
-    sitemaps: /** @type {string[]} */ ([]),
-    disallowCount: 0,
-    aiBlocked: false,
-    blockedBots: /** @type {string[]} */ ([]),
-    textSample: "# Local offline audit",
-    text: "User-agent: *\nAllow: /",
-  };
-  const robotsPath = join(dir, "robots.txt");
-  if (existsSync(robotsPath)) {
-    try {
-      const text = readFileSync(robotsPath, "utf8");
-      const parsed = parseRobots(text);
-      robots = {
-        found: true,
-        status: 200,
-        sitemaps: parsed.sitemaps,
-        disallowCount: parsed.disallows.length,
-        aiBlocked: parsed.aiBlocked,
-        blockedBots: parsed.blockedBots,
-        textSample: text.slice(0, 200),
-        text,
-      };
-    } catch {
-      // local robots.txt unreadable — keep synthetic fallback
-    }
-  }
-
-  let sitemap = {
-    found: true,
-    status: 200,
-    url: "",
-    urlCount: 1,
-    fromRobots: /** @type {string[]} */ ([]),
-    truncated: false,
-    text: "",
-  };
-  const sitemapPath = join(dir, "sitemap.xml");
-  if (existsSync(sitemapPath)) {
-    try {
-      const text = readFileSync(sitemapPath, "utf8");
-      const urls = extractSitemapUrls(text);
-      sitemap = {
-        found: true,
-        status: 200,
-        url: pathToFileURL(sitemapPath).toString(),
-        urlCount: urls.length,
-        fromRobots: /** @type {string[]} */ ([]),
-        truncated: false,
-        text,
-      };
-    } catch {
-      // local sitemap.xml unreadable — keep synthetic fallback
-    }
-  }
-
-  let llms = { found: false, status: 404, bytes: 0, text: "" };
-  const llmsPath = join(dir, "llms.txt");
-  if (existsSync(llmsPath)) {
-    try {
-      const text = readFileSync(llmsPath, "utf8");
-      llms = {
-        found: true,
-        status: 200,
-        bytes: Buffer.byteLength(text, "utf8"),
-        text,
-      };
-    } catch {
-      // local llms.txt unreadable — keep synthetic fallback
-    }
-  }
-
-  return { origin: "file://local", robots, sitemap, llms };
+  if (args.checkConfig && !configStatus.ok) process.exit(1);
 }
 
 /**
@@ -1677,535 +805,6 @@ function cmdSkills(skillId, args) {
   console.log(
     `\nTotal: ${allSkills.length} skills across ${Object.keys(CATEGORIES).length} categories. Run "one-step-seo skills <skill-id>" for details.\n`,
   );
-}
-
-/**
- * Analyze a local HTML file and return the same result shape as analyzeOne().
- * @param {string} rawTarget
- * @param {import("../lib/args.mjs").ParsedArgs} args
- */
-function analyzeLocalFile(rawTarget, args) {
-  let target = rawTarget;
-  if (/^file:\/\//i.test(rawTarget)) {
-    try {
-      target = fileURLToPath(rawTarget);
-    } catch {
-      console.error(`Invalid file URL: ${rawTarget}`);
-      process.exit(1);
-    }
-  }
-  const filePath = resolve(target);
-  if (!existsSync(filePath) || !statSync(filePath).isFile()) {
-    console.error(`Local file not found: ${rawTarget}`);
-    process.exit(1);
-  }
-  const html = readFileSync(filePath, "utf8");
-  const stats = statSync(filePath);
-  const fileUrl = pathToFileURL(filePath).toString();
-  const dir = dirname(filePath);
-  const siteFiles = getLocalSiteFiles(dir);
-  const parsed = parseHtml(html, fileUrl);
-  const schemaRaw = extractJsonLd(parsed.jsonLdBlocks);
-  const validated = validateSchema(schemaRaw.items);
-  const schemaInfo = {
-    items: schemaRaw.items,
-    types: validated.types,
-    issues: validated.issues,
-    errors: schemaRaw.errors,
-  };
-  const fetched = {
-    ok: true,
-    status: 200,
-    url: fileUrl,
-    finalUrl: fileUrl,
-    statusChain: [{ url: fileUrl, status: 200 }],
-    contentType: "text/html",
-    headers: {
-      "content-type": "text/html; charset=utf-8",
-      "content-length": String(stats.size),
-    },
-    html,
-    bytes: stats.size,
-    truncated: false,
-    ms: 1,
-    error: "",
-  };
-  const findings = runChecks(parsed, siteFiles, fetched, schemaInfo, {
-    profile: args.profile,
-    offline: true,
-  });
-  const geo = geoDetails(parsed, siteFiles);
-  const scores = computeScores(findings, geo);
-  return {
-    fetched,
-    parsed,
-    siteFiles,
-    findings,
-    scores,
-    geo,
-    schemaInfo,
-    truncated: false,
-    skipped: false,
-  };
-}
-
-/**
- * Audit a single local HTML file directly from disk.
- * @param {string} rawTarget
- * @param {import("../lib/args.mjs").ParsedArgs} args
- */
-function auditLocalFile(rawTarget, args) {
-  const r = analyzeLocalFile(rawTarget, args);
-  let findings = r.findings;
-  if (args.skills || args.excludeSkills) {
-    findings = applySkillsFilter(findings, args.skills, args.excludeSkills);
-  }
-  const scores = computeScores(findings, r.geo);
-  const report = buildReport({
-    url: r.fetched.finalUrl,
-    finalUrl: r.fetched.finalUrl,
-    scores,
-    findings,
-    parsed: r.parsed,
-    siteFiles: r.siteFiles,
-    meta: { version: VERSION },
-  });
-
-  const written = writeOutputs(resolve(args.out), report, args.formats);
-  console.log(
-    `Search SEO: ${c.scoreBadge(report.scores.search.score, report.scores.search.band)}  |  AI Visibility: ${c.scoreBadge(report.scores.ai.score, report.scores.ai.band)}`,
-  );
-  printTopFixes(report, `one-step-seo page ${rawTarget}`);
-  console.log(`Wrote:\n  ${written.join("\n  ")}`);
-  if (args.failOn && breachesFailOn(args.failOn, report.counts)) {
-    console.error(`Fail-on threshold breached: found ${args.failOn} (or higher) findings.`);
-    process.exitCode = 2;
-  }
-}
-
-/**
- * Audit a local directory of HTML files offline.
- * @param {string} rawTarget
- * @param {import("../lib/args.mjs").ParsedArgs} args
- */
-function auditLocalDirectory(rawTarget, args) {
-  let target = rawTarget;
-  if (/^file:\/\//i.test(rawTarget)) {
-    try {
-      target = fileURLToPath(rawTarget);
-    } catch {
-      console.error(`Invalid file URL: ${rawTarget}`);
-      process.exit(1);
-    }
-  }
-  const dirPath = resolve(target);
-  if (!existsSync(dirPath)) {
-    console.error(`Path not found: ${rawTarget}`);
-    process.exit(1);
-  }
-  /** @type {string[]} */
-  let htmlFiles = [];
-  if (statSync(dirPath).isDirectory()) {
-    htmlFiles = collectHtmlFiles(dirPath);
-  } else if (HTML_EXT.has(extname(dirPath).toLowerCase())) {
-    htmlFiles = [dirPath];
-  }
-
-  if (htmlFiles.length === 0) {
-    console.error(`No .html or .htm files found in: ${rawTarget}`);
-    process.exit(1);
-  }
-
-  const limit = Math.min(htmlFiles.length, args.pages);
-  const targetFiles = htmlFiles.slice(0, limit);
-  const outDir = resolve(args.out);
-  const withHtml = args.formats.includes("html");
-  /** @type {import("../lib/report.mjs").Report[]} */
-  const pageReports = [];
-  /** @type {string[]} */
-  const written = [];
-
-  for (let i = 0; i < targetFiles.length; i++) {
-    if (interrupted) break;
-    const file = targetFiles[i];
-    if (!file) continue;
-    const html = readFileSync(file, "utf8");
-    const stats = statSync(file);
-    const fileUrl = pathToFileURL(file).toString();
-    const siteFiles = getLocalSiteFiles(dirname(file));
-    const parsed = parseHtml(html, fileUrl);
-    const schemaRaw = extractJsonLd(parsed.jsonLdBlocks);
-    const validated = validateSchema(schemaRaw.items);
-    const schemaInfo = {
-      items: schemaRaw.items,
-      types: validated.types,
-      issues: validated.issues,
-      errors: schemaRaw.errors,
-    };
-    const fetched = {
-      ok: true,
-      status: 200,
-      url: fileUrl,
-      finalUrl: fileUrl,
-      statusChain: [{ url: fileUrl, status: 200 }],
-      contentType: "text/html",
-      headers: {
-        "content-type": "text/html; charset=utf-8",
-        "content-length": String(stats.size),
-      },
-      html,
-      bytes: stats.size,
-      truncated: false,
-      ms: 1,
-      error: "",
-    };
-    let findings = runChecks(parsed, siteFiles, fetched, schemaInfo, {
-      profile: args.profile,
-      offline: true,
-    });
-    if (args.skills || args.excludeSkills) {
-      findings = applySkillsFilter(findings, args.skills, args.excludeSkills);
-    }
-    const geo = geoDetails(parsed, siteFiles);
-    const scores = computeScores(findings, geo);
-    const report = buildReport({
-      url: fileUrl,
-      finalUrl: fileUrl,
-      scores,
-      findings,
-      parsed,
-      siteFiles,
-      meta: { version: VERSION },
-    });
-    pageReports.push(report);
-    const base = i === 0 ? "report" : `report-${i + 1}`;
-    const w = writeOutputs(outDir, report, args.formats, base, {
-      indexHref: withHtml && targetFiles.length > 1 ? "index.html" : undefined,
-      pageCount: targetFiles.length,
-    });
-    written.push(...w);
-    if (!args.quiet) {
-      console.log(`[${i + 1}/${limit}] ${relative(process.cwd(), file)}`);
-    }
-  }
-
-  const primary = pageReports[0];
-  if (!primary) return;
-
-  if (pageReports.length > 1) {
-    const agg = summarizeAggregate(pageReports);
-    const searchBand = scoreBand(agg.avgSearch);
-    const aiBand = scoreBand(agg.avgAi);
-    console.log(
-      `\nAudited ${pageReports.length} local page(s):\n` +
-        `  Search SEO: ${c.scoreBadge(agg.avgSearch, searchBand)}  |  AI Visibility: ${c.scoreBadge(agg.avgAi, aiBand)}  (avg across pages)\n` +
-        `  Lowest page: Search ${agg.minSearch} · AI ${agg.minAi}\n` +
-        `  Aggregate findings: P0=${agg.totals.P0} P1=${agg.totals.P1} P2=${agg.totals.P2} P3=${agg.totals.P3} pass=${agg.totals.pass}`,
-    );
-    if (args.formats.includes("md")) {
-      const idxPath = join(outDir, "index.md");
-      const dups = findDuplicateTitles(pageReports);
-      const lines = [
-        `# Audit index — ${escMd(rawTarget)}`,
-        "",
-        `Generated: ${new Date().toISOString()}`,
-        `Pages audited: ${pageReports.length}`,
-        `Average Search score: **${agg.avgSearch} (${searchBand})** · Average AI score: **${agg.avgAi} (${aiBand})**`,
-        "",
-        "## Pages",
-        "",
-      ];
-      for (let i = 0; i < pageReports.length; i++) {
-        const pr = pageReports[i];
-        if (!pr) continue;
-        const b = i === 0 ? "report" : `report-${i + 1}`;
-        const links = [
-          ...(args.formats.includes("md") ? [`[md](./${b}.md)`] : []),
-          ...(args.formats.includes("json") ? [`[json](./${b}.json)`] : []),
-          ...(args.formats.includes("html") ? [`[html](./${b}.html)`] : []),
-          ...(args.formats.includes("sarif") ? [`[sarif](./${b}.sarif)`] : []),
-          ...(args.formats.includes("csv") ? [`[csv](./${b}.csv)`] : []),
-        ];
-        lines.push(
-          `- ${escMd(pr.page.title || pr.url)} — Search ${pr.scores.search.score}, AI ${pr.scores.ai.score} — ${links.join(" ")}`,
-        );
-      }
-      lines.push("");
-      if (dups.length > 0) {
-        lines.push(`## Duplicate titles & descriptions`, ``);
-        for (const d of dups.slice(0, 10)) {
-          const refs = d.pages.map((idx) => `page ${idx + 1}`).join(", ");
-          lines.push(
-            `- Duplicate ${d.kind} on ${refs}: "${escMd(d.value.slice(0, 120))}" — give each page a unique ${d.kind}.`,
-          );
-        }
-        if (dups.length > 10) lines.push(`- …and ${dups.length - 10} more.`);
-        lines.push(``);
-      }
-      writeFileSync(idxPath, lines.join("\n"), "utf8");
-      written.push(idxPath);
-    }
-    if (args.formats.includes("json") && (args.all || args._[0] === "site")) {
-      const siteReportPath = join(outDir, "site-report.json");
-      writeFileSync(
-        siteReportPath,
-        JSON.stringify(buildSiteReport(pageReports, { version: VERSION, origin: rawTarget }), null, 2) + "\n",
-        "utf8",
-      );
-      written.push(siteReportPath);
-    }
-    if (withHtml) {
-      const idxHtml = join(outDir, "index.html");
-      writeFileSync(idxHtml, renderSiteIndex(pageReports), "utf8");
-      written.push(idxHtml);
-    }
-    printTopFixesSite(pageReports, `one-step-seo audit ${rawTarget} --pages ${args.pages}`);
-  } else {
-    console.log(
-      `\nSearch SEO: ${c.scoreBadge(primary.scores.search.score, primary.scores.search.band)}  |  AI Visibility: ${c.scoreBadge(primary.scores.ai.score, primary.scores.ai.band)}`,
-    );
-    printTopFixes(primary, `one-step-seo audit ${rawTarget} --pages ${args.pages}`);
-  }
-
-  if (written.length > 12) {
-    const startHere =
-      pageReports.length > 1 && withHtml ? join(outDir, "index.html") : join(outDir, "index.md");
-    console.log(`Wrote ${written.length} files into ${outDir} — start at ${startHere}.`);
-  } else {
-    console.log(`Wrote:\n  ${written.join("\n  ")}`);
-  }
-
-  if (args.failOn) {
-    const breached = pageReports.some((r) => breachesFailOn(args.failOn, r.counts));
-    if (breached) {
-      console.error(`Fail-on threshold breached: found ${args.failOn} (or higher) findings.`);
-      process.exitCode = 2;
-    }
-  }
-}
-
-/**
- * Safe auto-fixes for local HTML files. Dry-run unless --apply.
- * @param {string} rawTarget path, directory or file:// URL
- * @param {import("../lib/args.mjs").ParsedArgs} args
- */
-function cmdFix(rawTarget, args) {
-  if (!rawTarget) {
-    console.error("Provide a path: one-step-seo fix ./dist/index.html");
-    process.exit(1);
-  }
-  let target = rawTarget;
-  if (/^file:\/\//i.test(rawTarget)) {
-    try {
-      target = fileURLToPath(rawTarget);
-    } catch {
-      console.error(`Invalid file URL: ${rawTarget}`);
-      process.exit(1);
-    }
-  }
-  const abs = resolve(target);
-
-  let stat;
-  try {
-    stat = statSync(abs);
-  } catch {
-    console.error(`Path not found: ${target}`);
-    process.exit(1);
-  }
-
-  /** @type {string[]} */
-  let files = [];
-  if (stat.isDirectory()) {
-    files = collectHtmlFiles(abs);
-    if (files.length === 0) {
-      console.error(`No .html/.htm files found under ${target}`);
-      process.exit(1);
-    }
-  } else if (HTML_EXT.has(extname(abs).toLowerCase())) {
-    files = [abs];
-  } else {
-    console.error(`fix only accepts .html/.htm files (got "${extname(abs) || "no extension"}").`);
-    process.exit(1);
-  }
-
-  /** @type {string[] | null} */
-  let only = null;
-  if (args.only.trim()) {
-    only = [
-      ...new Set(
-        args.only
-          .split(",")
-          .map((s) => s.trim().toLowerCase())
-          .filter(Boolean),
-      ),
-    ];
-    const bad = only.filter((n) => !FIXER_NAMES.includes(n));
-    if (bad.length > 0) {
-      console.error(`Unknown fixer(s): ${bad.join(", ")}. Valid: ${FIXER_NAMES.join(", ")}`);
-      process.exit(1);
-    }
-  }
-
-  let url = "";
-  if (args.url.trim()) {
-    url = normalizeUrl(args.url);
-    if (!url) {
-      console.error(`--url must be an absolute http(s) URL (got "${args.url.slice(0, 60)}").`);
-      process.exit(1);
-    }
-  }
-
-  const ctx = {
-    url,
-    title: args.title,
-    description: args.description,
-    lang: args.lang,
-    ogImage: args.ogImage,
-    only,
-  };
-
-  /** @param {string} f */
-  const rel = (f) => {
-    const r = relative(process.cwd(), f);
-    return r && !r.startsWith("..") ? r : f;
-  };
-
-  // seo-fix protocol: warn (don't refuse) when targets have uncommitted work.
-  if (args.apply) {
-    try {
-      const porcelain = execFileSync("git", ["status", "--porcelain", "--", ...files.map(rel)], {
-        cwd: process.cwd(),
-        stdio: ["ignore", "pipe", "ignore"],
-        timeout: 5000,
-      }).toString();
-      if (porcelain.trim()) {
-        console.error("! target file(s) have uncommitted changes — .bak backups will be written alongside");
-      }
-    } catch {
-      // git unavailable / not a repo — non-fatal
-    }
-  }
-
-  const jsonFiles = [];
-  let plannedTotal = 0;
-  let appliedFixes = 0;
-  let appliedFiles = 0;
-  let errored = false;
-
-  for (const file of files) {
-    const label = rel(file);
-    let html;
-    try {
-      html = readFileSync(file, "utf8");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`! ${label}: ${msg}`);
-      errored = true;
-      jsonFiles.push({
-        file: label,
-        planned: [],
-        skipped: [],
-        verified: [],
-        changed: false,
-        applied: false,
-        error: msg,
-      });
-      continue;
-    }
-
-    const plan = planFixes(html, ctx);
-    if (plan.error) {
-      console.error(`! ${label}: ${plan.error}`);
-      errored = true;
-      jsonFiles.push({
-        file: label,
-        planned: [],
-        skipped: plan.skipped,
-        verified: [],
-        changed: false,
-        applied: false,
-        error: plan.error,
-      });
-      continue;
-    }
-    plannedTotal += plan.planned.length;
-
-    if (!args.json) {
-      if (plan.planned.length === 0 && plan.skipped.length === 0) {
-        console.log(`${label}: nothing to fix`);
-      } else {
-        console.log(label);
-        for (const p of plan.planned) {
-          console.log(`  + ${p.name.padEnd(12)} ${p.findingId.padEnd(18)} ${p.summary}`);
-        }
-        for (const s of plan.skipped) {
-          console.log(`  ! ${s.name.padEnd(12)} skipped: ${s.reason}`);
-        }
-      }
-    }
-
-    const entry = {
-      file: label,
-      planned: plan.planned.map((p) => ({
-        name: p.name,
-        findingId: p.findingId,
-        summary: p.summary,
-        partial: !!p.partial,
-      })),
-      skipped: plan.skipped,
-      verified: plan.verified,
-      changed: plan.changed,
-      applied: false,
-      error: /** @type {string | null} */ (null),
-    };
-    jsonFiles.push(entry);
-
-    if (!plan.changed) continue;
-    if (!args.json) console.log(unifiedDiff(html, plan.newHtml, label).replace(/\n$/, ""));
-
-    if (!args.apply) continue;
-    try {
-      if (!args.noBackup) copyFileSync(file, `${file}.bak`);
-      writeFileSync(file, plan.newHtml, "utf8");
-      entry.applied = true;
-      appliedFixes += plan.planned.length;
-      appliedFiles++;
-      if (!args.json) {
-        const marks = plan.verified.map((v) => `${v.name} ${v.cleared ? "check" : "partial"}`).join(", ");
-        console.log(`  verified: ${marks}`);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`! ${label}: write failed: ${msg}`);
-      errored = true;
-      entry.error = msg;
-    }
-  }
-
-  if (args.json) {
-    console.log(
-      JSON.stringify(
-        { tool: "one-step-seo", version: VERSION, applied: args.apply, files: jsonFiles },
-        null,
-        2,
-      ),
-    );
-  } else if (args.apply) {
-    if (appliedFixes > 0) {
-      const backupNote = args.noBackup ? "" : " (backups: *.bak)";
-      console.log(`\nApplied ${appliedFixes} fix(es) to ${appliedFiles} file(s)${backupNote}.`);
-    } else if (plannedTotal > 0) {
-      console.log(`\n${plannedTotal} fix(es) planned but no files were written.`);
-    } else {
-      console.log(`\nNothing to fix.`);
-    }
-  } else if (plannedTotal > 0) {
-    console.log(
-      `\n${plannedTotal} fix(es) planned — dry run, no files written. Re-run with --apply to write.`,
-    );
-  }
-
-  if (errored) process.exitCode = 2;
 }
 
 /**
@@ -2386,10 +985,18 @@ async function cmdDiff(files, args) {
 // without changing the command line.
 let verbose = process.env.VERBOSE === "1";
 
+/** Explicit --config path for this invocation ("" = default lookup). */
+let CONFIG_PATH = "";
+
 async function main() {
   let args;
   try {
-    args = parseArgs(process.argv.slice(2));
+    const cli = extractConfigFlag(process.argv.slice(2));
+    CONFIG_PATH = cli.configPath;
+    // doctor reports config problems itself instead of dying on them.
+    const isDoctor = cli.argv.find((a) => !a.startsWith("-")) === "doctor";
+    const loaded = cli.noConfig || isDoctor ? null : loadConfig({ explicitPath: cli.configPath });
+    args = parseArgs([...(loaded?.argv ?? []), ...cli.argv]);
   } catch (err) {
     if (err instanceof CliError) {
       console.error(`Error: ${err.message}`);
@@ -2411,6 +1018,17 @@ async function main() {
   if (cmd === "fix") return cmdFix(rawUrl ?? "", args);
   // `diff` compares local report.json files — also routes before URLs.
   if (cmd === "diff") return cmdDiff(args._.slice(1), args);
+  // verify and report take an optional URL / path / audit folder.
+  if (cmd === "verify") return cmdVerify(rawUrl ?? "", args);
+  if (cmd === "report") return cmdReport(rawUrl ?? "", args);
+  if (cmd === "monitor") {
+    const monitorUrl = normalizeUrl(rawUrl ?? "");
+    if (!monitorUrl || isLocalPath(rawUrl ?? "")) {
+      console.error("Provide a site URL to monitor, e.g. one-step-seo monitor https://example.com");
+      process.exit(1);
+    }
+    return cmdMonitor(monitorUrl, args);
+  }
 
   // Dedicated full-site audit command:
   if (cmd === "site") {
@@ -2418,13 +1036,12 @@ async function main() {
       console.error("Provide a valid URL or local directory path: one-step-seo site https://example.com");
       process.exit(1);
     }
-    const argv = process.argv.slice(2);
-    const explicitPages = argv.some((a) => a === "--pages" || a.startsWith("--pages="));
+    const explicitPages = args.explicit.includes("--pages") || args.explicit.includes("--max-pages");
     if (!explicitPages) {
       args.pages = MAX_PAGES;
       args.all = true;
     }
-    const explicitCrawl = argv.some((a) => a === "--crawl" || a.startsWith("--crawl="));
+    const explicitCrawl = args.explicit.includes("--crawl");
     if (!explicitCrawl) {
       args.crawl = "auto";
     }
@@ -2445,8 +1062,7 @@ async function main() {
   if (args._.length === 1) {
     const target = cmd.trim();
     if (isLocalPath(target)) {
-      const argv = process.argv.slice(2);
-      const explicitPages = argv.some((a) => a === "--pages" || a.startsWith("--pages="));
+      const explicitPages = args.explicit.includes("--pages") || args.explicit.includes("--max-pages");
       if (!explicitPages) {
         args.pages = MAX_PAGES;
         args.all = true;
@@ -2462,13 +1078,12 @@ async function main() {
     if (isHttp || isDomain || isLocalhost) {
       const directUrl = normalizeUrl(target);
       if (directUrl) {
-        const argv = process.argv.slice(2);
-        const explicitPages = argv.some((a) => a === "--pages" || a.startsWith("--pages="));
+        const explicitPages = args.explicit.includes("--pages") || args.explicit.includes("--max-pages");
         if (!explicitPages) {
           args.pages = MAX_PAGES;
           args.all = true;
         }
-        const explicitCrawl = argv.some((a) => a === "--crawl" || a.startsWith("--crawl="));
+        const explicitCrawl = args.explicit.includes("--crawl");
         if (!explicitCrawl) {
           args.crawl = "auto";
         }
@@ -2487,8 +1102,7 @@ async function main() {
     if (cmd === "schema") return cmdSchema(rawUrl, args);
     if (cmd === "audit" || cmd === "quick") {
       if (cmd === "quick") {
-        const argv = process.argv.slice(2);
-        const explicitPages = argv.some((a) => a === "--pages" || a.startsWith("--pages="));
+        const explicitPages = args.explicit.includes("--pages") || args.explicit.includes("--max-pages");
         if (!explicitPages) args.pages = 5;
       }
       return auditLocalDirectory(rawUrl, args);
@@ -2496,8 +1110,7 @@ async function main() {
   }
 
   if (cmd === "quick") {
-    const argv = process.argv.slice(2);
-    const explicitPages = argv.some((a) => a === "--pages" || a.startsWith("--pages="));
+    const explicitPages = args.explicit.includes("--pages") || args.explicit.includes("--max-pages");
     if (!explicitPages) args.pages = 5;
     const quickUrl = normalizeUrl(rawUrl ?? "");
     if (!quickUrl) {
@@ -2526,12 +1139,7 @@ async function main() {
   usage(1);
 }
 
-let interrupted = false;
-process.on("SIGINT", () => {
-  if (interrupted) process.exit(130);
-  interrupted = true;
-  console.error("\nInterrupted — finishing current page, then exiting…");
-});
+installInterruptHandler();
 
 main().catch((err) => {
   if (err instanceof CliError) {

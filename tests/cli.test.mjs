@@ -11,14 +11,20 @@ import { createColorHelper } from "../lib/colors.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = join(ROOT, "bin/cli.mjs");
 
+// Fix sessions / monitor snapshots go to a throwaway state dir, never into
+// the repository's own ./.one-step-seo.
+const TEST_STATE_DIR = mkdtempSync(join(tmpdir(), "oss-cli-state-"));
+const TEST_ENV = { ...process.env, ONE_STEP_SEO_STATE_DIR: TEST_STATE_DIR };
+
 /**
  * @param {string[]} args
  * @param {{ timeout?: number, env?: NodeJS.ProcessEnv }} [opts]
  * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
  */
-function runCli(args, { timeout = 20000, env = process.env } = {}) {
+function runCli(args, { timeout = 20000, env = TEST_ENV } = {}) {
   return new Promise((resolve) => {
-    execFile(process.execPath, [CLI, ...args], { timeout, env }, (error, stdout, stderr) => {
+    const isolated = { ONE_STEP_SEO_STATE_DIR: TEST_STATE_DIR, ...env };
+    execFile(process.execPath, [CLI, ...args], { timeout, env: isolated }, (error, stdout, stderr) => {
       resolve({
         code: Number(error?.code ?? 0),
         stdout: String(stdout ?? ""),
@@ -756,7 +762,11 @@ test("cli: ai --json outputs structured AI search visibility signals", async () 
 test("cli: doctor --check-config prints configuration diagnostics", async () => {
   const r = await runCli(["doctor", "--check-config"]);
   assert.equal(r.code, 0, r.stderr);
-  assert.match(r.stdout, /configuration check: all defaults and environment valid \(ok\)/);
+  // The check is real now: it reports the config file it validated (none here).
+  assert.match(
+    r.stdout,
+    /configuration check: no one-step-seo\.config\.json found — built-in defaults in use \(ok\)/,
+  );
   assert.match(r.stdout, /node v/);
   assert.match(r.stdout, /fetch: ok/);
 });

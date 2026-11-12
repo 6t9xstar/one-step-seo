@@ -76,6 +76,30 @@ one-step-seo llms https://example.com --json
 one-step-seo fix ./dist/index.html
 one-step-seo fix ./dist/index.html --apply --url https://example.com/ --lang en
 
+# Fix plan for a live site (proposed changes only — nothing is modified)
+one-step-seo fix https://example.com --all --safe-only
+
+# Fix a whole build directory: --url is the SITE BASE URL (each page gets its own URL)
+one-step-seo fix ./dist --url https://example.com --lang en --apply
+one-step-seo fix --history
+one-step-seo fix --rollback                 # or --session <id>
+
+# Deep / focused audits (site-wide analysis, PDF + CSV)
+one-step-seo audit https://example.com --deep --format html,md,json,csv,pdf
+one-step-seo audit https://example.com --technical
+one-step-seo audit https://example.com --on-page --competitors https://rival.example
+
+# Confirm fixes after deploying, against an earlier audit folder
+one-step-seo verify https://example.com --baseline ./seo-report
+
+# Client / developer report (pdf, md, csv) from an audit folder, a directory or a URL
+one-step-seo report ./seo-report --client "Acme Ltd" --audience client
+
+# Change monitoring with alerts (once per run, or keep running)
+one-step-seo monitor https://example.com --webhook "$SLACK_WEBHOOK_URL"
+one-step-seo monitor https://example.com --interval 1440
+one-step-seo monitor https://example.com --history
+
 # Regression diff between two reports (base vs. head)
 one-step-seo diff base-report.json seo-report/report.json --fail-on P1
 
@@ -151,6 +175,15 @@ one-step-seo llms https://example.com
 one-step-seo llms https://example.com --json   # { tool, version, url, llmsFound, llmsBytes, starter, robotsSnippet }
 ```
 
+## Platform commands (audit → fix → verify → report → monitor)
+
+`--deep`, `--technical`, `--on-page`, `--competitors`, `fix <url>`, fix
+history/rollback, `verify`, `report` and `monitor` are documented in
+[PLATFORM.md](./PLATFORM.md). That page also covers the
+`one-step-seo.config.json` project file, the `.one-step-seo/` state directory
+and the integration status. Scheduling and backups are in
+[OPERATIONS.md](./OPERATIONS.md).
+
 ## The `fix` command
 
 `fix` applies **additive-only** SEO fixes to local `.html`/`.htm` files (a file,
@@ -160,8 +193,10 @@ It never removes content, never rewrites copy, and never invents facts:
 - **Dry-run by default** — prints each planned fix with its finding ID plus a
   unified diff, writes nothing. `--apply` writes, creating `<file>.bak` backups
   (disable with `--no-backup`).
-- **Verified in memory** — after planning, the document is re-parsed and each
-  fix confirmed to clear its finding before you are asked to approve it.
+- **Verified in memory and on disk** — after planning, the document is re-parsed
+  and each fix confirmed to clear its finding. After `--apply`, every file is
+  read back from disk and verified again. The change is recorded as a fix
+  session, which you can list with `fix --history` and undo with `fix --rollback`.
 - **Never guesses** — language, URLs, titles and images need explicit flags
   when they cannot be derived from content already on the page.
 
@@ -328,3 +363,6 @@ created recursively. Do not point `--out` at a source directory — existing
 - `0` ok (including `--fail-on` when the threshold is not breached, and `fix` dry-runs)
 - `1` usage error (bad flags, bad URL/path, unknown command or fixer)
 - `2` runtime/fetch failure, `--fail-on` breach, or a `fix` file error (read/write/refusal)
+- `2` `verify`: a regression at or above `--fail-on` (default P1), or a page that can no longer be fetched
+- `2` `monitor`: a critical change (`--fail-on P1`: also warnings; `P2`: any change)
+- `1` `doctor --check-config` with an invalid `one-step-seo.config.json`
