@@ -293,6 +293,7 @@ PSI_API_KEY=your_key one-step-seo page https://example.com --psi --psi-strategy 
 - **Core Web Vitals evaluated**:
   - Lab: Largest Contentful Paint (LCP), Cumulative Layout Shift (CLS), Total Blocking Time (TBT), First Contentful Paint (FCP), Speed Index, Time to First Byte (TTFB).
   - Field: Real-user 75th-percentile metrics from Chrome UX Report (CrUX).
+- **Lighthouse categories**: Performance, Accessibility, Best Practices and SEO are requested; every non-performance category Lighthouse returns (including newer ones such as Agentic Browsing, when Google includes it) is reported as `P06-lighthouse-<category>` (< 50 = P2, 50-89 = P3, >= 90 = pass). These are lab scores for one page load, not ranking scores.
 - **Graceful degradation**: If rate-limited (HTTP 429) or offline, audits log `P05-psi-error` (P3 hint) and proceed without failing the audit.
 
 ## Outputs

@@ -4,7 +4,8 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { crawlSite, pageFacts } from "../lib/crawl.mjs";
 import { canonicalizeUrl } from "../lib/args.mjs";
-import { clearSiteFilesCache, clearSitemapUrlsCache } from "../lib/robots.mjs";
+import { clearSiteFilesCache, clearSitemapUrlsCache, isHtmlDocument } from "../lib/robots.mjs";
+import { parseHtml } from "../lib/html.mjs";
 import {
   analyzeSite,
   clickDepths,
@@ -196,4 +197,47 @@ test("robots.txt is honored for sitemap seeds and for query-string rules", async
     clearSiteFilesCache();
     clearSitemapUrlsCache();
   }
+});
+
+test("client-rendered app shell: T18 fires; HTML served for /sitemap.xml and /llms.txt is not a sitemap or llms.txt", async () => {
+  const { createServer } = await import("node:http");
+  const shell = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>App Shell Site For Rendering Test</title><script type="module" src="/assets/index.js"></script></head><body><div id="root"></div></body></html>`;
+  // SPA hosting: every path answers 200 with the shell, except robots.txt.
+  const server = createServer((req, res) => {
+    if (req.url === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("User-agent: *\nAllow: /\n");
+      return;
+    }
+    res.writeHead(200, { "content-type": "text/html" });
+    res.end(shell);
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", () => r(null)));
+  const base = `http://127.0.0.1:${/** @type {any} */ (server.address()).port}`;
+  try {
+    clearSiteFilesCache();
+    clearSitemapUrlsCache();
+    const c = await crawlSite(`${base}/`, { pages: 5, crawl: "auto", delay: 0 });
+    const f = c.pageReports[0]?.findings ?? [];
+    const by = (/** @type {string} */ id) => f.find((x) => x.id === id);
+    assert.equal(by("T18-js-rendered")?.severity, "P1");
+    assert.match(by("T06-sitemap")?.evidence ?? "", /HTML page, not XML/);
+    assert.notEqual(by("G01-llms")?.severity, "pass", "an HTML shell is not an llms.txt");
+    assert.match(by("G01-llms")?.evidence ?? "", /returns an HTML page/);
+    assert.ok(!by("G05-llms-quality"), "no llms.txt quality check on a page that is not llms.txt");
+  } finally {
+    server.closeAllConnections?.();
+    await new Promise((r) => server.close(() => r(null)));
+    clearSiteFilesCache();
+    clearSitemapUrlsCache();
+  }
+});
+
+test("server-rendered pages never trigger T18", () => {
+  const html = `<!doctype html><html><head><title>t</title><script src="/a.js"></script></head><body><div id="root"><h1>Real heading</h1><p>${"word ".repeat(80)}</p></div></body></html>`;
+  const p = parseHtml(html, "https://a.example/");
+  assert.equal(p.appShell, false);
+  assert.equal(isHtmlDocument('<?xml version="1.0"?><urlset></urlset>'), false);
+  assert.equal(isHtmlDocument("# Title\n\n> llms summary"), false);
+  assert.equal(isHtmlDocument("<!-- c -->\n<!DOCTYPE html><html>"), true);
 });
