@@ -79,9 +79,9 @@ test("benchmark: rules version is stamped on every report", () => {
 
 test("benchmark: good page scores are pinned", () => {
   const r = auditFixture("good.html", "https://example.com/good/");
-  assert.deepEqual(r.scores.search, { score: 83, band: "B" });
+  assert.deepEqual(r.scores.search, { score: 86, band: "B" });
   assert.deepEqual(r.scores.ai, { score: 80, band: "B" });
-  assert.deepEqual(r.counts, { P0: 0, P1: 1, P2: 3, P3: 3, pass: 39 });
+  assert.deepEqual(r.counts, { P0: 0, P1: 1, P2: 2, P3: 3, pass: 39 });
 });
 
 test("benchmark: bad page scores are pinned", () => {
@@ -93,14 +93,14 @@ test("benchmark: bad page scores are pinned", () => {
 
 test("benchmark: product page scores are pinned", () => {
   const r = auditFixture("product.html", "https://example.com/shop/trailhead-40l/");
-  assert.deepEqual(r.scores.search, { score: 96, band: "A" });
+  assert.deepEqual(r.scores.search, { score: 99, band: "A" });
   assert.deepEqual(r.scores.ai, { score: 80, band: "B" });
-  assert.deepEqual(r.counts, { P0: 0, P1: 0, P2: 2, P3: 3, pass: 41 });
+  assert.deepEqual(r.counts, { P0: 0, P1: 0, P2: 1, P3: 3, pass: 41 });
 });
 
 test("benchmark: pricing page scores are pinned", () => {
   const r = auditFixture("pricing.html", "https://example.com/pricing/");
-  assert.deepEqual(r.scores.search, { score: 92, band: "A" });
+  assert.deepEqual(r.scores.search, { score: 95, band: "A" });
   assert.deepEqual(r.scores.ai, { score: 80, band: "B" });
-  assert.deepEqual(r.counts, { P0: 0, P1: 0, P2: 3, P3: 3, pass: 39 });
+  assert.deepEqual(r.counts, { P0: 0, P1: 0, P2: 2, P3: 3, pass: 39 });
 });

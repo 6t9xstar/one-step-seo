@@ -4,15 +4,15 @@
 - Final URL: https://example.com/good/
 - Checked: 2026-10-08T00:00:00.000Z
 - Tool version: v0.12.0 (rules 2026.12)
-- Search SEO: **83/100 (B)**
+- Search SEO: **86/100 (B)**
 - AI Visibility: **80/100 (B)**
-- Counts: P0=0 P1=1 P2=3 P3=3 pass=39
+- Counts: P0=0 P1=1 P2=2 P3=3 pass=39
 
 ## Executive summary
 
 Solid foundation with 1 high-priority fix to work through this week.
 
-- Search SEO **83/100 (B)** — Technical foundation, crawlability, indexability, metadata, and link architecture.
+- Search SEO **86/100 (B)** — Technical foundation, crawlability, indexability, metadata, and link architecture.
 - AI Visibility **80/100 (B)** — Direct answers, structured facts, and bot accessibility for AI search engines.
 
 ## Page SEO & AI signal snapshot
@@ -37,11 +37,6 @@ Check reference: https://github.com/6t9xstar/one-step-seo/blob/main/docs/CHECKS.
 - Evidence: 130 words
 - Fix: Expand to fully answer the query; add examples, steps, data.
 - Impact: medium · Effort: days · Owner: content
-#### [P2] Placeholder text on the page (C06-placeholder)
-- What this means: The page still contains "lorem ipsum" placeholder text from a template. It looks unfinished to visitors, and pages with filler text can be judged low quality.
-- Evidence: "lorem ipsum" appears 2 time(s) in the visible text
-- Fix: Replace the template filler with real content.
-- Impact: medium · Effort: minutes · Owner: content
 ### Schema
 Check reference: https://github.com/6t9xstar/one-step-seo/blob/main/docs/CHECKS.md
 #### [P3] Visible FAQ without matching markup (S03-faq-parity)

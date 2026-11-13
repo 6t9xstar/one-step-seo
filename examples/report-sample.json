@@ -8,7 +8,7 @@
   "truncated": false,
   "scores": {
     "search": {
-      "score": 83,
+      "score": 86,
       "band": "B"
     },
     "ai": {
@@ -19,7 +19,7 @@
   "counts": {
     "P0": 0,
     "P1": 1,
-    "P2": 3,
+    "P2": 2,
     "P3": 3,
     "pass": 39
   },
@@ -52,16 +52,6 @@
       "evidence": "tables:1 lists:1 words:130",
       "fix": "Surface prices/specs/steps/dates in tables or bolded fact lines with sources.",
       "seoImpact": "low",
-      "geoImpact": "medium"
-    },
-    {
-      "id": "C06-placeholder",
-      "category": "content",
-      "severity": "P2",
-      "title": "Placeholder text on the page",
-      "evidence": "\"lorem ipsum\" appears 2 time(s) in the visible text",
-      "fix": "Replace the template filler with real content.",
-      "seoImpact": "medium",
       "geoImpact": "medium"
     },
     {

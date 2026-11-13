@@ -20,7 +20,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
-- **Rules version `2026.12`.** The new checks change page scores. Reports carry `rulesVersion: "2026.12"`, so `diff` warns when it compares them with `2026.11` reports. The bundled example reports were regenerated: their sample pages contain lorem ipsum filler, which `C06-placeholder` now reports.
+- **Rules version `2026.12`.** The new checks change page scores. Reports carry `rulesVersion: "2026.12"`, so `diff` warns when it compares them with `2026.11` reports. The bundled example reports were regenerated. The test fixtures they are built from had lorem ipsum filler, which `C06-placeholder` now reports, so the filler was replaced with real copy.
 - `T07-noindex` ignores `X-Robots-Tag` lines scoped to one crawler (`googlebot: noindex`). Those are now reported by `T22-robots-scoped`.
 - `T08-canonical` and `T17-canonical-http` also read a canonical sent in the HTTP `Link` header when the HTML has none.
 - Site-wide findings are printed for any multi-page audit and for `--bots`, even when the crawl found only one page.

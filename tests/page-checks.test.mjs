@@ -141,15 +141,13 @@ test("a clean page trips none of the ported checks", () => {
   assert.deepEqual(check(html), []);
 });
 
-test("realistic fixtures trip no ported check except their lorem-ipsum filler", () => {
+// The fixtures feed the committed example reports, so placeholder copy in
+// them (C06) would show up as a finding on pages meant to look healthy.
+test("realistic fixtures trip none of the ported checks", () => {
   for (const file of readdirSync(join(ROOT, "tests/fixtures")).filter((f) => f.endsWith(".html"))) {
     const html = readFileSync(join(ROOT, "tests/fixtures", file), "utf8");
     const ids = check(html, { url: `https://example.com/${file.replace(/\.html$/, "/")}` }).map((f) => f.id);
-    assert.deepEqual(
-      ids.filter((id) => id !== "C06-placeholder"),
-      [],
-      file,
-    );
+    assert.deepEqual(ids, [], file);
   }
 });
 
