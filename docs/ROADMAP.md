@@ -7,6 +7,7 @@ nothing here is promised on a date — issues and PRs decide the pace.
 
 ### Unreleased
 
+- [x] Crawl budget: URL parameters that multiply crawlable URLs, site issue X27 (from the links the crawl already collected; robots.txt rules are suggested, never written)
 - [x] Crawler check: `bots <url>` and `audit --bots`, site issues X24–X26 (what Googlebot, Bingbot, Applebot and AI crawlers get, compared with a browser)
 - [x] Soft-404 probes for multi-page audits: site issues X22–X23
 - [x] 16 page checks: T19–T30, O12, O13, C06, P07

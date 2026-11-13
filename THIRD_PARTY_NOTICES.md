@@ -13,14 +13,15 @@ licenses require.
 These features were ported from the Python original into one-step-seo's
 JavaScript, changed where noted:
 
-| one-step-seo                                 | What was ported                                                                                                                                                 |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/throttle.mjs`                           | Retries for rate limits and gateway errors with back-off and `Retry-After`; latency-aware pacing of slow hosts; firewall block page and CDN challenge detection |
-| `lib/url-traps.mjs`                          | Crawler-trap URL filtering (feeds, APIs, page-builder pagination, repeated segments) and the URL hygiene helpers behind T24–T26 and T28–T29                     |
-| `lib/crawl.mjs`                              | Retries, pacing and the firewall stop inside the crawl; soft-404 probes                                                                                         |
-| `lib/page-checks.mjs`                        | Page checks T19–T30, O12, O13, C06 and P07                                                                                                                      |
-| `lib/bot-check.mjs`, `lib/commands/bots.mjs` | Crawler readability check: the agent list and published user agents, robots.txt precedence, the page sample, the browser comparison and mobile parity           |
-| `lib/intelligence.mjs` (X22–X26)             | Site issues built on the soft-404 probes and the crawler check                                                                                                  |
+| one-step-seo                                 | What was ported                                                                                                                                                             |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/throttle.mjs`                           | Retries for rate limits and gateway errors with back-off and `Retry-After`; latency-aware pacing of slow hosts; firewall block page and CDN challenge detection             |
+| `lib/url-traps.mjs`                          | Crawler-trap URL filtering (feeds, APIs, page-builder pagination, repeated segments) and the URL hygiene helpers behind T24–T26 and T28–T29                                 |
+| `lib/crawl.mjs`                              | Retries, pacing and the firewall stop inside the crawl; soft-404 probes                                                                                                     |
+| `lib/page-checks.mjs`                        | Page checks T19–T30, O12, O13, C06 and P07                                                                                                                                  |
+| `lib/bot-check.mjs`, `lib/commands/bots.mjs` | Crawler readability check: the agent list and published user agents, robots.txt precedence, the page sample, the browser comparison and mobile parity                       |
+| `lib/crawl-budget.mjs`                       | Crawl-budget analysis: folding of page-builder parameter ids, the parameter classification rules, the 25-URL volume rule, the trap ranking and the drafted robots.txt rules |
+| `lib/intelligence.mjs` (X22–X27)             | Site issues built on the soft-404 probes, the crawler check and the crawl-budget analysis                                                                                   |
 
 Changes from the original:
 
@@ -33,6 +34,23 @@ Changes from the original:
   bypassed.
 - JavaScript is not rendered (no Playwright). Pages served as an empty app
   shell are pointed out instead.
+- The crawl-budget analysis makes no requests of its own. It reads the
+  internal links the site audit already collected, including links it
+  skipped, instead of fetching the home page and up to 13 section pages
+  again with a browser user agent.
+- The drafted robots.txt rules are anchored on `?` and `&`
+  (`Disallow: /*?page=` and `Disallow: /*&page=`). The original's
+  `Disallow: /*s=` also matched `?ids=`, and `Disallow: /*e-page-` matched
+  paths such as `/single-page-app/`.
+- robots.txt is never written. The rules are suggestions in the finding's
+  recommendation, which warns that blocking can hide pages only linked from
+  parameter URLs, that a disallowed URL can still be indexed, and that
+  canonical tags or `noindex` may fit better.
+- URLs that robots.txt already disallows for Googlebot are counted but not
+  reported as traps. The number of trap URLs counts each URL once; the
+  original added up the count of every parameter.
+- An unrecognised parameter on fewer than 25 URLs is described as
+  unrecognised, not as a high-volume crawl trap.
 - Not ported: the Flask web interface, installers, auto-update, the MCP
   server, XLSX export and JavaScript rendering.
 

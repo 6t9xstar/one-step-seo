@@ -330,7 +330,7 @@ flowchart TD
 ### One-step SEO platform (v0.12)
 
 ```bash
-one-step-seo audit https://example.com --deep --format html,md,json,csv,pdf   # site-wide analysis (X01–X23)
+one-step-seo audit https://example.com --deep --format html,md,json,csv,pdf   # site-wide analysis (X01–X23, X27)
 one-step-seo audit https://example.com --pages 50 --bots                     # + crawler check (X24–X26)
 one-step-seo bots https://example.com                                        # what Googlebot and AI crawlers get
 one-step-seo fix ./dist --url https://example.com --lang en --apply          # safe fixes: backup + verify

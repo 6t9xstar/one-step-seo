@@ -426,6 +426,56 @@ export interface ProbeResult {
   title: string;
 }
 
+/** What a query parameter is for; "parameter" when no rule recognises it. */
+export type UrlParameterType =
+  "pagination" | "faceting" | "sort" | "tracking" | "session" | "search" | "parameter";
+
+/** One query parameter found in internal links (crawl budget, X27). */
+export interface UrlParameterKey {
+  /** Lowercased query key; page-builder widget ids folded (e-page-0b1537f → e-page-*). */
+  key: string;
+  type: UrlParameterType;
+  /** The rule that classified it, in words. */
+  why: string;
+  /** Distinct internal link URLs that carry it. */
+  count: number;
+  /** How many of those robots.txt already disallows for Googlebot. */
+  blocked: number;
+  /** Highest all-digit value seen (0 when none). */
+  maxNumber: number;
+  /** Up to 3 of those URLs, in the order found. */
+  examples: string[];
+  /** Recognised as a crawl-trap parameter, or seen on 25 or more URLs. */
+  trap: boolean;
+}
+
+/** Query parameters on the internal links of every audited page, crawled or skipped. */
+export interface UrlParameterInventory {
+  /** Audited pages whose links were read. */
+  pagesScanned: number;
+  /** Distinct internal link URLs on those pages. */
+  linksScanned: number;
+  /** Distinct internal link URLs that carry a query parameter. */
+  parameterLinks: number;
+  /** Pages with more internal links than the HTML parser keeps; their extra links were not read. */
+  pagesOverLinkCap: number;
+  /** URLs the sitemap lists, for scale (null when the crawl did not read the sitemap; at most 1,000). */
+  sitemapUrls: number | null;
+  /** Distinct parameters (`keys` keeps at most 200). */
+  keyCount: number;
+  /** Crawl-trap parameters with URLs that robots.txt does not disallow. */
+  trapKeys: number;
+  /** Distinct link URLs that carry a crawl-trap parameter and that robots.txt does not disallow. */
+  trapUrls: number;
+  /** Crawl traps first, then by type, highest value and URL count. */
+  keys: UrlParameterKey[];
+}
+
+/** The inventory plus robots.txt lines drafted for its crawl traps. Suggestions only; never applied. */
+export interface CrawlBudget extends UrlParameterInventory {
+  robotsRules: string[];
+}
+
 export interface CrawlResult {
   blocked: boolean;
   robotsText: string;
@@ -439,6 +489,8 @@ export interface CrawlResult {
   orphanIndexes: number[];
   /** Discovered URLs not crawled because they are crawler traps. */
   trapsSkipped: number;
+  /** Query parameters on the internal links of every audited page, crawled or skipped (X27). */
+  urlParameters: UrlParameterInventory;
   /** Why the crawl stopped early ("" when it did not). */
   stoppedReason: string;
   probes: ProbeResult[];
@@ -482,6 +534,8 @@ export interface SiteIssue {
   heuristic: boolean;
   count: number;
   urls: { url: string; detail: string }[];
+  /** Set when count and urls are not one per URL: "parameter" is one row per query parameter (X27). */
+  unit?: "parameter";
 }
 
 export interface SiteAnalysis {
@@ -492,6 +546,8 @@ export interface SiteAnalysis {
   content: { topics: unknown[]; linkSuggestions: unknown[]; underlinkedPages: unknown[]; briefs: unknown[] };
   /** The crawler check passed in as `bots` (null when none was run). */
   crawlerCheck: BotCheckReport | null;
+  /** The URL-parameter inventory passed in as `urlParameters`, with drafted robots.txt lines (null without one). */
+  crawlBudget: CrawlBudget | null;
   methodology: Record<string, string>;
 }
 
@@ -507,6 +563,8 @@ export function analyzeSite(input: {
   probes?: ProbeResult[];
   /** Crawler readability check (runBotCheck) to report as X24–X26. */
   bots?: BotCheckReport | null;
+  /** The crawl's query-parameter inventory (crawlSite's `urlParameters`) to report as X27. */
+  urlParameters?: UrlParameterInventory | null;
 }): SiteAnalysis;
 export function clickDepths(pages: PageFacts[]): Map<string, number>;
 
