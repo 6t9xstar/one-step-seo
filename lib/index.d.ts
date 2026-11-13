@@ -406,6 +406,24 @@ export interface CrawlOptions {
   blockPrivateIps?: boolean;
   all?: boolean;
   userAgent?: string;
+  /** Re-requests of a 429/502/503/504 page, honouring Retry-After (default 2; 0 disables). */
+  retries?: number;
+  /** Slow down for a host whose responses get slow (default true). */
+  autoThrottle?: boolean;
+  /** After the crawl, request two made-up URLs to detect soft 404s (default false). */
+  probes?: boolean;
+  /** Fixed suffix for the probe URLs (tests); random by default. */
+  probeToken?: string;
+}
+
+/** What the site answered for a URL that cannot exist. */
+export interface ProbeResult {
+  kind: "root" | "nested";
+  url: string;
+  /** Status the made-up URL itself answered (first hop; 0 = request failed). */
+  status: number;
+  /** Page title when it answered 200. */
+  title: string;
 }
 
 export interface CrawlResult {
@@ -419,6 +437,11 @@ export interface CrawlResult {
   capped: boolean;
   sitemapUrls: string[];
   orphanIndexes: number[];
+  /** Discovered URLs not crawled because they are crawler traps. */
+  trapsSkipped: number;
+  /** Why the crawl stopped early ("" when it did not). */
+  stoppedReason: string;
+  probes: ProbeResult[];
   startUrl: string;
 }
 
@@ -479,6 +502,7 @@ export function analyzeSite(input: {
   pageReports?: any[];
   canon?: (u: string) => string;
   now?: number;
+  probes?: ProbeResult[];
 }): SiteAnalysis;
 export function clickDepths(pages: PageFacts[]): Map<string, number>;
 export function categoryScores(

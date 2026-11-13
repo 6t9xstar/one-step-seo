@@ -150,6 +150,7 @@ Options:
   --quiet, -q     suppress informational messages; output errors and final summaries only
   --force         crawl even when robots.txt disallows the URL (documented override)
   --check-links   verify same-host link targets (capped at 100 checks/run, off by default)
+  --no-probes     skip the 2 soft-404 probes (made-up URLs) a multi-page audit sends
   --block-private-ips  block SSRF requests targeting private, loopback, or metadata IPs
   --check-config  validate runtime configuration, CLI flags, and environment health
   --profile NAME  page-type calibration: default|blog|product|docs|home (default default)

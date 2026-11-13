@@ -170,6 +170,11 @@ length rewrites, image dimensions, server/redirect issues, and all
   actions (`?add-to-cart`) and repeated path segments (`/team/team/`).
 - Links are entity-decoded like a browser does: `?page=2&amp;sort=new` is
   crawled as `?page=2&sort=new`.
+- Soft-404 probes: after a multi-page crawl, `audit` requests two URLs that
+  cannot exist (`/url-trap-probe-<random>` at the root and inside the first
+  section). An HTTP 200 answer is reported as site issue `X22` (whole site) or
+  `X23` (one section). The probes follow `robots.txt` and `--delay`;
+  `--no-probes` skips them.
 
 ## Severity
 

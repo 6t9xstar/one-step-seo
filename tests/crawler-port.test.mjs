@@ -1,6 +1,6 @@
 // Crawl reliability and crawler-trap rules ported from Open SEO Crawler
 // (MIT, Copyright (c) 2026 Puneet Inder Singh): Retry-After, latency pacing,
-// firewall/challenge detection, retries, and trap URLs.
+// firewall/challenge detection, retries, trap URLs and soft-404 probes.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
@@ -22,6 +22,7 @@ import {
   isPaginationUrl,
 } from "../lib/url-traps.mjs";
 import { crawlSite } from "../lib/crawl.mjs";
+import { analyzeSite } from "../lib/intelligence.mjs";
 import { clearSiteFilesCache, clearSitemapUrlsCache } from "../lib/robots.mjs";
 
 /**
@@ -357,5 +358,120 @@ test("crawlSite stops after three pages in a row are turned away by a firewall",
     assert.ok(c.failures.some((f) => /Cloudflare firewall block/.test(f.error)));
   } finally {
     await site.close();
+  }
+});
+
+/** @param {{ kind: string, url: string, status: number }[]} probes */
+const probeSummary = (probes) => probes.map((p) => [p.kind, new URL(p.url).pathname, p.status]);
+
+test("soft-404 probes: a catch-all site answers made-up URLs with 200 (X22)", async () => {
+  clearSiteFilesCache();
+  clearSitemapUrlsCache();
+  const site = await serve((req, res) => {
+    const path = new URL(req.url ?? "/", "http://x").pathname;
+    if (path === "/robots.txt") {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+    res.writeHead(200, { "content-type": "text/html" });
+    res.end(
+      path === "/" ? html("Home", '<a href="/blog/">Blog</a>') : html("Not found", "<p>Nothing here.</p>"),
+    );
+  });
+  try {
+    const c = await crawlSite(`${site.base}/`, {
+      pages: 5,
+      crawl: "links",
+      delay: 0,
+      probes: true,
+      probeToken: "t1",
+    });
+    assert.deepEqual(probeSummary(c.probes), [
+      ["root", "/url-trap-probe-t1", 200],
+      ["nested", "/blog/url-trap-probe-t1", 200],
+    ]);
+    assert.equal(c.probes[0]?.title, "Not found");
+    const analysis = analyzeSite({ pages: c.pages, probes: c.probes });
+    const x22 = analysis.issues.find((i) => i.id === "X22-soft-404-site");
+    assert.equal(x22?.severity, "P1");
+    assert.match(x22?.description ?? "", /HTTP 200 with the page title "Not found"/);
+    assert.equal(
+      analysis.issues.find((i) => i.id === "X23-soft-404-section"),
+      undefined,
+      "one cause, one issue",
+    );
+  } finally {
+    await site.close();
+  }
+});
+
+test("soft-404 probes: a section that serves any path (X23); robots.txt is honoured; off by default", async () => {
+  clearSiteFilesCache();
+  clearSitemapUrlsCache();
+  const site = await serve((req, res) => {
+    const path = new URL(req.url ?? "/", "http://x").pathname;
+    if (path === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("User-agent: *\nDisallow: /private/\n");
+      return;
+    }
+    if (path === "/") {
+      res.writeHead(200, { "content-type": "text/html" });
+      res.end(html("Home", '<a href="/shop/">Shop</a>'));
+      return;
+    }
+    if (path.startsWith("/shop/")) {
+      res.writeHead(200, { "content-type": "text/html" });
+      res.end(html("Shop", "<p>Products.</p>"));
+      return;
+    }
+    res.writeHead(404, { "content-type": "text/html" });
+    res.end("missing");
+  });
+  try {
+    const plain = await crawlSite(`${site.base}/`, { pages: 5, crawl: "links", delay: 0 });
+    assert.deepEqual(plain.probes, [], "no probes unless asked for");
+    assert.ok(![...site.hits.keys()].some((p) => p.includes("url-trap-probe")));
+
+    const c = await crawlSite(`${site.base}/`, {
+      pages: 5,
+      crawl: "links",
+      delay: 0,
+      probes: true,
+      probeToken: "t2",
+    });
+    assert.deepEqual(probeSummary(c.probes), [
+      ["root", "/url-trap-probe-t2", 404],
+      ["nested", "/shop/url-trap-probe-t2", 200],
+    ]);
+    const x23 = analyzeSite({ pages: c.pages, probes: c.probes }).issues.find(
+      (i) => i.id === "X23-soft-404-section",
+    );
+    assert.equal(x23?.severity, "P2");
+    assert.equal(x23?.title, "Missing pages under /shop/ return HTTP 200");
+    assert.match(x23?.description ?? "", /at the root with HTTP 404, but a made-up URL under \/shop\//);
+  } finally {
+    await site.close();
+  }
+
+  // A probe path robots.txt disallows is never requested.
+  clearSiteFilesCache();
+  const guarded = await serve((req, res) => {
+    const path = new URL(req.url ?? "/", "http://x").pathname;
+    if (path === "/robots.txt") {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("User-agent: *\nDisallow: /url-trap-probe\n");
+      return;
+    }
+    res.writeHead(path === "/" ? 200 : 404, { "content-type": "text/html" });
+    res.end(html("Home", ""));
+  });
+  try {
+    const c = await crawlSite(`${guarded.base}/`, { pages: 2, delay: 0, probes: true, probeToken: "t3" });
+    assert.deepEqual(c.probes, []);
+    assert.equal(guarded.hits.get("/url-trap-probe-t3"), undefined);
+  } finally {
+    await guarded.close();
   }
 });

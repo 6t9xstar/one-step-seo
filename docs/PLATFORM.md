@@ -4,7 +4,7 @@ Since v0.12, one-step-seo runs the whole SEO workflow from one CLI. It is built 
 
 | Engine               | Module                                  | What it does                                                                                                                                                                                   |
 | -------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SEO Intelligence** | `lib/crawl.mjs`, `lib/intelligence.mjs` | Crawls the site and runs every page check. Adds site-wide analysis (issues `X01`–`X21`), category scores, content topics, internal-link suggestions, refresh briefs and competitor comparison. |
+| **SEO Intelligence** | `lib/crawl.mjs`, `lib/intelligence.mjs` | Crawls the site and runs every page check. Adds site-wide analysis (issues `X01`–`X23`), category scores, content topics, internal-link suggestions, refresh briefs and competitor comparison. |
 | **SEO Auto-Fix**     | `lib/fix.mjs`, `lib/autofix.mjs`        | Writes fix plans for live sites. Applies safe, additive fixes to local source with a backup, verifies them on disk, records history and supports rollback.                                     |
 | **SEO Monitoring**   | `lib/monitor.mjs`                       | Takes a snapshot per run and compares it with the previous one. Change alerts are levelled (critical, warning, info) and can be sent to a webhook.                                             |
 
@@ -52,19 +52,22 @@ Multi-page audits write, in addition to the existing per-page reports:
 
 Site-wide issue IDs:
 
-| ID  | Issue                       | ID  | Issue                                                      |
-| --- | --------------------------- | --- | ---------------------------------------------------------- |
-| X01 | Broken internal URLs        | X12 | Non-canonical URLs in sitemap                              |
-| X02 | Redirect chains             | X13 | Indexable pages missing from sitemap                       |
-| X03 | Links to redirecting URLs   | X14 | Canonical conflicts                                        |
-| X04 | Orphan pages                | X15 | hreflang errors                                            |
-| X05 | Pages > 3 clicks deep       | X16 | Keyword cannibalisation (heuristic)                        |
-| X06 | Duplicate titles            | X17 | Thin content                                               |
-| X07 | Duplicate descriptions      | X18 | URL structure                                              |
-| X08 | Duplicate content           | X19 | Slow responses (> 2 s, measured from the auditing machine) |
-| X09 | Near-duplicates (heuristic) | X20 | http:// internal links on an https site                    |
-| X10 | Sitemap URLs that fail      | X21 | Stale content (no update signal for 18 months)             |
-| X11 | noindex pages in sitemap    |     |                                                            |
+| ID  | Issue                         | ID  | Issue                                                      |
+| --- | ----------------------------- | --- | ---------------------------------------------------------- |
+| X01 | Broken internal URLs          | X13 | Indexable pages missing from sitemap                       |
+| X02 | Redirect chains               | X14 | Canonical conflicts                                        |
+| X03 | Links to redirecting URLs     | X15 | hreflang errors                                            |
+| X04 | Orphan pages                  | X16 | Keyword cannibalisation (heuristic)                        |
+| X05 | Pages > 3 clicks deep         | X17 | Thin content                                               |
+| X06 | Duplicate titles              | X18 | URL structure                                              |
+| X07 | Duplicate descriptions        | X19 | Slow responses (> 2 s, measured from the auditing machine) |
+| X08 | Duplicate content             | X20 | http:// internal links on an https site                    |
+| X09 | Near-duplicates (heuristic)   | X21 | Stale content (no update signal for 18 months)             |
+| X10 | Sitemap URLs that fail        | X22 | Made-up URLs return HTTP 200 (soft 404)                    |
+| X11 | noindex pages in sitemap      | X23 | Made-up URLs under one section return HTTP 200             |
+| X12 | Non-canonical URLs in sitemap |     |                                                            |
+
+X22 and X23 come from two extra requests a multi-page `audit` sends after the crawl: one for a made-up URL at the root (`/url-trap-probe-<random>`) and one inside the first section it found. A healthy site answers both with 404 or 410. The probes respect `robots.txt` and `--delay`, are never sent for single-page audits, and `--no-probes` turns them off.
 
 Issues marked _heuristic_ are labelled that way in every output.
 
