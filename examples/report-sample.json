@@ -1,14 +1,14 @@
 {
   "tool": "one-step-seo",
   "version": "0.12.0",
-  "rulesVersion": "2026.11",
+  "rulesVersion": "2026.12",
   "url": "https://example.com/good/",
   "finalUrl": "https://example.com/good/",
   "checkedAt": "2026-10-08T00:00:00.000Z",
   "truncated": false,
   "scores": {
     "search": {
-      "score": 86,
+      "score": 83,
       "band": "B"
     },
     "ai": {
@@ -19,7 +19,7 @@
   "counts": {
     "P0": 0,
     "P1": 1,
-    "P2": 2,
+    "P2": 3,
     "P3": 3,
     "pass": 39
   },
@@ -52,6 +52,16 @@
       "evidence": "tables:1 lists:1 words:130",
       "fix": "Surface prices/specs/steps/dates in tables or bolded fact lines with sources.",
       "seoImpact": "low",
+      "geoImpact": "medium"
+    },
+    {
+      "id": "C06-placeholder",
+      "category": "content",
+      "severity": "P2",
+      "title": "Placeholder text on the page",
+      "evidence": "\"lorem ipsum\" appears 2 time(s) in the visible text",
+      "fix": "Replace the template filler with real content.",
+      "seoImpact": "medium",
       "geoImpact": "medium"
     },
     {

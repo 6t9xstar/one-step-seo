@@ -49,6 +49,7 @@ function buildFor(fixture, url) {
     siteFiles,
     { finalUrl: url, status: 200, statusChain: [{ url, status: 200 }], contentType: "text/html", ms: 12 },
     { items: raw.items, types: validated.types, issues: validated.issues, errors: raw.errors },
+    { html },
   );
   const scores = computeScores(findings, geoDetails(parsed, siteFiles));
   return buildReport({

@@ -11,6 +11,7 @@ Activate `technical-seo` when the user wants to:
 
 - Diagnose why pages are not indexing or are dropping out of search results.
 - Audit HTTP status codes (`T02-status`), redirect chains (`T03-redirects`), HTTPS enforcement (`T01-https`), canonical tags (`T08-canonical`, `T17-canonical-http`), `noindex` directives (`T07-noindex`), mixed content (`T13-mixed`), URL hygiene (`T12-url`), or transport security headers (`T15-security-headers`).
+- Find markup defects that silently void SEO tags: head tags pushed out of `<head>` (`T19-head-placement`), duplicate or conflicting tags (`T20-duplicate-tags`, `T21-canonical-signals`), noindex for one search engine only (`T22-robots-scoped`), soft 404s (`T23-soft-404`), junk, malformed or staging URLs (`T24-unresolved-urls`, `T25-malformed-hrefs`, `T26-dev-links`), insecure forms (`T27-insecure-forms`), indexable site search (`T28-internal-search`), unfollowable pagination (`T29-rel-pagination`) and document structure (`T30-markup`).
 - Run a domain-focused technical infrastructure audit via `--skills technical-seo`.
 
 ## 2. Inputs & Prerequisites
