@@ -330,7 +330,9 @@ flowchart TD
 ### One-step SEO platform (v0.12)
 
 ```bash
-one-step-seo audit https://example.com --deep --format html,md,json,csv,pdf   # site-wide analysis (X01–X21)
+one-step-seo audit https://example.com --deep --format html,md,json,csv,pdf   # site-wide analysis (X01–X23)
+one-step-seo audit https://example.com --pages 50 --bots                     # + crawler check (X24–X26)
+one-step-seo bots https://example.com                                        # what Googlebot and AI crawlers get
 one-step-seo fix ./dist --url https://example.com --lang en --apply          # safe fixes: backup + verify
 one-step-seo verify https://example.com --baseline ./seo-report               # confirm after deploy
 one-step-seo report ./seo-report --client "Acme Ltd" --audience client       # PDF / MD / CSV
@@ -510,13 +512,13 @@ npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy deskto
 
 ---
 
-## 📑 Rule Catalogue (45+ Audited Signals)
+## 📑 Rule Catalogue (80+ Audited Signals)
 
 <details>
 <summary><b>Click to expand full audit rules breakdown (Technical, On-Page, Content, Schema, GEO, Performance)</b></summary>
 <br>
 
-### 🌐 Technical SEO (`T00` – `T17`)
+### 🌐 Technical SEO (`T00` – `T30`)
 
 - `T00-truncated`: Flags HTML payloads over 5 MiB that were truncated to head-only inspection.
 - `T01-https`: Enforces HTTPS protocol; flags insecure HTTP final URLs.
@@ -525,8 +527,8 @@ npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy deskto
 - `T04-content-type`: Verifies document is served as `text/html`.
 - `T05-robots` / `T05-robots-disallow`: Checks `robots.txt` availability and alerts if the audited path is disallowed.
 - `T06-sitemap`: Verifies XML sitemap availability (`sitemap.xml` or `Sitemap:` directives in `robots.txt`).
-- `T07-noindex`: Detects `noindex` directives in `<meta name="robots">` or `X-Robots-Tag` headers.
-- `T08-canonical`: Validates `<link rel="canonical">` presence (`P2` when missing) and self-reference (`P1` on mismatch).
+- `T07-noindex`: Detects `noindex`/`none` in any `<meta name="robots">` or an unscoped `X-Robots-Tag` header (crawler-scoped rules are `T22`).
+- `T08-canonical`: Validates the canonical, from `<link rel="canonical">` or the HTTP `Link` header: missing (`P2`) or not self-referencing (`P1`).
 - `T09-lang`: Verifies `<html lang="...">` declaration.
 - `T10-charset`: Verifies UTF-8 character encoding declaration.
 - `T11-viewport`: Validates mobile-friendly `<meta name="viewport">` configuration.
@@ -536,8 +538,21 @@ npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy deskto
 - `T15-security-headers`: Checks for recommended HTTP security headers (`Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options`).
 - `T16-broken-links`: Opt-in (`--check-links`) probe flagging same-host links that return 4xx/5xx or fail.
 - `T17-canonical-http`: Flags canonical tags specifying insecure `http://` on an `https://` page.
+- `T18-js-rendered`: Flags served HTML that is an empty client-rendered app shell (`P1`): crawlers that do not run JavaScript get nothing.
+- `T19-head-placement`: Flags canonical, robots or hreflang (`P1`) and title or description (`P2`) tags that end up outside `<head>`.
+- `T20-duplicate-tags`: Flags repeated `<title>`, canonical (conflicting `P1`), meta description or viewport tags.
+- `T21-canonical-signals`: Flags HTML and `Link`-header canonicals that disagree, template junk, fragments, noindex plus a canonical elsewhere, and relative canonicals.
+- `T22-robots-scoped`: Flags noindex aimed at Googlebot (`P0`) or Bingbot (`P1`) only, and a passed `unavailable_after` date.
+- `T23-soft-404`: Flags 2xx pages that read as an error page ("page not found", a leading "404").
+- `T24-unresolved-urls`: Flags `undefined`, `null`, `NaN` or `[object …]` in links or the page URL.
+- `T25-malformed-hrefs`: Flags e-mail addresses without `mailto:` and plain-text `href` values.
+- `T26-dev-links`: Flags links or subresources on localhost, private IPs, `.local`/`.test` or staging hosts.
+- `T27-insecure-forms`: Flags forms on `https://` pages that submit to `http://`.
+- `T28-internal-search`: Flags indexable site-search result pages.
+- `T29-rel-pagination`: Flags `rel=next/prev` without a matching link, and noindexed page-2+ listings.
+- `T30-markup`: Flags a missing doctype (`P3`) and repeated `<head>` or `<body>` elements (`P2`).
 
-### 📄 On-Page & Polish Signals (`O01` – `O11`, `W01` – `W03`)
+### 📄 On-Page & Polish Signals (`O01` – `O13`, `W01` – `W03`)
 
 - `O01-title`: Validates `<title>` presence (`P0` when missing) and optimal length (30–60 characters).
 - `O02-meta`: Validates `<meta name="description">` presence (`P1` when missing) and length (120–155 characters).
@@ -550,15 +565,18 @@ npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy deskto
 - `O09-img-dims`: Flags `<img>` tags missing explicit `width`/`height` attributes (CLS prevention).
 - `O10-internal` / `O10-internal-many`: Flags dead-end pages with `0` internal links (`P1`) or excessive internal links (`>200`, `P2`).
 - `O11-generic-anchors`: Flags repetitive generic anchor text (`click here`, `read more`, `learn more`).
+- `O12-serp-width`: Flags titles and descriptions within the character limit but estimated too wide for Google's snippet (pixel estimate from font metrics, `P3`).
+- `O13-dead-anchors`: Flags `#id` jump links with no matching `id` or `name` (`P3`).
 - `W01-social` / `W02-og-url` / `W03-hreflang`: Validates `twitter:card`, `og:url` canonical parity, and `hreflang` self/x-default completeness (`P3`).
 
-### ✍️ Content Quality (`C01` – `C05`)
+### ✍️ Content Quality (`C01` – `C06`)
 
 - `C01-thin`: Identifies thin content under profile word-count thresholds (`200` words default/blog/docs, `120` product, `100` home).
 - `C02-answer`: Verifies an answer-first summary or definition in the opening 150 words.
 - `C03-extractable`: Checks for extractable `<ul>`/`<ol>` lists or `<table>` blocks on substantive pages.
 - `C04-faq`: Checks for visible FAQ question-and-answer coverage or `FAQPage` schema.
 - `C05-table-headers`: Flags `<table>` elements missing semantic `<th>` header cells (`P3`).
+- `C06-placeholder`: Flags "lorem ipsum" placeholder copy left in the visible text (`P2`).
 
 ### 🧬 Structured Data & Schema (`S01` – `S03`)
 
@@ -580,10 +598,11 @@ npx one-step-seo audit https://example.com --pages 5 --psi --psi-strategy deskto
 - `G10-author`: Checks for author or publisher attribution on substantive 300+ word pages (`P3`).
 - `G11-semantic-content`: Checks for `<main>` or `<article>` landmarks on 600+ word pages (`P3`).
 
-### ⚡ Performance & Core Web Vitals (`P01` – `P05`)
+### ⚡ Performance & Core Web Vitals (`P01` – `P05`, `P07`)
 
 - `P01-html-size`: Flags HTML payloads exceeding 300 KB (`P2`).
 - `P02-img-count`: Flags pages with more than 20 `<img>` elements (`P2`).
+- `P07-delivery`: Flags HTML over 20 KB sent without gzip or brotli (`P2`) and responses without `ETag` or `Last-Modified` (`P3`).
 - `P03-psi-lab` / `P04-psi-field` / `P05-psi-error`: Opt-in (`--psi`) Google PageSpeed Insights lab metrics (LCP, CLS, TBT) and CrUX 75th-percentile field metrics (LCP, CLS, INP).
 
 </details>
@@ -752,7 +771,7 @@ Tested against standard modern production page audits:
 
 - **Zero Telemetry**: No analytics, no tracking pixels, no telemetry beacons.
 - **100% Local Reports**: Reports stay on your local disk (`--out`) and are never sent to external servers.
-- **Polite Crawler**: Enforces same-host restrictions, respects `robots.txt` by default, uses controlled delays between page fetches, and identifies itself clearly with a standard `User-Agent`.
+- **Polite Crawler**: Enforces same-host restrictions, respects `robots.txt` by default, uses controlled delays between page fetches, and identifies itself clearly with a `one-step-seo/<version>` `User-Agent`. Only the opt-in crawler check (`bots`, `audit --bots`) sends a browser's and the crawlers' published user agents, to compare what each one gets; it skips any crawler that `robots.txt` disallows.
 
 ---
 
@@ -785,6 +804,8 @@ npm run check
 ## 📄 License
 
 Distributed under the **MIT License**. See [LICENSE](./LICENSE) for details.
+
+Parts of the crawler are ported from [Open SEO Crawler](https://github.com/puneetindersingh/open-seo-crawler) by Puneet Inder Singh (MIT): retries and slow-host pacing, firewall and challenge detection, crawler-trap filtering, page checks `T19`–`T30`, `O12`, `O13`, `C06` and `P07`, the soft-404 probes and the crawler check. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
 
 <div align="center">
 

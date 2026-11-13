@@ -5,6 +5,14 @@ nothing here is promised on a date — issues and PRs decide the pace.
 
 ## Completed Milestones
 
+### Unreleased
+
+- [x] Crawler check: `bots <url>` and `audit --bots`, site issues X24–X26 (what Googlebot, Bingbot, Applebot and AI crawlers get, compared with a browser)
+- [x] Soft-404 probes for multi-page audits: site issues X22–X23
+- [x] 16 page checks: T19–T30, O12, O13, C06, P07
+- [x] Crawler resilience: retries with `Retry-After`, slow-host pacing, firewall and challenge detection, crawler-trap filtering
+- [x] Bun support and standalone executables
+
 ### 0.12.0 (Current)
 
 - [x] SEO Intelligence engine: site-wide issues X01–X21, category scores, content topics, internal-link suggestions, lexical competitor comparison

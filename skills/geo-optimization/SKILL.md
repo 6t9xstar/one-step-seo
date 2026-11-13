@@ -34,6 +34,7 @@ Activate `geo-optimization` when the user wants to:
 2. **Check snippet and crawler eligibility gates (`G02-ai-blocked`, `G09-snippet-controls`)**:
    - Verify `robots.txt` does not block major AI crawlers (`G02-ai-blocked` P1).
    - Verify `<meta name="robots">` and `X-Robots-Tag` do not set `nosnippet` or `max-snippet: 0` (`G09-snippet-controls` P2), which prevent Google AI Overviews and search engines from lifting passages.
+   - Run `npx one-step-seo bots <url>` to see whether a CDN or firewall blocks or challenges AI crawlers that `robots.txt` allows, or serves them a different or thinner page. Treat the result as a lead: the requests come from this machine, not from the crawlers' own IP addresses.
 3. **Optimize the 25-point Answer-First Opening (`C02-answer`)**:
    - Place a direct, self-contained 40–60 word answer immediately after an informational question (`What/Why/How/When/Where/Which/Who ...?`) or an explicit summary lead-in (`TL;DR:`, `In short:`) within the first 120 words of body copy.
 4. **Strengthen factual extractability (`C03-extractable`, `G03-facts`, `G07-question-headings`, `G08-stat-density`)**:
@@ -53,6 +54,9 @@ npx one-step-seo ai https://example.com --json
 
 # Generate starter /llms.txt and AI crawler robots.txt snippet
 npx one-step-seo llms https://example.com
+
+# What Googlebot, Bingbot, Applebot and AI crawlers get, compared with a browser
+npx one-step-seo bots https://example.com --json
 ```
 
 ## 5. Evidence Requirements

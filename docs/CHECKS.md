@@ -155,8 +155,8 @@ length rewrites, image dimensions, server/redirect issues, and all
   (writing a `T05-robots-disallow` report instead) and skip disallowed
   discovered links, unless `--force` is given. `schema` warns but proceeds.
 - Politeness: `--delay MS` pauses between crawl batches (default 250 ms);
-  `--concurrency` caps parallel fetches at 8; every request carries a clear
-  `one-step-seo/<version>` User-Agent and a per-request `--timeout`.
+  `--concurrency` caps parallel fetches at 8; every crawl request carries a
+  clear `one-step-seo/<version>` User-Agent and a per-request `--timeout`.
 - Retries: HTTP 429, 502, 503 and 504 and dropped connections are retried up
   to twice with back-off (1 s, then 2 s), honouring `Retry-After` up to 30 s.
   Firewall block pages (Wordfence, Cloudflare, Sucuri, SiteGround) and CDN
