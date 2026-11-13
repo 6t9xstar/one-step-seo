@@ -490,6 +490,8 @@ export interface SiteAnalysis {
   issues: SiteIssue[];
   pageStats: unknown[];
   content: { topics: unknown[]; linkSuggestions: unknown[]; underlinkedPages: unknown[]; briefs: unknown[] };
+  /** The crawler check passed in as `bots` (null when none was run). */
+  crawlerCheck: BotCheckReport | null;
   methodology: Record<string, string>;
 }
 
@@ -503,8 +505,132 @@ export function analyzeSite(input: {
   canon?: (u: string) => string;
   now?: number;
   probes?: ProbeResult[];
+  /** Crawler readability check (runBotCheck) to report as X24–X26. */
+  bots?: BotCheckReport | null;
 }): SiteAnalysis;
 export function clickDepths(pages: PageFacts[]): Map<string, number>;
+
+// ---- Crawler readability check ----
+
+export type BotKind = "search" | "ai-search" | "ai-assistant" | "training";
+export type BotState =
+  | "same"
+  | "blocked"
+  | "challenged"
+  | "different"
+  | "redirected"
+  | "noindex"
+  | "thinner"
+  | "error"
+  | "disallowed";
+
+/** A crawler requested live, with the user agent its operator publishes. */
+export interface BotAgent {
+  id: string;
+  label: string;
+  kind: BotKind;
+  /** robots.txt product token */
+  token: string;
+  userAgent: string;
+}
+
+/** A robots.txt token checked against robots.txt only (no published user agent, or not a crawler). */
+export interface RobotsOnlyAgent {
+  id: string;
+  label: string;
+  kind: BotKind;
+  token: string;
+}
+
+/** One crawler's result on one page. */
+export interface BotCell {
+  state: BotState;
+  /** HTTP status the request got (0 = no answer, or not requested). */
+  status: number;
+  detail: string;
+  /** What differs: status, title, h1, canonical, text. */
+  fields?: string[];
+  words?: number;
+  /** Text similarity with the browser's page (0–1). */
+  similarity?: number;
+}
+
+export interface BotFinding {
+  type:
+    "blocked" | "challenged" | "different" | "redirected" | "noindex" | "thinner" | "disallowed" | "mobile";
+  agent: string;
+  label: string;
+  kind: BotKind;
+  detail: string;
+}
+
+export interface BotPageResult {
+  url: string;
+  baseline: {
+    status: number;
+    finalUrl: string;
+    title: string;
+    words: number;
+    selfSimilarity: number;
+    appShell: boolean;
+    error: string;
+  };
+  cells: Record<string, BotCell>;
+  /** Crawler id → robots.txt allows this page. */
+  robots: Record<string, boolean>;
+  /** Googlebot smartphone against Googlebot desktop. */
+  mobile: { mobileWords: number; desktopWords: number; fields: string[] } | null;
+  findings: BotFinding[];
+}
+
+export interface BotCheckReport {
+  checkedAt: string;
+  sample: string[];
+  agents: { id: string; label: string; kind: BotKind; live: boolean }[];
+  pages: BotPageResult[];
+  verdicts: Record<string, { state: BotState; counts: Record<string, number>; checked: number }>;
+  /** What the results cannot show (no JavaScript, robots.txt unreadable, pages that failed). */
+  notes: string[];
+  interrupted: boolean;
+}
+
+export interface BotCheckOptions {
+  /** The site's robots.txt ("" when there is none). */
+  robotsText?: string;
+  /** How robots.txt was read, when that limits the results. */
+  robotsNote?: string;
+  /** Also request crawlers that robots.txt disallows. */
+  force?: boolean;
+  /** ms between request starts (default 400). */
+  delay?: number;
+  /** Requests in flight (default 3). */
+  concurrency?: number;
+  timeoutMs?: number;
+  blockPrivateIps?: boolean;
+  interrupted?: () => boolean;
+  onProgress?: (done: number, total: number) => void;
+  sleep?: (ms: number) => Promise<unknown>;
+}
+
+export const BOT_AGENTS: readonly BotAgent[];
+export const BOT_ROBOTS_ONLY: readonly RobotsOnlyAgent[];
+export const BROWSER_USER_AGENT: string;
+/**
+ * Request each URL as a browser and as every crawler in BOT_AGENTS, then
+ * compare. Requests come from this machine: CDNs verify real crawlers by IP,
+ * so results are leads, not what the real crawler gets.
+ */
+export function runBotCheck(urls: string[], opts?: BotCheckOptions): Promise<BotCheckReport>;
+/** The start page, then one page per section, then the shallowest pages left. */
+export function sampleBotPages(
+  pages: Array<
+    Pick<PageFacts, "finalUrl" | "status"> &
+      Partial<Pick<PageFacts, "key" | "noindex" | "canonicalKey" | "contentHash">>
+  >,
+  n?: number,
+): string[];
+/** Google's robots.txt precedence; Applebot follows Googlebot's group when robots.txt does not name it. */
+export function botRobotsAllowed(robotsText: string, token: string, url: string): boolean;
 export function categoryScores(
   pageReports: any[],
 ): Record<string, { score: number | null; band: string; pages: number }>;

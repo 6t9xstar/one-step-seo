@@ -175,6 +175,12 @@ length rewrites, image dimensions, server/redirect issues, and all
   section). An HTTP 200 answer is reported as site issue `X22` (whole site) or
   `X23` (one section). The probes follow `robots.txt` and `--delay`;
   `--no-probes` skips them.
+- Crawler check (`bots`, `audit --bots`, opt-in): pages are also requested
+  with the user agents search and AI crawlers publish, next to a browser,
+  paced by `--delay`. A crawler that robots.txt disallows on a page is
+  reported, not requested under its name (unless `--force`). TLS is always
+  verified and challenges are never solved. Results are leads, not what the
+  real crawler gets: CDNs recognise real crawlers by IP address.
 
 ## Severity
 

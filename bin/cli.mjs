@@ -8,6 +8,7 @@
  *   one-step-seo schema <url> [--generate organization|website|article|faq|breadcrumb|product|event|localbusiness|howto]
  *   one-step-seo sitemap <url> [--json]
  *   one-step-seo llms <url> [--json]
+ *   one-step-seo bots <url> [--pages N] [--json]
  *   one-step-seo fix <path> [--apply] [--only a,b] [--url U] [--title T] [--description D] [--lang L] [--og-image U]
  *   one-step-seo diff <old-report.json> <new-report.json> [--json] [--fail-on P0]
  *   one-step-seo doctor [--json]
@@ -54,6 +55,7 @@ import { cmdFix, ALL_FIXER_NAMES } from "../lib/commands/fix.mjs";
 import { cmdVerify } from "../lib/commands/verify.mjs";
 import { cmdMonitor } from "../lib/commands/monitor.mjs";
 import { cmdReport } from "../lib/commands/report.mjs";
+import { cmdBots } from "../lib/commands/bots.mjs";
 
 export { createColorHelper, c, analyzeOne };
 
@@ -118,6 +120,7 @@ Usage:
   one-step-seo schema <url> [--generate organization|website|article|faq|breadcrumb|product|event|localbusiness|howto|video|job|course|review|recipe]
   one-step-seo sitemap <url> [--json]
   one-step-seo llms <url> [--json]
+  one-step-seo bots <url> [--pages N] [--json]   (what Googlebot, Bingbot and AI crawlers get vs a browser)
   one-step-seo audit <url> --deep | --technical | --on-page | --competitors URL[,URL]
   one-step-seo fix <path> [--apply] [--only NAMES] [--url U] [--title T] [--description D] [--lang L] [--og-image U]
   one-step-seo fix <url> [--safe-only] [--pages N|--all]   (fix plan: proposed changes, nothing modified)
@@ -151,12 +154,13 @@ Options:
   --force         crawl even when robots.txt disallows the URL (documented override)
   --check-links   verify same-host link targets (capped at 100 checks/run, off by default)
   --no-probes     skip the 2 soft-404 probes (made-up URLs) a multi-page audit sends
+  --bots          audit: also request up to 10 pages as Googlebot, Bingbot, Applebot and AI crawlers (X24-X26)
   --block-private-ips  block SSRF requests targeting private, loopback, or metadata IPs
   --check-config  validate runtime configuration, CLI flags, and environment health
   --profile NAME  page-type calibration: default|blog|product|docs|home (default default)
   --psi           measure Core Web Vitals via Google PageSpeed Insights (reads PSI_API_KEY)
   --psi-strategy  performance strategy: mobile (default) or desktop
-  --json          print JSON to stdout (sitemap / llms / doctor / fix / diff / ai / skills / verify / monitor)
+  --json          print JSON to stdout (sitemap / llms / bots / doctor / fix / diff / ai / skills / verify / monitor)
   --deep          full-site crawl + link verification + site-wide analysis (same as --all --check-links)
   --technical     only technical checks (technical, security, performance skills)
   --on-page       only on-page checks (on-page, schema, content architecture, accessibility skills)
@@ -1102,6 +1106,13 @@ async function main() {
     }
   }
 
+  if (cmd === "bots" && rawUrl && (isLocalPath(rawUrl) || args.offline)) {
+    throw new CliError(
+      "bots needs a live http(s) URL: it compares what the server sends crawlers and a browser.",
+      1,
+    );
+  }
+
   // Local file or directory targets (or explicit --offline):
   if (args.offline && rawUrl && /^https?:\/\//i.test(rawUrl.trim())) {
     throw new CliError("--offline requires a local file or directory path (got remote http(s) URL).", 1);
@@ -1145,6 +1156,7 @@ async function main() {
   if (cmd === "schema") return cmdSchema(url, args);
   if (cmd === "sitemap") return cmdSitemap(url, args);
   if (cmd === "llms") return cmdLlms(url, args);
+  if (cmd === "bots") return cmdBots(url, args);
   console.error(`Unknown command: ${cmd}`);
   usage(1);
 }
