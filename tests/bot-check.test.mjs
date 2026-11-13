@@ -346,8 +346,29 @@ test("runBotCheck: a page the browser cannot get is not requested as any crawler
   assert.ok(report.pages[0]?.baseline.error);
   assert.deepEqual(report.pages[0]?.cells, {});
   assert.ok(report.notes.some((n) => /could not be fetched/.test(n)));
+  assert.ok(!report.notes.some((n) => /app shell/.test(n)));
   assert.deepEqual(report.verdicts.googlebot, { state: "error", counts: {}, checked: 0 });
   assert.deepEqual(analyzeSite({ pages: [], bots: report }).issues, []);
+});
+
+test("runBotCheck: a client-rendered app shell is pointed out, since JavaScript is not run", async () => {
+  const shell =
+    '<!doctype html><html><head><title>App</title></head><body><div id="root"></div><script src="/app.js"></script></body></html>';
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { "content-type": "text/html" });
+    res.end(shell);
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", () => r(undefined)));
+  const addr = server.address();
+  const port = typeof addr === "object" && addr ? addr.port : 0;
+  try {
+    const report = await runBotCheck([`http://127.0.0.1:${port}/`], { delay: 0 });
+    assert.equal(report.pages[0]?.baseline.appShell, true);
+    assert.ok(report.notes.some((n) => /^The page is served as an app shell/.test(n)));
+    assert.deepEqual(report.pages[0]?.findings, [], "every crawler gets the same empty shell");
+  } finally {
+    await new Promise((r) => server.close(() => r(undefined)));
+  }
 });
 
 test("cli: bots <url> --json, a local path is refused, and robots.txt is honoured", async () => {
