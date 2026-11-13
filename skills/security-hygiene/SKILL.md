@@ -18,7 +18,7 @@ Activate `security-hygiene` when the user wants to:
 
 - **Target**: Live `http(s)` URL (required to inspect live TLS protocol and HTTP response headers) or local HTML files (for offline mixed-content and canonical protocol checks).
 - **Key flags**:
-  - `--skills security-hygiene`: Restricts output to `T01-https`, `T13-mixed`, `T15-security-headers`, and `T17-canonical-http`.
+  - `--skills security-hygiene`: Restricts output to `T01-https`, `T13-mixed`, `T15-security-headers`, `T17-canonical-http`, and `T27-insecure-forms` (a form on an HTTPS page that submits to an http:// URL).
   - `--block-private-ips`: Blocks DNS resolution and socket connections to loopback, RFC 1918 private networks, IPv6 ULA/link-local, and cloud metadata endpoints (`169.254.169.254`, `100.100.100.200`, `192.0.0.192`).
 
 ## 3. Step-by-Step Workflow

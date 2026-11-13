@@ -224,6 +224,7 @@ test("Agent Skill contract validation: all 24 SKILL.md files reference canonical
     "schema",
     "sitemap",
     "llms",
+    "bots",
     "fix",
     "diff",
     "doctor",

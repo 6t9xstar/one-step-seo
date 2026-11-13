@@ -56,6 +56,7 @@ function auditFixture(fixture, url) {
     siteFilesMock(),
     { finalUrl: url, status: 200, statusChain: [{ url, status: 200 }], contentType: "text/html", ms: 12 },
     { items: raw.items, types: validated.types, issues: validated.issues, errors: raw.errors },
+    { html },
   );
   const scores = computeScores(findings, geoDetails(parsed, siteFilesMock()));
   return buildReport({

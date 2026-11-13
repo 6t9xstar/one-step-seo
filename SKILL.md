@@ -169,3 +169,17 @@ npx one-step-seo llms https://example.com   # llms.txt status + starter draft + 
 Review the starter draft with the user before publishing — it contains
 explicit placeholders where facts are unknown. The robots snippet allows the
 major AI crawlers; only apply it when AI citation is wanted.
+
+## Crawler access check
+
+```bash
+npx one-step-seo bots https://example.com          # what Googlebot, Bingbot, Applebot and AI crawlers get vs a browser
+npx one-step-seo bots https://example.com --json   # verdicts per crawler, problems per page
+```
+
+The requests come from this machine with each crawler's published user
+agent, while CDNs and firewalls recognise real crawlers by IP address.
+Present a block, challenge or difference as a lead to confirm in the CDN or
+firewall settings (and, for Googlebot, with Search Console's URL Inspection
+live test), never as what the crawler definitely gets. Only run it on sites
+the user owns or may test.

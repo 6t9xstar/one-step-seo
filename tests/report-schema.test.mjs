@@ -349,6 +349,7 @@ test("every emitted failure finding has finding-meta triage data", async () => {
         issues: validated.issues,
         errors: raw.errors,
       },
+      { html },
     );
     for (const f of findings) if (f.severity !== "pass") ids.add(f.id);
   }

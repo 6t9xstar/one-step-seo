@@ -36,7 +36,10 @@ telemetry would be treated as a security bug — see `SECURITY.md`.
 Sites you own or are explicitly allowed to test. The crawler identifies
 itself (`one-step-seo/<version>` User-Agent), stays same-host, pauses between
 requests, and obeys `robots.txt` unless you pass `--force` (documented
-override for your own staging sites).
+override for your own staging sites). The opt-in crawler check (`bots`,
+`audit --bots`) is the one exception to the User-Agent rule: it requests a
+few pages with a browser's and the crawlers' published user agents to
+compare what each gets, and skips any crawler that `robots.txt` disallows.
 
 ## How is this different from Lighthouse / PageSpeed?
 

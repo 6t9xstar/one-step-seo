@@ -4,7 +4,7 @@ Since v0.12, one-step-seo runs the whole SEO workflow from one CLI. It is built 
 
 | Engine               | Module                                  | What it does                                                                                                                                                                                   |
 | -------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SEO Intelligence** | `lib/crawl.mjs`, `lib/intelligence.mjs` | Crawls the site and runs every page check. Adds site-wide analysis (issues `X01`–`X21`), category scores, content topics, internal-link suggestions, refresh briefs and competitor comparison. |
+| **SEO Intelligence** | `lib/crawl.mjs`, `lib/intelligence.mjs` | Crawls the site and runs every page check. Adds site-wide analysis (issues `X01`–`X27`), category scores, content topics, internal-link suggestions, refresh briefs and competitor comparison. |
 | **SEO Auto-Fix**     | `lib/fix.mjs`, `lib/autofix.mjs`        | Writes fix plans for live sites. Applies safe, additive fixes to local source with a backup, verifies them on disk, records history and supports rollback.                                     |
 | **SEO Monitoring**   | `lib/monitor.mjs`                       | Takes a snapshot per run and compares it with the previous one. Change alerts are levelled (critical, warning, info) and can be sent to a webhook.                                             |
 
@@ -44,27 +44,36 @@ one-step-seo monitor https://example.com --interval 1440 --webhook "$SLACK_WEBHO
 
 Multi-page audits write, in addition to the existing per-page reports:
 
-| File                                 | Content                                                                                             |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `site-intelligence.json`             | Every site-level issue with affected URLs, category scores, content analysis and the scoring method |
-| `site-report.md` / `site-report.pdf` | Readable report                                                                                     |
-| `site-issues.csv`                    | One row per issue × URL, for spreadsheets                                                           |
+| File                                 | Content                                                                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `site-intelligence.json`             | Every site-level issue with affected URLs, category scores, content analysis, the URL-parameter inventory (`crawlBudget`) and the scoring method |
+| `site-report.md` / `site-report.pdf` | Readable report                                                                                                                                  |
+| `site-issues.csv`                    | One row per issue × URL, for spreadsheets                                                                                                        |
 
 Site-wide issue IDs:
 
-| ID  | Issue                       | ID  | Issue                                                      |
-| --- | --------------------------- | --- | ---------------------------------------------------------- |
-| X01 | Broken internal URLs        | X12 | Non-canonical URLs in sitemap                              |
-| X02 | Redirect chains             | X13 | Indexable pages missing from sitemap                       |
-| X03 | Links to redirecting URLs   | X14 | Canonical conflicts                                        |
-| X04 | Orphan pages                | X15 | hreflang errors                                            |
-| X05 | Pages > 3 clicks deep       | X16 | Keyword cannibalisation (heuristic)                        |
-| X06 | Duplicate titles            | X17 | Thin content                                               |
-| X07 | Duplicate descriptions      | X18 | URL structure                                              |
-| X08 | Duplicate content           | X19 | Slow responses (> 2 s, measured from the auditing machine) |
-| X09 | Near-duplicates (heuristic) | X20 | http:// internal links on an https site                    |
-| X10 | Sitemap URLs that fail      | X21 | Stale content (no update signal for 18 months)             |
-| X11 | noindex pages in sitemap    |     |                                                            |
+| ID  | Issue                                | ID  | Issue                                                      |
+| --- | ------------------------------------ | --- | ---------------------------------------------------------- |
+| X01 | Broken internal URLs                 | X15 | hreflang errors                                            |
+| X02 | Redirect chains                      | X16 | Keyword cannibalisation (heuristic)                        |
+| X03 | Links to redirecting URLs            | X17 | Thin content                                               |
+| X04 | Orphan pages                         | X18 | URL structure                                              |
+| X05 | Pages > 3 clicks deep                | X19 | Slow responses (> 2 s, measured from the auditing machine) |
+| X06 | Duplicate titles                     | X20 | http:// internal links on an https site                    |
+| X07 | Duplicate descriptions               | X21 | Stale content (no update signal for 18 months)             |
+| X08 | Duplicate content                    | X22 | Made-up URLs return HTTP 200 (soft 404)                    |
+| X09 | Near-duplicates (heuristic)          | X23 | Made-up URLs under one section return HTTP 200             |
+| X10 | Sitemap URLs that fail               | X24 | Crawler requests turned away (`--bots`)                    |
+| X11 | noindex pages in sitemap             | X25 | Crawlers get a different page than browsers (`--bots`)     |
+| X12 | Non-canonical URLs in sitemap        | X26 | Googlebot smartphone gets less than desktop (`--bots`)     |
+| X13 | Indexable pages missing from sitemap | X27 | URL parameters that multiply crawlable URLs (heuristic)    |
+| X14 | Canonical conflicts                  |     |                                                            |
+
+X22 and X23 come from two extra requests a multi-page `audit` sends after the crawl: one for a made-up URL at the root (`/url-trap-probe-<random>`) and one inside the first section it found. A healthy site answers both with 404 or 410. The probes respect `robots.txt` and `--delay`, are never sent for single-page audits, and `--no-probes` turns them off.
+
+X24–X26 come from the opt-in crawler check (`audit --bots`, or the `bots` command on its own): up to 10 pages are requested as Googlebot, Bingbot, Applebot and the AI crawlers and compared with a browser. Severity follows the most important crawler involved: search P1, AI search and assistants P2, training P3. The requests come from the auditing machine, so treat these as leads to confirm in the CDN or firewall.
+
+X27 (crawl budget) needs no extra requests. It reads the internal links of every audited page, including links the crawl skipped (crawler traps, robots.txt, the page cap), and groups those URLs by query parameter. Page-builder widget ids are folded into one parameter (`e-page-0b1537f` → `e-page-*`). Parameters named for pagination, filters, sorting, tracking, sessions or site search count as crawl traps, and so does any other parameter on 25 or more URLs. For each parameter it records the URL count, the highest number seen and 3 example URLs. URLs that robots.txt already disallows for Googlebot are counted but not reported. It is P2 from 25 crawlable trap URLs and P3 below that. The recommendation drafts robots.txt `Disallow` lines for the `User-agent: *` group, anchored on `?` and `&` (`Disallow: /*?orderby=` and `Disallow: /*&orderby=`), but these are suggestions only: robots.txt is never written. It also says when canonical tags or `noindex` fit better, because blocking pagination or filter URLs can hide pages that are only linked from them. `site-intelligence.json` holds the whole inventory under `crawlBudget`, and `site-report.md` lists it under "URL parameters in internal links". X18 no longer lists "3+ query parameters" for a URL that carries an X27 parameter.
 
 Issues marked _heuristic_ are labelled that way in every output.
 

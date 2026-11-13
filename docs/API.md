@@ -209,6 +209,7 @@ const analysis = analyzeSite({
   sitemapUrls: crawl.sitemapUrls,
   capped: crawl.capped,
   pageReports: crawl.pageReports, // the per-page Report objects
+  urlParameters: crawl.urlParameters, // query parameters in internal links → X27, analysis.crawlBudget
   canon: (u) => canonicalizeUrl(u),
 });
 for (const issue of analysis.issues) console.log(issue.id, issue.severity, issue.fixType, issue.count);

@@ -406,6 +406,74 @@ export interface CrawlOptions {
   blockPrivateIps?: boolean;
   all?: boolean;
   userAgent?: string;
+  /** Re-requests of a 429/502/503/504 page, honouring Retry-After (default 2; 0 disables). */
+  retries?: number;
+  /** Slow down for a host whose responses get slow (default true). */
+  autoThrottle?: boolean;
+  /** After the crawl, request two made-up URLs to detect soft 404s (default false). */
+  probes?: boolean;
+  /** Fixed suffix for the probe URLs (tests); random by default. */
+  probeToken?: string;
+}
+
+/** What the site answered for a URL that cannot exist. */
+export interface ProbeResult {
+  kind: "root" | "nested";
+  url: string;
+  /** Status the made-up URL itself answered (first hop; 0 = request failed). */
+  status: number;
+  /** Page title when it answered 200. */
+  title: string;
+}
+
+/** What a query parameter is for; "parameter" when no rule recognises it. */
+export type UrlParameterType =
+  "pagination" | "faceting" | "sort" | "tracking" | "session" | "search" | "parameter";
+
+/** One query parameter found in internal links (crawl budget, X27). */
+export interface UrlParameterKey {
+  /** Lowercased query key; page-builder widget ids folded (e-page-0b1537f → e-page-*). */
+  key: string;
+  type: UrlParameterType;
+  /** The rule that classified it, in words. */
+  why: string;
+  /** Distinct internal link URLs that carry it. */
+  count: number;
+  /** How many of those robots.txt already disallows for Googlebot. */
+  blocked: number;
+  /** Highest all-digit value seen (0 when none). */
+  maxNumber: number;
+  /** Up to 3 of those URLs, in the order found. */
+  examples: string[];
+  /** Recognised as a crawl-trap parameter, or seen on 25 or more URLs. */
+  trap: boolean;
+}
+
+/** Query parameters on the internal links of every audited page, crawled or skipped. */
+export interface UrlParameterInventory {
+  /** Audited pages whose links were read. */
+  pagesScanned: number;
+  /** Distinct internal link URLs on those pages. */
+  linksScanned: number;
+  /** Distinct internal link URLs that carry a query parameter. */
+  parameterLinks: number;
+  /** Pages with more internal links than the HTML parser keeps; their extra links were not read. */
+  pagesOverLinkCap: number;
+  /** URLs the sitemap lists, for scale (null when the crawl did not read the sitemap; at most 1,000). */
+  sitemapUrls: number | null;
+  /** Distinct parameters (`keys` keeps at most 200). */
+  keyCount: number;
+  /** Crawl-trap parameters with URLs that robots.txt does not disallow. */
+  trapKeys: number;
+  /** Distinct link URLs that carry a crawl-trap parameter and that robots.txt does not disallow. */
+  trapUrls: number;
+  /** Crawl traps first, then by type, highest value and URL count. */
+  keys: UrlParameterKey[];
+}
+
+/** The inventory plus robots.txt lines drafted for its crawl traps. Suggestions only; never applied. */
+export interface CrawlBudget extends UrlParameterInventory {
+  robotsRules: string[];
 }
 
 export interface CrawlResult {
@@ -419,6 +487,13 @@ export interface CrawlResult {
   capped: boolean;
   sitemapUrls: string[];
   orphanIndexes: number[];
+  /** Discovered URLs not crawled because they are crawler traps. */
+  trapsSkipped: number;
+  /** Query parameters on the internal links of every audited page, crawled or skipped (X27). */
+  urlParameters: UrlParameterInventory;
+  /** Why the crawl stopped early ("" when it did not). */
+  stoppedReason: string;
+  probes: ProbeResult[];
   startUrl: string;
 }
 
@@ -459,6 +534,8 @@ export interface SiteIssue {
   heuristic: boolean;
   count: number;
   urls: { url: string; detail: string }[];
+  /** Set when count and urls are not one per URL: "parameter" is one row per query parameter (X27). */
+  unit?: "parameter";
 }
 
 export interface SiteAnalysis {
@@ -467,6 +544,10 @@ export interface SiteAnalysis {
   issues: SiteIssue[];
   pageStats: unknown[];
   content: { topics: unknown[]; linkSuggestions: unknown[]; underlinkedPages: unknown[]; briefs: unknown[] };
+  /** The crawler check passed in as `bots` (null when none was run). */
+  crawlerCheck: BotCheckReport | null;
+  /** The URL-parameter inventory passed in as `urlParameters`, with drafted robots.txt lines (null without one). */
+  crawlBudget: CrawlBudget | null;
   methodology: Record<string, string>;
 }
 
@@ -479,8 +560,135 @@ export function analyzeSite(input: {
   pageReports?: any[];
   canon?: (u: string) => string;
   now?: number;
+  probes?: ProbeResult[];
+  /** Crawler readability check (runBotCheck) to report as X24–X26. */
+  bots?: BotCheckReport | null;
+  /** The crawl's query-parameter inventory (crawlSite's `urlParameters`) to report as X27. */
+  urlParameters?: UrlParameterInventory | null;
 }): SiteAnalysis;
 export function clickDepths(pages: PageFacts[]): Map<string, number>;
+
+// ---- Crawler readability check ----
+
+export type BotKind = "search" | "ai-search" | "ai-assistant" | "training";
+export type BotState =
+  | "same"
+  | "blocked"
+  | "challenged"
+  | "different"
+  | "redirected"
+  | "noindex"
+  | "thinner"
+  | "error"
+  | "disallowed";
+
+/** A crawler requested live, with the user agent its operator publishes. */
+export interface BotAgent {
+  id: string;
+  label: string;
+  kind: BotKind;
+  /** robots.txt product token */
+  token: string;
+  userAgent: string;
+}
+
+/** A robots.txt token checked against robots.txt only (no published user agent, or not a crawler). */
+export interface RobotsOnlyAgent {
+  id: string;
+  label: string;
+  kind: BotKind;
+  token: string;
+}
+
+/** One crawler's result on one page. */
+export interface BotCell {
+  state: BotState;
+  /** HTTP status the request got (0 = no answer, or not requested). */
+  status: number;
+  detail: string;
+  /** What differs: status, title, h1, canonical, text. */
+  fields?: string[];
+  words?: number;
+  /** Text similarity with the browser's page (0–1). */
+  similarity?: number;
+}
+
+export interface BotFinding {
+  type:
+    "blocked" | "challenged" | "different" | "redirected" | "noindex" | "thinner" | "disallowed" | "mobile";
+  agent: string;
+  label: string;
+  kind: BotKind;
+  detail: string;
+}
+
+export interface BotPageResult {
+  url: string;
+  baseline: {
+    status: number;
+    finalUrl: string;
+    title: string;
+    words: number;
+    selfSimilarity: number;
+    appShell: boolean;
+    error: string;
+  };
+  cells: Record<string, BotCell>;
+  /** Crawler id → robots.txt allows this page. */
+  robots: Record<string, boolean>;
+  /** Googlebot smartphone against Googlebot desktop. */
+  mobile: { mobileWords: number; desktopWords: number; fields: string[] } | null;
+  findings: BotFinding[];
+}
+
+export interface BotCheckReport {
+  checkedAt: string;
+  sample: string[];
+  agents: { id: string; label: string; kind: BotKind; live: boolean }[];
+  pages: BotPageResult[];
+  verdicts: Record<string, { state: BotState; counts: Record<string, number>; checked: number }>;
+  /** What the results cannot show (no JavaScript, robots.txt unreadable, pages that failed). */
+  notes: string[];
+  interrupted: boolean;
+}
+
+export interface BotCheckOptions {
+  /** The site's robots.txt ("" when there is none). */
+  robotsText?: string;
+  /** How robots.txt was read, when that limits the results. */
+  robotsNote?: string;
+  /** Also request crawlers that robots.txt disallows. */
+  force?: boolean;
+  /** ms between request starts (default 400). */
+  delay?: number;
+  /** Requests in flight (default 3). */
+  concurrency?: number;
+  timeoutMs?: number;
+  blockPrivateIps?: boolean;
+  interrupted?: () => boolean;
+  onProgress?: (done: number, total: number) => void;
+  sleep?: (ms: number) => Promise<unknown>;
+}
+
+export const BOT_AGENTS: readonly BotAgent[];
+export const BOT_ROBOTS_ONLY: readonly RobotsOnlyAgent[];
+export const BROWSER_USER_AGENT: string;
+/**
+ * Request each URL as a browser and as every crawler in BOT_AGENTS, then
+ * compare. Requests come from this machine: CDNs verify real crawlers by IP,
+ * so results are leads, not what the real crawler gets.
+ */
+export function runBotCheck(urls: string[], opts?: BotCheckOptions): Promise<BotCheckReport>;
+/** The start page, then one page per section, then the shallowest pages left. */
+export function sampleBotPages(
+  pages: Array<
+    Pick<PageFacts, "finalUrl" | "status"> &
+      Partial<Pick<PageFacts, "key" | "noindex" | "canonicalKey" | "contentHash">>
+  >,
+  n?: number,
+): string[];
+/** Google's robots.txt precedence; Applebot follows Googlebot's group when robots.txt does not name it. */
+export function botRobotsAllowed(robotsText: string, token: string, url: string): boolean;
 export function categoryScores(
   pageReports: any[],
 ): Record<string, { score: number | null; band: string; pages: number }>;

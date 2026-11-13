@@ -72,6 +72,11 @@ one-step-seo sitemap https://example.com --json
 one-step-seo llms https://example.com
 one-step-seo llms https://example.com --json
 
+# What Googlebot, Bingbot, Applebot and AI crawlers get, compared with a browser
+one-step-seo bots https://example.com
+one-step-seo bots https://example.com --pages 50 --json   # a sample of up to 10 crawled pages
+one-step-seo audit https://example.com --pages 50 --bots  # adds site issues X24-X26
+
 # Safe auto-fixes for local HTML (dry-run diff by default)
 one-step-seo fix ./dist/index.html
 one-step-seo fix ./dist/index.html --apply --url https://example.com/ --lang en
@@ -175,6 +180,49 @@ one-step-seo llms https://example.com
 one-step-seo llms https://example.com --json   # { tool, version, url, llmsFound, llmsBytes, starter, robotsSnippet }
 ```
 
+## The `bots` command
+
+`bots` checks whether search and AI crawlers can read a page, and whether
+they get the same page as people. The page is requested as a browser (twice,
+to see how much it changes on its own) and with the user agent each operator
+publishes: Googlebot smartphone and desktop, Bingbot, Applebot, OAI-SearchBot,
+PerplexityBot, ChatGPT-User, GPTBot and CCBot. Each answer is compared with
+the browser's:
+
+| Result        | Meaning                                                                                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| blocked       | HTTP 401, 403, 429 or 503 while the browser got the page (a recognised firewall is named)                                        |
+| challenged    | a CDN bot challenge ("Just a moment..."), reported and never solved                                                              |
+| different     | a different status, title, H1, canonical or text (3-word shingles; the threshold loosens for pages that change on every request) |
+| redirected    | sent to another URL                                                                                                              |
+| noindex       | a noindex the browser's page does not have (robots meta, the crawler's own meta tag, X-Robots-Tag)                               |
+| thinner       | under 70% of the browser's words                                                                                                 |
+| not requested | robots.txt disallows the crawler on that page (`--force` requests it anyway)                                                     |
+
+Googlebot smartphone is also compared with Googlebot desktop, because Google
+indexes the smartphone version. ClaudeBot, Claude-SearchBot, Claude-User,
+Google-Extended and Applebot-Extended get a robots.txt verdict only: they have
+no published user agent, or are not crawlers at all. robots.txt is read the
+way Google reads it (the longest matching rule wins, a tie goes to Allow), and
+Applebot follows the Googlebot group when robots.txt does not name it.
+
+With `--pages N` the site is crawled first and up to 10 pages are checked:
+the start page, then one page from each section. `audit --bots` runs the same
+check on the audited pages and reports problems as site issues `X24`
+(turned away), `X25` (a different page) and `X26` (mobile parity).
+
+Limits, repeated with every result: the requests come from your machine,
+while CDNs and firewalls recognise the real crawlers by IP address, so a block
+or a clean pass here can differ from what the real crawler gets. Treat a
+problem as a lead, and confirm Googlebot with the URL Inspection live test in
+Search Console. JavaScript is not run. Use it on sites you own or are allowed
+to test.
+
+```bash
+one-step-seo bots https://example.com
+one-step-seo bots https://example.com --json   # { tool, version, url, checkedAt, sample, agents, pages, verdicts, notes, interrupted }
+```
+
 ## Platform commands (audit → fix → verify → report → monitor)
 
 `--deep`, `--technical`, `--on-page`, `--competitors`, `fix <url>`, fix
@@ -263,13 +311,15 @@ review — `fix` closes the mechanical loop, judgment stays with you.
 | `--debug`             | —              | Verbose diagnostics: parsed audit parameters, `robots.txt` status, per-page timings (implies `--verbose` stacks)                                                                                                                                                                                                                           |
 | `--force`             | —              | Crawl even when `robots.txt` disallows the URL — use only on sites you own or are allowed to test; the refusal is otherwise reported as `T05-robots-disallow`                                                                                                                                                                              |
 | `--check-links`       | —              | Verify same-host link targets (P1 `T16-broken-links` for 4xx/5xx/failures; capped at 100 checks per run, off by default; skips already-audited and robots-disallowed targets)                                                                                                                                                              |
+| `--no-probes`         | —              | Skip the two soft-404 probes a multi-page `audit` sends after the crawl (a made-up URL at the root and one inside the first section; reported as `X22`/`X23` when they answer HTTP 200). Single-page audits never send them                                                                                                                |
+| `--bots`              | —              | `audit`: also request up to 10 of the audited pages as Googlebot (smartphone and desktop), Bingbot, Applebot and the AI crawlers, compare each answer with a browser's, and report `X24`–`X26` (see the `bots` command). Off by default                                                                                                    |
 | `--quiet, -q`         | —              | Suppress informational banners and progress chatter in CI and automated scripts                                                                                                                                                                                                                                                            |
 | `--block-private-ips` | —              | Block SSRF requests targeting private, loopback, or cloud metadata IP addresses (IPv4 RFC 1918, IPv6 ULA, IMDSv2, Oracle Cloud)                                                                                                                                                                                                            |
 | `--check-config`      | —              | `doctor`: validate CLI options, defaults, and environment health                                                                                                                                                                                                                                                                           |
 | `--skills LIST`       | —              | Comma list of executable CLI skill IDs, category names, or aliases to include (e.g., `onpage,schema,technical-seo`)                                                                                                                                                                                                                        |
 | `--exclude-skills L`  | —              | Comma list of executable CLI skill IDs, category names, or aliases to exclude                                                                                                                                                                                                                                                              |
 | `--offline`           | —              | Audit local HTML files or build directories offline with zero network requests                                                                                                                                                                                                                                                             |
-| `--json`              | —              | JSON to stdout (`sitemap`, `llms`, `doctor`, `fix`, `diff`, `ai`, `skills`)                                                                                                                                                                                                                                                                |
+| `--json`              | —              | JSON to stdout (`sitemap`, `llms`, `bots`, `doctor`, `fix`, `diff`, `ai`, `skills`)                                                                                                                                                                                                                                                        |
 | `--verbose`           | —              | Print error stacks on runtime failures (`VERBOSE=1` also works)                                                                                                                                                                                                                                                                            |
 | `--apply`             | —              | `fix`: write fixes to disk (default is a dry-run diff; creates `<file>.bak` unless `--no-backup`)                                                                                                                                                                                                                                          |
 | `--only NAMES`        | —              | `fix`: comma list restricting which fixers run (`charset,viewport,lang,title,description,canonical,og,og-url,twitter-card,favicon`)                                                                                                                                                                                                        |
@@ -316,6 +366,7 @@ PSI_API_KEY=your_key one-step-seo page https://example.com --psi --psi-strategy 
   Per-page reports link back to it with an “All N pages” breadcrumb.
 - `sitemap --json` shape: `{ origin, robotsFound, robotsSitemaps, sitemapFound, sitemapUrl, sitemapUrls, sitemapTruncated, llmsFound }`
 - `llms --json` shape: `{ tool, version, url, llmsFound, llmsBytes, starter, robotsSnippet }`
+- `bots --json` shape: `{ tool, version, url, checkedAt, sample, agents: [{ id, label, kind, live }], pages: [{ url, baseline, cells: { <crawler>: { state, status, detail, fields?, words?, similarity? } }, robots, mobile, findings }], verdicts: { <crawler>: { state, counts, checked } }, notes, interrupted }`
 - `ai --json` shape: `{ tool, version, url, aiScore, aiBand, searchScore, searchBand, signals: { robotsAiBlocked, blockedBots, llmsFound, llmsBytes, schemaTypes, hasAuthor, hasLandmarks, hasDirectAnswer }, findings, reports }`
 - `skills --json` shape: array of 22 `SkillDefinition` objects (or a single `SkillDefinition` when `<skill-id>` is provided).
 - `doctor --json` shape: `{ tool, version, node, nodeOk, fetch, terminal: { isTTY, color, noColor }, env: { PSI_API_KEY }, configCheck }`
@@ -345,6 +396,17 @@ const urls = await getSitemapUrls("https://example.com");
 
 // 3. Programmatic schema, scoring, and report generation
 // Types are fully exported in lib/index.d.ts
+```
+
+Crawl a site, check what crawlers get from a sample of its pages, and analyze it:
+
+```javascript
+import { crawlSite, sampleBotPages, runBotCheck, analyzeSite } from "one-step-seo";
+
+const crawl = await crawlSite("https://example.com/", { pages: 50, probes: true });
+const bots = await runBotCheck(sampleBotPages(crawl.pages), { robotsText: crawl.robotsText });
+const analysis = analyzeSite({ pages: crawl.pages, probes: crawl.probes, bots });
+console.log(analysis.issues.filter((i) => i.id.startsWith("X2")));
 ```
 
 Subpath exports are also available:
